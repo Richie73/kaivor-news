@@ -1,0 +1,21 @@
+def show_menu():
+    print()
+    print("=" * 50)
+    print("              MAIN MENU")
+    print("=" * 50)
+
+    print("1. Morning Briefing")
+    print("2. AI Intelligence")
+    print("3. Technology")
+    print("4. UK News")
+    print("5. World News")
+    print("6. Investment Research")
+    print("7. Football Analysis")
+    print("8. Android Apps")
+    print("9. Music")
+    print("10. Search Database")
+    print()
+    print("0. Exit")
+    print()
+
+    return input("Select option: ")

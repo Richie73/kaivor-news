@@ -1,0 +1,23 @@
+from feeds.rss import RSSReader
+
+AI_FEED = (
+    "OpenAI",
+    "https://openai.com/news/rss.xml"
+)
+
+
+def get_ai_news():
+
+    rss = RSSReader()
+
+    articles = rss.fetch(AI_FEED[0], AI_FEED[1])
+
+    print("\nLatest AI News\n")
+    print("-" * 60)
+
+    for i, article in enumerate(articles, start=1):
+
+        print(f"{i}. {article.title}")
+        print(article.published)
+        print(article.link)
+        print()
