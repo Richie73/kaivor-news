@@ -1,0 +1,2 @@
+# Kaivor
+Personal Intelligence Platform
