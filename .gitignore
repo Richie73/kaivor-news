@@ -20,3 +20,6 @@ venv/
 # Temporary files
 *.tmp
 *.bak
+
+config/local_config.py
+
