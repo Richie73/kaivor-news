@@ -1,9 +1,17 @@
+from core.logger import Logger
 from core.banner import show_banner
-from core.config import VERSION, OWNER, MODULES
+from core.config import MODULES
+from config.version import (
+    APP_NAME,
+    VERSION,
+    BUILD,
+    STATUS,
+    OWNER,
+    TAGLINE,
+)
 from core.menu import show_menu
 
-from modules.dashboard import show_dashboard
-
+from modules.developer.dashboard import developer_dashboard
 from modules.ai_news import get_ai_news
 from modules.technology import get_technology_news
 from modules.uk_news import get_uk_news
@@ -13,17 +21,26 @@ from modules.football import get_football_news
 from modules.android import get_android_news
 from modules.music import get_music_news
 from modules.search import search_database
+from modules.ai_daily_brief import get_ai_daily_brief
+from modules.diagnostics import diagnostics
+from modules.developer_tools import developer_tools
 
 
 def main():
+    Logger.info("Kaivor started")
     show_banner()
+    
 
     print()
+    print(TAGLINE)
+    print()
+
     print(f"Version : {VERSION}")
-    print("Status  : Ready")
+    print(f"Build   : {BUILD}")
+    print(f"Status  : {STATUS}")
     print()
 
-    print("Modules Loaded:")
+    print("Modules Loaded:")  
     for module in MODULES:
         print(f"✓ {module}")
 
@@ -36,7 +53,7 @@ def main():
         choice = show_menu()
 
         if choice == "1":
-            show_dashboard()
+            developer_dashboard()
 
         elif choice == "2":
             print("\nFetching AI Intelligence...\n")
@@ -72,13 +89,25 @@ def main():
             
         elif choice == "10":
             search_database()
+            
+        elif choice == "11":
+            print("\nGenerating AI Daily Brief...\n")
+            get_ai_daily_brief()
+            
+        elif choice == "12":
+            print("\nRunning System Diagnostics...\n")
+            diagnostics()
+            
+        elif choice.upper() == "D":
+            developer_tools()
 
         elif choice == "0":
-            print(f"\nGoodbye, {OWNER}.")
-            break
+          Logger.info("Kaivor closed")
+          print(f"\nGoodbye, {OWNER}.")
+          break
 
         else:
-            print("\nInvalid selection.\n")
+          print("\nInvalid selection.\n")
 
 
 if __name__ == "__main__":
