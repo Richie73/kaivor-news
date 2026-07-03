@@ -13,6 +13,7 @@ from modules.developer.cleanup import clean_pycache
 from modules.developer.backup import create_backup
 from modules.developer.restore import restore_backup
 from modules.developer.ui import pause
+from modules.developer.memory_console import memory_console
 
 def developer_menu():
 
@@ -62,6 +63,9 @@ def developer_menu():
             restore_backup()
             input("\nPress Enter to continue...")
 
+        elif choice == "11":
+            memory_console()
+        
         elif choice == "0":
             break
 
