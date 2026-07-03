@@ -63,6 +63,8 @@ def developer_dashboard():
     print("8. Clean __pycache__")
     print("9. Backup Project")
     print("10. Restore Backup")
+    print("11. Memory Manager")
     print()
     print("0. Return")
     print()
+
