@@ -2,12 +2,12 @@
 Kaivor AI Engine
 """
 
-from core.providers.manager import ProviderManager
-from core.ai.usage import UsageLogger
-from core.ai.tasks import AITasks
-from core.ai.request import AIRequest
-from core.ai.prompt_builder import PromptBuilder
 from core.ai.conversation import ConversationManager
+from core.ai.prompt_builder import PromptBuilder
+from core.ai.request import AIRequest
+from core.ai.router import AIRouter
+from core.ai.tasks import AITasks
+from core.ai.usage import UsageLogger
 from core.config import Config
 
 
@@ -15,7 +15,7 @@ class AIEngine:
     """Central AI execution engine."""
 
     def __init__(self):
-        self.providers = ProviderManager()
+        self.router = AIRouter()
         self.logger = UsageLogger()
         self.prompt_builder = PromptBuilder()
         self.conversation = ConversationManager()
@@ -67,35 +67,22 @@ class AIEngine:
             max_tokens=self.config.get("max_tokens", 2048),
         )
 
-        last_error = None
+        provider = self.router.select()
 
-        for provider_name in self.providers.fallback_chain():
+        response = provider.generate(request)
 
-            provider = self.providers.get(provider_name)
+        if self.config.get("conversation_memory", True):
+            self.conversation.add_user(prompt)
+            self.conversation.add_assistant(response)
 
-            try:
-
-                response = provider.generate(request)
-
-                if self.config.get("conversation_memory", True):
-                    self.conversation.add_user(prompt)
-                    self.conversation.add_assistant(response)
-
-                self.logger.log(
-                    provider=provider.name,
-                    model=self.config.get(
-                        "default_model",
-                        "deepseek-chat",
-                    ),
-                    prompt=prompt,
-                    response=response,
-                )
-
-                return response
-
-            except Exception as exc:
-                last_error = exc
-
-        raise RuntimeError(
-            f"All providers failed. Last error: {last_error}"
+        self.logger.log(
+            provider=provider.name,
+            model=self.config.get(
+                "default_model",
+                "deepseek-chat",
+            ),
+            prompt=prompt,
+            response=response,
         )
+
+        return response

@@ -2,30 +2,52 @@
 Kaivor AI Router
 """
 
-from core.ai.resource_manager import AIResourceManager
 from core.providers.manager import ProviderManager
+from core.ai.scoring import ProviderScorer
 
 
 class AIRouter:
-    """Central AI routing engine."""
+    """Selects the best available AI provider."""
+
+    STRATEGY_PRIORITY = "priority"
+    STRATEGY_FASTEST = "fastest"
+    STRATEGY_CHEAPEST = "cheapest"
+    STRATEGY_BEST = "best"
 
     def __init__(self):
-        self.resources = AIResourceManager()
-        self.providers = ProviderManager()
+        self.manager = ProviderManager()
+        self.scorer = ProviderScorer()
 
-    def current_mode(self):
-        return self.resources.get_mode()
+    def select(self, strategy=STRATEGY_PRIORITY):
 
-    def selected_model(self):
-        return self.resources.select_model()
+        providers = self.available()
 
-    def available_providers(self):
-        return self.providers.enabled()
+        if not providers:
+            raise RuntimeError(
+                "No configured AI providers available."
+            )
 
-    def primary_provider(self):
-        enabled = self.providers.enabled()
+        ranked = self.scorer.rank(providers)
 
-        if not enabled:
-            raise RuntimeError("No AI providers are enabled.")
+        return ranked[0]
 
-        return enabled[0]
+    def available(self):
+
+        providers = []
+
+        for name in self.manager.fallback_chain():
+
+            provider = self.manager.get(name)
+
+            if provider is None:
+                continue
+
+            try:
+
+                if provider.configured():
+                    providers.append(provider)
+
+            except Exception:
+                pass
+
+        return providers

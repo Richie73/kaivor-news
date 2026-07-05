@@ -11,7 +11,11 @@ from core.app import run_application
 from commands.ai import run as run_ai
 from commands.test import run as run_tests
 from commands.wallet import run as run_wallet
-
+from commands.doctor import run as doctor_command
+from commands.providers import run as providers_command
+from commands.system import run as system_command
+from commands.status import run as status_command
+from commands.benchmark import run as benchmark_command
 
 def run_cli():
     """Handle command-line mode."""
@@ -22,10 +26,15 @@ def run_cli():
     command = sys.argv[1].lower()
 
     commands = {
-        "ai": run_ai,
-        "test": run_tests,
-        "wallet": run_wallet,
-    }
+    "ai": run_ai,
+    "test": run_tests,
+    "wallet": run_wallet,
+    "doctor": doctor_command,
+    "providers": providers_command,
+    "system": system_command,
+    "status": status_command,
+    "benchmark": benchmark_command,
+}
 
     action = commands.get(command)
 
