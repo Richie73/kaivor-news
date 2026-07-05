@@ -19,3 +19,14 @@ output/
 # OS
 .DS_Store
 Thumbs.db
+
+# Kaivor Secrets
+config/secrets.py
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environments
+venv/
+.env
