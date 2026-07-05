@@ -1,0 +1,16 @@
+{
+    "mode": "economy",
+
+    "default_provider": "DeepSeek",
+    "default_model": "deepseek-chat",
+
+    "temperature": 0.2,
+    "max_tokens": 2048,
+
+    "conversation_memory": true,
+    "conversation_limit": 20,
+
+    "fallback_enabled": true,
+
+    "system_prompt": "You are Kaivor, an intelligent AI operating system."
+}

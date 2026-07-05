@@ -1,0 +1,163 @@
+[
+    {
+        "timestamp": "2026-07-03T22:03:37.700946",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 5,
+        "response_length": 12
+    },
+    {
+        "timestamp": "2026-07-03T22:10:46.366545",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 40,
+        "response_length": 20
+    },
+    {
+        "timestamp": "2026-07-03T22:14:23.123526",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 43,
+        "response_length": 23
+    },
+    {
+        "timestamp": "2026-07-03T22:24:59.638368",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 38,
+        "response_length": 18
+    },
+    {
+        "timestamp": "2026-07-03T22:36:56.203873",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T07:43:08.583010",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T07:43:56.401757",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 31,
+        "response_length": 11
+    },
+    {
+        "timestamp": "2026-07-04T08:22:43.459417",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T08:29:09.820385",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 20,
+        "response_length": 898
+    },
+    {
+        "timestamp": "2026-07-04T08:29:11.768604",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 0,
+        "response_length": 142
+    },
+    {
+        "timestamp": "2026-07-04T08:31:11.328698",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 18,
+        "response_length": 1686
+    },
+    {
+        "timestamp": "2026-07-04T15:41:05.683048",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 28
+    },
+    {
+        "timestamp": "2026-07-04T21:38:11.324025",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 11,
+        "response_length": 182
+    },
+    {
+        "timestamp": "2026-07-04T21:38:46.431467",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T21:42:07.955994",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 28,
+        "response_length": 175
+    },
+    {
+        "timestamp": "2026-07-04T21:42:33.155722",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 28,
+        "response_length": 30
+    },
+    {
+        "timestamp": "2026-07-04T21:43:01.514272",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T07:31:29.976021",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 17,
+        "response_length": 51
+    },
+    {
+        "timestamp": "2026-07-05T07:31:45.114181",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 16,
+        "response_length": 20
+    },
+    {
+        "timestamp": "2026-07-05T07:32:03.332214",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 16,
+        "response_length": 66
+    },
+    {
+        "timestamp": "2026-07-05T07:32:54.823567",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T07:49:51.726794",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 12,
+        "response_length": 133
+    },
+    {
+        "timestamp": "2026-07-05T07:53:32.465068",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    }
+]

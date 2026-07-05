@@ -1,0 +1,34 @@
+[
+    {
+        "role": "user",
+        "content": "What is my name?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don't know your name unless you tell me. What should I call you?"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Who are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "I am Kaivor, an intelligent AI operating system designed to assist, inform, and interact with you in a helpful and thoughtful manner."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    }
+]
