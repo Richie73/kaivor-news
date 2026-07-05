@@ -1,59 +1,56 @@
 """
-Kaivor AI Scoring Engine
+Kaivor Provider Scoring
 """
 
-from core.ai.registry import get_models
-from core.ai.settings import AIMode, get_mode
+from core.ai.provider_stats import ProviderStats
 
 
-def score_models():
-    """Return AI models sorted by score."""
+class ProviderScorer:
+    """Scores AI providers."""
 
-    mode = get_mode()
+    def __init__(self):
+        self.stats = ProviderStats()
 
-    scored = []
-
-    for name, model in get_models().items():
+    def score(self, provider):
 
         score = 0
 
-        # Quality
-        score += model["quality"] * 10
-
-        # Speed
-        score += model["speed"] * 5
-
-        # Context Window
-        score += model["context"] // 50000
-
-        # Cost Preference
-        if mode == AIMode.FREE:
-
-            if model["free"]:
-                score += 1000
-            else:
-                score -= 1000
-
-        elif mode == AIMode.ECONOMY:
-
-            if model["free"]:
+        try:
+            if provider.configured():
                 score += 100
 
-        elif mode == AIMode.BALANCED:
+        except Exception:
+            return 0
 
-            if model["free"]:
-                score += 25
+        stat = self.stats.summary().get(provider.name)
 
-        elif mode == AIMode.PREMIUM:
+        if stat:
 
-            if not model["free"]:
-                score += 100
+            score += stat["success"] * 2
+            score -= stat["failure"] * 5
 
-        scored.append((name, score))
+            latency = stat["average_latency"]
 
-    scored.sort(
-        key=lambda x: x[1],
-        reverse=True,
-    )
+            if latency > 0:
 
-    return scored
+                if latency < 0.5:
+                    score += 15
+
+                elif latency < 1:
+                    score += 10
+
+                elif latency < 2:
+                    score += 5
+
+        return max(score, 0)
+
+    def rank(self, providers):
+        """Return providers ordered by score."""
+
+        ranked = sorted(
+            providers,
+            key=self.score,
+            reverse=True,
+        )
+
+        return ranked

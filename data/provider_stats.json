@@ -1,0 +1,14 @@
+{
+    "DeepSeek": {
+        "success": 1,
+        "failure": 0,
+        "latency": [
+            0.35
+        ]
+    },
+    "OpenAI": {
+        "success": 0,
+        "failure": 1,
+        "latency": []
+    }
+}

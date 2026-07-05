@@ -89,3 +89,21 @@ class ProviderManager:
             return None
 
         return chain[index + 1]
+
+    def health(self):
+        """Return provider configuration status."""
+
+        status = {}
+
+        for name, provider in self.providers.items():
+
+            try:
+                status[name] = provider.configured()
+
+            except Exception:
+                status[name] = False
+
+        return status
+
+
+
