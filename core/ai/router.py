@@ -2,38 +2,59 @@
 Kaivor AI Router
 """
 
-from core.providers.manager import ProviderManager
+from config.config import ConfigManager
+from core.ai.models import ModelRegistry
 from core.ai.scoring import ProviderScorer
+from core.ai.tasks import AITasks
+from core.providers.manager import ProviderManager
 
 
 class AIRouter:
     """Selects the best available AI provider."""
 
-    STRATEGY_PRIORITY = "priority"
-    STRATEGY_FASTEST = "fastest"
-    STRATEGY_CHEAPEST = "cheapest"
-    STRATEGY_BEST = "best"
-
     def __init__(self):
         self.manager = ProviderManager()
         self.scorer = ProviderScorer()
+        self.models = ModelRegistry()
+        self.config = ConfigManager()
 
-    def select(self, strategy=STRATEGY_PRIORITY):
+    def select(self, task=AITasks.CHAT):
 
-        providers = self.available()
+        providers = self.available(task)
 
         if not providers:
             raise RuntimeError(
-                "No configured AI providers available."
+                f"No configured providers available for task: {task}"
             )
 
         ranked = self.scorer.rank(providers)
 
         return ranked[0]
 
-    def available(self):
+    def available(self, task=AITasks.CHAT):
+
+        routing = self.config.task_routing()
+
+        preferred = routing.get(task.lower())
 
         providers = []
+
+        if preferred:
+
+            provider = self.manager.get(preferred)
+
+            if (
+                provider
+                and self.models.supports(provider.name, task.lower())
+            ):
+                try:
+                    if provider.configured():
+                        providers.append(provider)
+                except Exception:
+                    pass
+
+        if providers:
+            return providers
 
         for name in self.manager.fallback_chain():
 
@@ -42,11 +63,12 @@ class AIRouter:
             if provider is None:
                 continue
 
-            try:
+            if not self.models.supports(provider.name, task.lower()):
+                continue
 
+            try:
                 if provider.configured():
                     providers.append(provider)
-
             except Exception:
                 pass
 

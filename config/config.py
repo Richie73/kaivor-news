@@ -11,6 +11,9 @@ class ConfigManager:
 
     CONFIG_DIR = Path("config")
 
+    def task_routing(self):
+        return self.load("task_routing.json")
+
     def load(self, filename):
         path = self.CONFIG_DIR / filename
 

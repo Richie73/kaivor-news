@@ -2,8 +2,11 @@
 Kaivor AI Engine
 """
 
+import time
+
 from core.ai.conversation import ConversationManager
 from core.ai.prompt_builder import PromptBuilder
+from core.ai.provider_stats import ProviderStats
 from core.ai.request import AIRequest
 from core.ai.router import AIRouter
 from core.ai.tasks import AITasks
@@ -17,6 +20,7 @@ class AIEngine:
     def __init__(self):
         self.router = AIRouter()
         self.logger = UsageLogger()
+        self.stats = ProviderStats()
         self.prompt_builder = PromptBuilder()
         self.conversation = ConversationManager()
         self.config = Config()
@@ -50,7 +54,7 @@ class AIEngine:
 
         system = self.config.get(
             "system_prompt",
-            "You are Kaivor."
+            "You are Kaivor.",
         )
 
         request_history = []
@@ -67,9 +71,23 @@ class AIEngine:
             max_tokens=self.config.get("max_tokens", 2048),
         )
 
-        provider = self.router.select()
+        provider = self.router.select(task)
 
-        response = provider.generate(request)
+        try:
+            start = time.perf_counter()
+
+            response = provider.generate(request)
+
+            elapsed = time.perf_counter() - start
+
+            self.stats.record_success(
+                provider.name,
+                elapsed,
+            )
+
+        except Exception:
+            self.stats.record_failure(provider.name)
+            raise
 
         if self.config.get("conversation_memory", True):
             self.conversation.add_user(prompt)

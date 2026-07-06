@@ -16,6 +16,10 @@ from commands.providers import run as providers_command
 from commands.system import run as system_command
 from commands.status import run as status_command
 from commands.benchmark import run as benchmark_command
+from commands.routing import run as routing_command
+from commands.models import run as models_command
+from commands.capabilities import run as capabilities_command
+from commands.analytics import run as analytics_command
 
 def run_cli():
     """Handle command-line mode."""
@@ -34,6 +38,10 @@ def run_cli():
     "system": system_command,
     "status": status_command,
     "benchmark": benchmark_command,
+    "routing": routing_command,
+    "models": models_command,
+    "capabilities": capabilities_command,
+    "analytics": analytics_command,
 }
 
     action = commands.get(command)
