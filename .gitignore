@@ -1,32 +1,44 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 
 # Virtual environments
 .venv/
 venv/
+env/
 
-# Project output
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test & coverage
+.coverage
+.pytest_cache/
+htmlcov/
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Local configuration
+.env
+
+# Generated project files
+project_tree.txt
+source_tree.txt
+
+# Runtime data
+*.sqlite
+*.db
+
+# Backups
 backups/
-releases/
-logs/*.log
-output/
 
-# Archives
-*.zip
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
-
-# Kaivor Secrets
-config/secrets.py
-
-# Python
-__pycache__/
-*.pyc
-
-# Virtual Environments
-venv/
-.env

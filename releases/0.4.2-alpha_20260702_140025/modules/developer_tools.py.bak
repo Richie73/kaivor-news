@@ -1,0 +1,133 @@
+"""
+Kaivor Developer Tools
+
+Foundation Pack 005
+Version: 0.4.2
+"""
+
+from pathlib import Path
+
+
+def developer_tools():
+    """Developer tools menu."""
+
+    while True:
+
+        print()
+        print("=" * 50)
+        print("        KAIVOR DEVELOPER TOOLS")
+        print("=" * 50)
+
+        print("1. Run System Diagnostics")
+        print("2. View Log File")
+        print("3. Clear Log File")
+        print("4. Run AI Test")
+        print("5. Build Release")
+        print("6. Git Status")
+        print("7. Project Statistics")
+        print("8. Clean __pycache__")
+        print("9. Verify Project Structure")
+        print()
+        print("0. Return")
+        print()
+
+        choice = input("Select option: ").strip()
+
+        if choice == "1":
+
+            from modules.diagnostics import diagnostics
+
+            print()
+            diagnostics()
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "2":
+
+            log_file = Path("logs/kaivor.log")
+
+            print()
+
+            if log_file.exists():
+
+                print("=" * 60)
+                print("KAIVOR LOG")
+                print("=" * 60)
+                print()
+
+                print(log_file.read_text(encoding="utf-8"))
+
+            else:
+
+                print("No log file found.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "3":
+
+            log_file = Path("logs/kaivor.log")
+
+            if log_file.exists():
+
+                confirm = input(
+                    "Clear the log file? (y/N): "
+                ).strip().lower()
+
+                if confirm == "y":
+
+                    log_file.write_text("", encoding="utf-8")
+                    print("\nLog file cleared.")
+
+                else:
+
+                    print("\nCancelled.")
+
+            else:
+
+                print("\nNo log file found.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "4":
+
+            print("\nAI test will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "5":
+
+            print("\nRelease Builder will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "6":
+
+            print("\nGit tools will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "7":
+
+            print("\nProject statistics will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "8":
+
+            print("\nPycache cleaner will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "9":
+
+            print("\nProject verification will be implemented in Foundation Pack 006.")
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "0":
+
+            break
+
+        else:
+
+            print("\nInvalid selection.")
