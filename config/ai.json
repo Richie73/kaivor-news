@@ -12,5 +12,9 @@
 
     "fallback_enabled": true,
 
+    "retry_attempts": 2,
+
+    "streaming": true,
+
     "system_prompt": "You are Kaivor, an intelligent AI operating system."
 }

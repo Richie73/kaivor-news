@@ -27,7 +27,7 @@ class AIRouter:
                 f"No configured providers available for task: {task}"
             )
 
-        ranked = self.scorer.rank(providers)
+        ranked = self.rank(task)
 
         return ranked[0]
 
@@ -63,7 +63,10 @@ class AIRouter:
             if provider is None:
                 continue
 
-            if not self.models.supports(provider.name, task.lower()):
+            if not self.models.supports(
+                provider.name,
+                task.lower(),
+            ):
                 continue
 
             try:
@@ -73,3 +76,15 @@ class AIRouter:
                 pass
 
         return providers
+
+    def rank(self, task=AITasks.CHAT):
+        """Return providers ordered by current score."""
+
+        providers = self.available(task)
+
+        return self.scorer.rank(providers)
+
+    def failover(self, task=AITasks.CHAT):
+        """Return providers in failover order."""
+
+        return self.rank(task)

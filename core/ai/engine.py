@@ -71,23 +71,50 @@ class AIEngine:
             max_tokens=self.config.get("max_tokens", 2048),
         )
 
-        provider = self.router.select(task)
+        providers = self.router.failover(task)
 
-        try:
-            start = time.perf_counter()
+        response = None
 
-            response = provider.generate(request)
+        retry_attempts = self.config.get(
+            "retry_attempts",
+            2,
+        )
 
-            elapsed = time.perf_counter() - start
+        for provider in providers:
 
-            self.stats.record_success(
-                provider.name,
-                elapsed,
+            attempts = retry_attempts
+
+            while attempts > 0:
+
+                try:
+                    start = time.perf_counter()
+
+                    response = provider.generate(request)
+
+                    elapsed = time.perf_counter() - start
+
+                    self.stats.record_success(
+                        provider.name,
+                        elapsed,
+                    )
+
+                    attempts = 0
+                    break
+
+                except Exception:
+                    attempts -= 1
+
+                    self.stats.record_failure(
+                        provider.name,
+                    )
+
+            if response is not None:
+                break
+
+        if response is None:
+            raise RuntimeError(
+                "All providers failed."
             )
-
-        except Exception:
-            self.stats.record_failure(provider.name)
-            raise
 
         if self.config.get("conversation_memory", True):
             self.conversation.add_user(prompt)
