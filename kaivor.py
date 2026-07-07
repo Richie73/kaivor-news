@@ -20,6 +20,7 @@ from commands.routing import run as routing_command
 from commands.models import run as models_command
 from commands.capabilities import run as capabilities_command
 from commands.analytics import run as analytics_command
+from commands.recommend import run as recommend_command
 
 def run_cli():
     """Handle command-line mode."""
@@ -42,6 +43,7 @@ def run_cli():
     "models": models_command,
     "capabilities": capabilities_command,
     "analytics": analytics_command,
+    "recommend": recommend_command,
 }
 
     action = commands.get(command)

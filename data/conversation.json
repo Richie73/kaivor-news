@@ -302,5 +302,125 @@
     {
         "role": "assistant",
         "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello! How can I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "whst is my name"
+    },
+    {
+        "role": "assistant",
+        "content": "You haven't told me your name yet. What would you like me to call you?"
+    },
+    {
+        "role": "user",
+        "content": "Richie"
+    },
+    {
+        "role": "assistant",
+        "content": "Nice to meet you, Richie! How can I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "Write a Python function that reverses a string."
+    },
+    {
+        "role": "assistant",
+        "content": "Here's a simple Python function that reverses a string:\n\n```python\ndef reverse_string(s):\n    return s[::-1]\n```\n\nThis uses Python's slicing feature with a step of `-1` to reverse the string. You can use it like this:\n\n```python\nprint(reverse_string(\"hello\"))  # Output: \"olleh\"\n```\n\nAlternatively, you could use the `reversed()` function and `join()`:\n\n```python\ndef reverse_string(s):\n    return ''.join(reversed(s))\n```\n\nBoth approaches work correctly. Let me know if you'd like an explanation or a version that handles edge cases!"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello again, Richie! How can I help you today?"
+    },
+    {
+        "role": "user",
+        "content": "whatvis 2+2"
+    },
+    {
+        "role": "assistant",
+        "content": "2 + 2 equals 4."
+    },
+    {
+        "role": "user",
+        "content": "are you sure?"
+    },
+    {
+        "role": "assistant",
+        "content": "Yes, I'm sure. In standard arithmetic, 2 + 2 equals 4."
+    },
+    {
+        "role": "user",
+        "content": "nano core/ai/stream.py"
+    },
+    {
+        "role": "assistant",
+        "content": "It looks like you're referencing a file path: `core/ai/stream.py`. This appears to be a Python module, possibly part of a larger project.\n\nHow can I help you with this file? For example, do you want me to:\n\n- Explain what a typical `stream.py` in an AI core module might contain?\n- Help you write or debug code for streaming AI responses?\n- Analyze or suggest improvements for a specific function?\n\nLet me know what you need!"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
     }
 ]
