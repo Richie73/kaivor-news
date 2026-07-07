@@ -12,11 +12,14 @@ class AIRequest:
     user: str
     system: str = ""
     history: list = field(default_factory=list)
+    context: str = ""
     temperature: float = 0.2
     max_tokens: int = 2048
 
     @property
     def messages(self):
+        """Return provider-ready messages."""
+
         messages = []
 
         if self.system:
@@ -24,6 +27,17 @@ class AIRequest:
                 {
                     "role": "system",
                     "content": self.system,
+                }
+            )
+
+        if self.context:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Knowledge Context:\n\n"
+                        f"{self.context}"
+                    ),
                 }
             )
 

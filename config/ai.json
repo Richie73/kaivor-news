@@ -16,5 +16,8 @@
 
     "streaming": true,
 
+    "parallel_execution": false,
+    "parallel_workers": 4,
+
     "system_prompt": "You are Kaivor, an intelligent AI operating system."
 }
