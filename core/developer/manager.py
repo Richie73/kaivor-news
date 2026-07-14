@@ -6,7 +6,7 @@ from core.developer.dashboard import DeveloperDashboard
 from core.developer.doctor import DeveloperDoctor
 from core.developer.build import BuildManager
 from core.developer.snapshot import DeveloperSnapshot
-
+from core.developer.status import DeveloperStatus
 
 class DeveloperManager:
     """Developer Mode controller."""
@@ -17,6 +17,7 @@ class DeveloperManager:
         self.doctor = DeveloperDoctor()
         self.build = BuildManager()
         self.snapshot = DeveloperSnapshot()
+        self.status = DeveloperStatus()
 
     def dashboard_view(self):
         self.dashboard.show()
@@ -29,3 +30,6 @@ class DeveloperManager:
 
     def snapshot_project(self):
         self.snapshot.run()
+
+    def project_status(self):
+        self.status.run()
