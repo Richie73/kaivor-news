@@ -36,16 +36,16 @@ class DeveloperDashboard:
         print("-" * 60)
 
         utilities = [
-            "doctor",
-            "snapshot",
-            "build",
-            "test",
-            "status",
-            "commit",
-            "push",
-            "release",
-        ]
-
+          "dev",
+          "doctor",
+          "snapshot",
+          "build",
+          "test",
+          "status",
+          "commit",
+          "push",
+          "release",
+]
         for utility in utilities:
             print(f"  • {utility}")
 
