@@ -4,66 +4,44 @@ Kaivor Command Registry
 
 
 class CommandRegistry:
-    """Central registry for shell commands."""
+    """Registers shell commands."""
 
     def __init__(self):
-        self._commands = {}
+        self.commands = {}
 
-    def register(self, name, handler, aliases=None):
-        """
-        Register a command.
+    def register(self, command):
 
-        Parameters
-        ----------
-        name : str
-            Primary command name.
+        self.commands[command.name.lower()] = command
 
-        handler : callable
-            Function or callable object.
-
-        aliases : list[str] | tuple[str] | None
-            Optional aliases.
-        """
-
-        aliases = aliases or []
-
-        self._commands[name.lower()] = handler
-
-        for alias in aliases:
-            self._commands[alias.lower()] = handler
-
-    def unregister(self, name):
-        """Remove a registered command."""
-
-        self._commands.pop(name.lower(), None)
+        for alias in getattr(command, "aliases", []):
+            self.commands[alias.lower()] = command
 
     def exists(self, name):
-        """Return True if a command exists."""
+        return name.lower() in self.commands
 
-        return name.lower() in self._commands
+    def execute(self, text):
 
-    def execute(self, name, text):
-        """Execute a command."""
-
-        handler = self._commands.get(name.lower())
-
-        if handler is None:
+        if not text:
             return False
 
-        handler(text)
+        command_name = text.split()[0].lower()
+
+        command = self.commands.get(command_name)
+
+        if command is None:
+            return False
+
+        command.execute(text)
+
         return True
 
     def names(self):
-        """Return sorted unique command names."""
 
-        return sorted(set(self._commands.keys()))
+        names = []
 
-    def clear(self):
-        """Remove all registered commands."""
+        for command in self.commands.values():
 
-        self._commands.clear()
+            if command.name not in names:
+                names.append(command.name)
 
-    def count(self):
-        """Return number of registered commands."""
-
-        return len(self._commands)
+        return sorted(names)
