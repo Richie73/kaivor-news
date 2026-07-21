@@ -14,17 +14,26 @@ class HelpCommand(BaseCommand):
 
     def execute(self, text=None):
 
+        commands = [
+            ("help", "Display this help"),
+            ("search <text>", "Search current workspace"),
+            ("workspace list", "List workspaces"),
+            ("workspace current", "Show active workspace"),
+            ("workspace create <name>", "Create workspace"),
+            ("workspace switch <name>", "Switch workspace"),
+            ("note add <title>", "Create note"),
+            ("note list", "List notes"),
+            ("note open <title>", "Open note"),
+            ("note delete <title>", "Delete note"),
+            ("clear", "Clear screen"),
+            ("exit", "Exit Kaivor"),
+        ]
+
         print()
         print("Available Commands")
         print("-" * 60)
-        print("help")
-        print("clear")
-        print("exit")
-        print()
-        print("search <text>")
-        print()
-        print("workspace list")
-        print("workspace current")
-        print("workspace create <name>")
-        print("workspace switch <name>")
+
+        for command, description in commands:
+            print(f"{command:<28} {description}")
+
         print()

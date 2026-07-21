@@ -1,0 +1,91 @@
+
+"""
+Kaivor Task Command
+"""
+
+from core.tasks import Tasks
+
+
+class TaskCommand:
+
+    def __init__(self, workspace):
+        self.tasks = Tasks(workspace)
+
+    @property
+    def name(self):
+        return "task"
+
+    def execute(self, text):
+        print("DEBUG: TaskCommand.execute() called")
+
+        parts = text.split(maxsplit=2)
+
+        if len(parts) < 2:
+            return self.help()
+
+        command = parts[1].lower()
+
+        if command == "list":
+            return self.list()
+
+        if command == "create":
+
+            if len(parts) < 3:
+                print("Usage: task create <name>")
+                return
+
+            self.tasks.create(parts[2])
+            print("Task created.")
+            return
+
+        if command == "done":
+
+            if len(parts) < 3:
+                print("Usage: task done <name>")
+                return
+
+            self.tasks.complete(parts[2])
+            print("Task completed.")
+            return
+
+        if command == "delete":
+
+            if len(parts) < 3:
+                print("Usage: task delete <name>")
+                return
+
+            self.tasks.delete(parts[2])
+            print("Task deleted.")
+            return
+
+        self.help()
+
+    def list(self):
+
+        print()
+
+        tasks = self.tasks.list()
+
+        if not tasks:
+            print("No tasks.")
+            print()
+            return
+
+        for task in tasks:
+
+            data = self.tasks.read(task)
+
+            marker = "[x]" if data["completed"] else "[ ]"
+
+            print(f"{marker} {task}")
+
+        print()
+
+    def help(self):
+
+        print()
+        print("task create <name>")
+        print("task list")
+        print("task done <name>")
+        print("task delete <name>")
+        print()

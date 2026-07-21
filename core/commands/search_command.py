@@ -31,7 +31,7 @@ class SearchCommand(BaseCommand):
         query = parts[1]
 
         results = self.search.search(
-            self.workspace.path(),
+            self.workspace.current(),
             query,
         )
 
