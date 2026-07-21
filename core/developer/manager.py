@@ -7,6 +7,8 @@ from core.developer.doctor import DeveloperDoctor
 from core.developer.build import BuildManager
 from core.developer.snapshot import DeveloperSnapshot
 from core.developer.status import DeveloperStatus
+from core.developer.menu import DeveloperMenu
+from core.developer.help import DeveloperHelp
 
 class DeveloperManager:
     """Developer Mode controller."""
@@ -18,6 +20,8 @@ class DeveloperManager:
         self.build = BuildManager()
         self.snapshot = DeveloperSnapshot()
         self.status = DeveloperStatus()
+        self.menu = DeveloperMenu(self)
+        self.help = DeveloperHelp()
 
     def dashboard_view(self):
         self.dashboard.show()
@@ -33,3 +37,9 @@ class DeveloperManager:
 
     def project_status(self):
         self.status.run()
+
+    def run(self):
+        self.menu.run()
+
+    def developer_help(self):
+        self.help.run()

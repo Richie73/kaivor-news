@@ -1,36 +1,45 @@
 """
-Kaivor Knowledge Search Command
+Kaivor Search Command
 """
 
-import sys
+from textwrap import fill
 
-from core.knowledge.store import KnowledgeStore
+from core.knowledge.search_service import SearchService
 
 
-def run():
-    """Search the knowledge directory."""
+def run(query):
+    """Search the knowledge base."""
 
-    if len(sys.argv) < 3:
-        print("Usage:")
-        print("python kaivor.py search <query>")
-        return
+    service = SearchService()
 
-    query = " ".join(sys.argv[2:])
+    results = service.search(query)
 
-    store = KnowledgeStore()
-
-    store.load_directory("knowledge")
-
-    results = store.search(query)
+    print()
+    print("=" * 60)
+    print(f'Search Results: "{query}"')
+    print("=" * 60)
+    print()
 
     if not results:
-        print(f'No documents found for "{query}".')
+        print("No matching documents found.")
         return
 
-    print(f"\nFound {len(results)} document(s):\n")
+    print(f"Found {len(results)} document(s):\n")
 
-    
-for document in results:
-    print(f"• {document.title}")
-    print(f"  Path: {document.path}")
-    print()
+    for result in results:
+
+        document = result["document"]
+        excerpt = result["excerpt"]
+
+        print(f"📄 {document.title}")
+        print(f"   {document.path}")
+        print()
+
+        if excerpt:
+            print(fill(excerpt, width=72))
+        else:
+            print("(No preview available)")
+
+        print()
+        print("-" * 60)
+        print()

@@ -1,0 +1,1186 @@
+.
+├── CHANGELOG.md
+├── Kaivor_FP006_Source.zip
+├── README.md
+├── ROADMAP.md
+├── __pycache__
+│   ├── kaivor.cpython-313.pyc
+│   └── kaivor.cpython-314.pyc
+├── ai
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── __init__.cpython-314.pyc
+│   │   ├── brain.cpython-313.pyc
+│   │   ├── brain.cpython-314.pyc
+│   │   ├── exceptions.cpython-313.pyc
+│   │   ├── exceptions.cpython-314.pyc
+│   │   ├── prompts.cpython-313.pyc
+│   │   ├── prompts.cpython-314.pyc
+│   │   ├── providers.cpython-313.pyc
+│   │   ├── providers.cpython-314.pyc
+│   │   ├── response.cpython-313.pyc
+│   │   ├── response.cpython-314.pyc
+│   │   ├── summariser.cpython-313.pyc
+│   │   └── summariser.cpython-314.pyc
+│   ├── brain.py
+│   ├── exceptions.py
+│   ├── memory.py
+│   ├── models.py
+│   ├── planner.py
+│   ├── prompts.py
+│   ├── providers.py
+│   ├── response.py
+│   └── summariser.py
+├── audit
+│   ├── json_files.txt
+│   ├── markdown_files.txt
+│   ├── python_files.txt
+│   └── tree.txt
+├── backups
+│   ├── 20260702_082800
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── kaivor.py
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   └── scripts
+│   │       ├── backup.py
+│   │       ├── doctor.py
+│   │       ├── new_module.py
+│   │       └── release.py
+│   ├── 20260702_093906
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── kaivor.py
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   └── scripts
+│   │       ├── backup.py
+│   │       ├── doctor.py
+│   │       ├── new_module.py
+│   │       └── release.py
+│   ├── 20260702_095908
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── kaivor.py
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   └── scripts
+│   │       ├── backup.py
+│   │       ├── doctor.py
+│   │       ├── new_module.py
+│   │       └── release.py
+│   ├── 20260702_101447
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── kaivor.py
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   └── scripts
+│   │       ├── backup.py
+│   │       ├── doctor.py
+│   │       ├── new_module.py
+│   │       └── release.py
+│   ├── 20260702_130704
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── kaivor.py
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   └── scripts
+│   │       ├── backup.py
+│   │       ├── doctor.py
+│   │       ├── new_module.py
+│   │       └── release.py
+│   ├── 20260702_135126
+│   │   ├── README.md
+│   │   ├── ai
+│   │   │   ├── __init__.py
+│   │   │   ├── brain.py
+│   │   │   ├── exceptions.py
+│   │   │   ├── memory.py
+│   │   │   ├── models.py
+│   │   │   ├── planner.py
+│   │   │   ├── prompts.py
+│   │   │   ├── providers.py
+│   │   │   ├── response.py
+│   │   │   └── summariser.py
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── docs
+│   │   │   ├── AI.md
+│   │   │   ├── API.md
+│   │   │   ├── Architecture.md
+│   │   │   └── Development.md
+│   │   ├── feeds
+│   │   │   ├── feed_manager.py
+│   │   │   ├── rss.py
+│   │   │   └── rss_old.py
+│   │   ├── kaivor.py
+│   │   ├── logs
+│   │   │   └── kaivor.log
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   ├── scripts
+│   │   │   ├── backup.py
+│   │   │   ├── doctor.py
+│   │   │   ├── new_module.py
+│   │   │   └── release.py
+│   │   └── tests
+│   │       ├── test_ai.py
+│   │       ├── test_config.py
+│   │       ├── test_database.py
+│   │       ├── test_feeds.py
+│   │       └── test_search.py
+│   └── 20260702_143956
+│       ├── README.md
+│       ├── ai
+│       │   ├── __init__.py
+│       │   ├── brain.py
+│       │   ├── exceptions.py
+│       │   ├── memory.py
+│       │   ├── models.py
+│       │   ├── planner.py
+│       │   ├── prompts.py
+│       │   ├── providers.py
+│       │   ├── response.py
+│       │   └── summariser.py
+│       ├── config
+│       │   ├── feeds.py
+│       │   ├── local_config.py
+│       │   ├── settings.py
+│       │   ├── sources
+│       │   └── version.py
+│       ├── core
+│       │   ├── article.py
+│       │   ├── banner.py
+│       │   ├── briefing.py
+│       │   ├── config.py
+│       │   ├── display.py
+│       │   ├── logger.py
+│       │   ├── menu.py
+│       │   ├── news_engine.py
+│       │   └── plugins.py
+│       ├── database
+│       │   ├── articles.json
+│       │   ├── cache.json
+│       │   ├── history.json
+│       │   ├── search.py
+│       │   ├── stats.py
+│       │   └── storage.py
+│       ├── docs
+│       │   ├── AI.md
+│       │   ├── API.md
+│       │   ├── Architecture.md
+│       │   └── Development.md
+│       ├── feeds
+│       │   ├── feed_manager.py
+│       │   ├── rss.py
+│       │   └── rss_old.py
+│       ├── kaivor.py
+│       ├── logs
+│       │   └── kaivor.log
+│       ├── modules
+│       │   ├── ai_daily_brief.py
+│       │   ├── ai_news.py
+│       │   ├── android.py
+│       │   ├── dashboard.py
+│       │   ├── developer
+│       │   ├── developer_tools.py
+│       │   ├── developer_tools.py.bak
+│       │   ├── diagnostics.py
+│       │   ├── football.py
+│       │   ├── investment.py
+│       │   ├── markets.py
+│       │   ├── music.py
+│       │   ├── news_category.py
+│       │   ├── search.py
+│       │   ├── technology.py
+│       │   ├── uk_news.py
+│       │   ├── weather.py
+│       │   └── world_news.py
+│       ├── scripts
+│       │   ├── backup.py
+│       │   ├── doctor.py
+│       │   ├── new_module.py
+│       │   └── release.py
+│       └── tests
+│           ├── test_ai.py
+│           ├── test_config.py
+│           ├── test_database.py
+│           ├── test_feeds.py
+│           └── test_search.py
+├── commands
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── __init__.cpython-314.pyc
+│   │   ├── ai.cpython-313.pyc
+│   │   ├── ai.cpython-314.pyc
+│   │   ├── analytics.cpython-313.pyc
+│   │   ├── analytics.cpython-314.pyc
+│   │   ├── ask.cpython-314.pyc
+│   │   ├── benchmark.cpython-313.pyc
+│   │   ├── benchmark.cpython-314.pyc
+│   │   ├── capabilities.cpython-313.pyc
+│   │   ├── capabilities.cpython-314.pyc
+│   │   ├── doctor.cpython-313.pyc
+│   │   ├── doctor.cpython-314.pyc
+│   │   ├── models.cpython-313.pyc
+│   │   ├── models.cpython-314.pyc
+│   │   ├── providers.cpython-313.pyc
+│   │   ├── providers.cpython-314.pyc
+│   │   ├── recommend.cpython-313.pyc
+│   │   ├── recommend.cpython-314.pyc
+│   │   ├── routing.cpython-313.pyc
+│   │   ├── routing.cpython-314.pyc
+│   │   ├── search.cpython-313.pyc
+│   │   ├── search.cpython-314.pyc
+│   │   ├── status.cpython-313.pyc
+│   │   ├── status.cpython-314.pyc
+│   │   ├── summarise.cpython-314.pyc
+│   │   ├── system.cpython-313.pyc
+│   │   ├── system.cpython-314.pyc
+│   │   ├── test.cpython-313.pyc
+│   │   ├── test.cpython-314.pyc
+│   │   ├── verify.cpython-314.pyc
+│   │   ├── wallet.cpython-313.pyc
+│   │   └── wallet.cpython-314.pyc
+│   ├── ai.py
+│   ├── analytics.py
+│   ├── ask.py
+│   ├── benchmark.py
+│   ├── capabilities.py
+│   ├── doctor.py
+│   ├── models.py
+│   ├── providers.py
+│   ├── recommend.py
+│   ├── routing.py
+│   ├── search.py
+│   ├── status.py
+│   ├── summarise.py
+│   ├── system.py
+│   ├── test.py
+│   ├── verify.py
+│   └── wallet.py
+├── config
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── __init__.cpython-314.pyc
+│   │   ├── config.cpython-313.pyc
+│   │   ├── config.cpython-314.pyc
+│   │   ├── local_config.cpython-313.pyc
+│   │   ├── local_config.cpython-314.pyc
+│   │   ├── secrets.cpython-313.pyc
+│   │   ├── secrets.cpython-314.pyc
+│   │   ├── settings.cpython-313.pyc
+│   │   ├── settings.cpython-314.pyc
+│   │   ├── version.cpython-313.pyc
+│   │   └── version.cpython-314.pyc
+│   ├── ai.json
+│   ├── config.py
+│   ├── feeds.py
+│   ├── local_config.py
+│   ├── providers.json
+│   ├── secrets.py
+│   ├── settings.py
+│   ├── sources
+│   │   ├── __pycache__
+│   │   │   ├── ai.cpython-313.pyc
+│   │   │   ├── ai.cpython-314.pyc
+│   │   │   ├── android.cpython-313.pyc
+│   │   │   ├── android.cpython-314.pyc
+│   │   │   ├── football.cpython-313.pyc
+│   │   │   ├── football.cpython-314.pyc
+│   │   │   ├── investment.cpython-313.pyc
+│   │   │   ├── investment.cpython-314.pyc
+│   │   │   ├── music.cpython-313.pyc
+│   │   │   ├── music.cpython-314.pyc
+│   │   │   ├── technology.cpython-313.pyc
+│   │   │   ├── technology.cpython-314.pyc
+│   │   │   ├── uk.cpython-313.pyc
+│   │   │   ├── uk.cpython-314.pyc
+│   │   │   ├── world.cpython-313.pyc
+│   │   │   └── world.cpython-314.pyc
+│   │   ├── ai.py
+│   │   ├── android.py
+│   │   ├── football.py
+│   │   ├── investment.py
+│   │   ├── music.py
+│   │   ├── technology.py
+│   │   ├── uk.py
+│   │   └── world.py
+│   ├── task_routing.json
+│   ├── version.py
+│   └── wallet.json
+├── core
+│   ├── __pycache__
+│   │   ├── app.cpython-313.pyc
+│   │   ├── app.cpython-314.pyc
+│   │   ├── article.cpython-313.pyc
+│   │   ├── article.cpython-314.pyc
+│   │   ├── banner.cpython-313.pyc
+│   │   ├── banner.cpython-314.pyc
+│   │   ├── command_registry.cpython-314.pyc
+│   │   ├── config.cpython-313.pyc
+│   │   ├── config.cpython-314.pyc
+│   │   ├── debug.cpython-314.pyc
+│   │   ├── dependency_checker.cpython-314.pyc
+│   │   ├── diagnostics.cpython-314.pyc
+│   │   ├── display.cpython-313.pyc
+│   │   ├── display.cpython-314.pyc
+│   │   ├── logger.cpython-313.pyc
+│   │   ├── logger.cpython-314.pyc
+│   │   ├── menu.cpython-313.pyc
+│   │   ├── menu.cpython-314.pyc
+│   │   ├── news_engine.cpython-313.pyc
+│   │   ├── news_engine.cpython-314.pyc
+│   │   ├── shell.cpython-314.pyc
+│   │   ├── system_info.cpython-314.pyc
+│   │   ├── universal_search.cpython-314.pyc
+│   │   ├── version.cpython-314.pyc
+│   │   └── workspace.cpython-314.pyc
+│   ├── ai
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── base.cpython-313.pyc
+│   │   │   ├── base.cpython-314.pyc
+│   │   │   ├── conversation.cpython-313.pyc
+│   │   │   ├── conversation.cpython-314.pyc
+│   │   │   ├── engine.cpython-313.pyc
+│   │   │   ├── engine.cpython-314.pyc
+│   │   │   ├── executor.cpython-313.pyc
+│   │   │   ├── http_client.cpython-313.pyc
+│   │   │   ├── model_registry.cpython-313.pyc
+│   │   │   ├── model_registry.cpython-314.pyc
+│   │   │   ├── models.cpython-313.pyc
+│   │   │   ├── models.cpython-314.pyc
+│   │   │   ├── prompt_builder.cpython-313.pyc
+│   │   │   ├── prompt_builder.cpython-314.pyc
+│   │   │   ├── prompts.cpython-313.pyc
+│   │   │   ├── prompts.cpython-314.pyc
+│   │   │   ├── provider_stats.cpython-313.pyc
+│   │   │   ├── provider_stats.cpython-314.pyc
+│   │   │   ├── registry.cpython-313.pyc
+│   │   │   ├── request.cpython-313.pyc
+│   │   │   ├── request.cpython-314.pyc
+│   │   │   ├── resource_manager.cpython-313.pyc
+│   │   │   ├── resource_manager.cpython-314.pyc
+│   │   │   ├── router.cpython-313.pyc
+│   │   │   ├── router.cpython-314.pyc
+│   │   │   ├── scoring.cpython-313.pyc
+│   │   │   ├── scoring.cpython-314.pyc
+│   │   │   ├── settings.cpython-313.pyc
+│   │   │   ├── settings.cpython-314.pyc
+│   │   │   ├── stream.cpython-313.pyc
+│   │   │   ├── tasks.cpython-313.pyc
+│   │   │   ├── tasks.cpython-314.pyc
+│   │   │   ├── usage.cpython-313.pyc
+│   │   │   ├── usage.cpython-314.pyc
+│   │   │   ├── wallet.cpython-313.pyc
+│   │   │   └── wallet.cpython-314.pyc
+│   │   ├── base.py
+│   │   ├── conversation.py
+│   │   ├── engine.py
+│   │   ├── executor.py
+│   │   ├── http_client.py
+│   │   ├── model_registry.py
+│   │   ├── models.py
+│   │   ├── prompt_builder.py
+│   │   ├── prompts.py
+│   │   ├── provider_stats.py
+│   │   ├── providers.py
+│   │   ├── registry.py
+│   │   ├── request.py
+│   │   ├── resource_manager.py
+│   │   ├── router.py
+│   │   ├── scoring.py
+│   │   ├── settings.py
+│   │   ├── stream.py
+│   │   ├── tasks.py
+│   │   ├── usage.py
+│   │   └── wallet.py
+│   ├── app.py
+│   ├── article.py
+│   ├── banner.py
+│   ├── briefing.py
+│   ├── command_registry.py
+│   ├── commands
+│   │   ├── __pycache__
+│   │   │   ├── help_command.cpython-314.pyc
+│   │   │   ├── search_command.cpython-314.pyc
+│   │   │   └── workspace_command.cpython-314.pyc
+│   │   ├── help_command.py
+│   │   ├── search_command.py
+│   │   └── workspace_command.py
+│   ├── config.py
+│   ├── database
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       └── __init__.cpython-313.pyc
+│   ├── debug.py
+│   ├── dependency_checker.py
+│   ├── diagnostics.py
+│   ├── display.py
+│   ├── integrations
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       └── __init__.cpython-313.pyc
+│   ├── knowledge
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── config.cpython-314.pyc
+│   │   │   ├── context_builder.cpython-314.pyc
+│   │   │   ├── context_prompt.cpython-314.pyc
+│   │   │   ├── document.cpython-313.pyc
+│   │   │   ├── document.cpython-314.pyc
+│   │   │   ├── document_index.cpython-314.pyc
+│   │   │   ├── document_loader.cpython-314.pyc
+│   │   │   ├── document_summariser.cpython-314.pyc
+│   │   │   ├── docx_reader.cpython-314.pyc
+│   │   │   ├── indexed_document.cpython-314.pyc
+│   │   │   ├── indexer.cpython-314.pyc
+│   │   │   ├── passage_ranker.cpython-314.pyc
+│   │   │   ├── pdf_reader.cpython-313.pyc
+│   │   │   ├── query_rewriter.cpython-314.pyc
+│   │   │   ├── rag_service.cpython-314.pyc
+│   │   │   ├── retrieval_service.cpython-314.pyc
+│   │   │   ├── retriever.cpython-314.pyc
+│   │   │   ├── search_service.cpython-314.pyc
+│   │   │   ├── store.cpython-313.pyc
+│   │   │   └── store.cpython-314.pyc
+│   │   ├── config.py
+│   │   ├── context_builder.py
+│   │   ├── context_prompt.py
+│   │   ├── document.py
+│   │   ├── document_index.py
+│   │   ├── document_loader.py
+│   │   ├── document_summariser.py
+│   │   ├── docx_reader.py
+│   │   ├── indexed_document.py
+│   │   ├── indexer.py
+│   │   ├── passage_ranker.py
+│   │   ├── pdf_reader.py
+│   │   ├── query_rewriter.py
+│   │   ├── rag_service.py
+│   │   ├── retrieval_service.py
+│   │   ├── retriever.py
+│   │   ├── search_service.py
+│   │   └── store.py
+│   ├── logger.py
+│   ├── memory
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── api.cpython-313.pyc
+│   │   │   ├── api.cpython-314.pyc
+│   │   │   ├── database.cpython-313.pyc
+│   │   │   ├── database.cpython-314.pyc
+│   │   │   ├── manager.cpython-313.pyc
+│   │   │   ├── manager.cpython-314.pyc
+│   │   │   ├── models.cpython-313.pyc
+│   │   │   ├── models.cpython-314.pyc
+│   │   │   ├── search.cpython-313.pyc
+│   │   │   └── storage.cpython-313.pyc
+│   │   ├── api.py
+│   │   ├── database.py
+│   │   ├── manager.py
+│   │   ├── models.py
+│   │   ├── search.py
+│   │   └── storage.py
+│   ├── menu.py
+│   ├── news_engine.py
+│   ├── plugins.py
+│   ├── providers
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── anthropic.cpython-313.pyc
+│   │   │   ├── anthropic.cpython-314.pyc
+│   │   │   ├── base.cpython-313.pyc
+│   │   │   ├── base.cpython-314.pyc
+│   │   │   ├── deepseek.cpython-313.pyc
+│   │   │   ├── deepseek.cpython-314.pyc
+│   │   │   ├── discovery.cpython-313.pyc
+│   │   │   ├── google.cpython-313.pyc
+│   │   │   ├── google.cpython-314.pyc
+│   │   │   ├── manager.cpython-313.pyc
+│   │   │   ├── manager.cpython-314.pyc
+│   │   │   ├── ollama.cpython-313.pyc
+│   │   │   ├── ollama.cpython-314.pyc
+│   │   │   ├── openai.cpython-313.pyc
+│   │   │   ├── openai.cpython-314.pyc
+│   │   │   ├── openrouter.cpython-313.pyc
+│   │   │   └── openrouter.cpython-314.pyc
+│   │   ├── anthropic.py
+│   │   ├── base.py
+│   │   ├── deepseek.py
+│   │   ├── discovery.py
+│   │   ├── google.py
+│   │   ├── manager.py
+│   │   ├── ollama.py
+│   │   ├── openai.py
+│   │   └── openrouter.py
+│   ├── security
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       └── __init__.cpython-313.pyc
+│   ├── services
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       └── __init__.cpython-313.pyc
+│   ├── shell.py
+│   ├── system_info.py
+│   ├── ui
+│   │   ├── __pycache__
+│   │   │   └── dashboard.cpython-314.pyc
+│   │   └── dashboard.py
+│   ├── universal_search.py
+│   ├── version.py
+│   └── workspace.py
+├── data
+│   ├── ai_usage.json
+│   ├── conversation.json
+│   ├── kaivor_memory.db
+│   └── provider_stats.json
+├── database
+│   ├── __pycache__
+│   │   ├── search.cpython-313.pyc
+│   │   ├── search.cpython-314.pyc
+│   │   ├── storage.cpython-313.pyc
+│   │   └── storage.cpython-314.pyc
+│   ├── articles.json
+│   ├── cache.json
+│   ├── history.json
+│   ├── search.py
+│   ├── stats.py
+│   └── storage.py
+├── docs
+│   ├── AI.md
+│   ├── API.md
+│   ├── Architecture.md
+│   ├── Development.md
+│   ├── KAEM.md
+│   ├── business
+│   ├── construction
+│   ├── knowledge
+│   ├── projects
+│   ├── quick-reference
+│   ├── technology
+│   ├── tools
+│   └── vehicles
+├── feeds
+│   ├── __pycache__
+│   │   ├── feed_manager.cpython-313.pyc
+│   │   ├── feed_manager.cpython-314.pyc
+│   │   ├── rss.cpython-313.pyc
+│   │   └── rss.cpython-314.pyc
+│   ├── feed_manager.py
+│   ├── rss.py
+│   └── rss_old.py
+├── install.py
+├── kaivor.py
+├── kaivor.py.bak
+├── knowledge
+│   ├── Business
+│   │   ├── Contracts
+│   │   ├── Quotes
+│   │   └── Templates
+│   ├── Construction
+│   │   ├── COSHH
+│   │   ├── Drawings
+│   │   ├── Lift Plans
+│   │   ├── Manufacturer Manuals
+│   │   ├── Method Statements
+│   │   ├── Site Photos
+│   │   ├── Standards
+│   │   ├── Toolbox Talks
+│   │   ├── qualifications
+│   │   │   └── SMSTS.pdf
+│   │   └── rams
+│   │       └── Master Rams.docx
+│   ├── Finance
+│   │   ├── Bank Statements
+│   │   ├── Investment Statements
+│   │   ├── Payslips
+│   │   ├── Pension Information
+│   │   ├── Self-Employed Records
+│   │   └── Tax Documents
+│   ├── Personal
+│   │   ├── Documents
+│   │   ├── Health
+│   │   ├── Home
+│   │   ├── ID's
+│   │   ├── Insurance
+│   │   └── Vehicles
+│   ├── Reference
+│   │   ├── Guides
+│   │   ├── Manuals
+│   │   └── Standards
+│   └── Test
+│       └── demo.txt
+├── logs
+│   └── kaivor.log
+├── memory
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── database.cpython-313.pyc
+│   │   ├── models.cpython-313.pyc
+│   │   └── storage.cpython-313.pyc
+│   ├── database.py
+│   ├── models.py
+│   └── storage.py
+├── modules
+│   ├── __pycache__
+│   │   ├── ai_daily_brief.cpython-313.pyc
+│   │   ├── ai_daily_brief.cpython-314.pyc
+│   │   ├── ai_news.cpython-313.pyc
+│   │   ├── ai_news.cpython-314.pyc
+│   │   ├── android.cpython-313.pyc
+│   │   ├── android.cpython-314.pyc
+│   │   ├── developer_tools.cpython-313.pyc
+│   │   ├── developer_tools.cpython-314.pyc
+│   │   ├── diagnostics.cpython-313.pyc
+│   │   ├── diagnostics.cpython-314.pyc
+│   │   ├── football.cpython-313.pyc
+│   │   ├── football.cpython-314.pyc
+│   │   ├── investment.cpython-313.pyc
+│   │   ├── investment.cpython-314.pyc
+│   │   ├── music.cpython-313.pyc
+│   │   ├── music.cpython-314.pyc
+│   │   ├── news_category.cpython-313.pyc
+│   │   ├── news_category.cpython-314.pyc
+│   │   ├── search.cpython-313.pyc
+│   │   ├── search.cpython-314.pyc
+│   │   ├── technology.cpython-313.pyc
+│   │   ├── technology.cpython-314.pyc
+│   │   ├── uk_news.cpython-313.pyc
+│   │   ├── uk_news.cpython-314.pyc
+│   │   ├── world_news.cpython-313.pyc
+│   │   └── world_news.cpython-314.pyc
+│   ├── ai_daily_brief.py
+│   ├── ai_news.py
+│   ├── android.py
+│   ├── dashboard.py
+│   ├── developer
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── backup.cpython-313.pyc
+│   │   │   ├── backup.cpython-314.pyc
+│   │   │   ├── cleanup.cpython-313.pyc
+│   │   │   ├── cleanup.cpython-314.pyc
+│   │   │   ├── dashboard.cpython-313.pyc
+│   │   │   ├── dashboard.cpython-314.pyc
+│   │   │   ├── git_tools.cpython-313.pyc
+│   │   │   ├── git_tools.cpython-314.pyc
+│   │   │   ├── logs.cpython-313.pyc
+│   │   │   ├── logs.cpython-314.pyc
+│   │   │   ├── memory_console.cpython-313.pyc
+│   │   │   ├── memory_console.cpython-314.pyc
+│   │   │   ├── menu.cpython-313.pyc
+│   │   │   ├── menu.cpython-314.pyc
+│   │   │   ├── release_tools.cpython-313.pyc
+│   │   │   ├── release_tools.cpython-314.pyc
+│   │   │   ├── restore.cpython-313.pyc
+│   │   │   ├── restore.cpython-314.pyc
+│   │   │   ├── statistics.cpython-313.pyc
+│   │   │   ├── statistics.cpython-314.pyc
+│   │   │   ├── time_utils.cpython-313.pyc
+│   │   │   ├── time_utils.cpython-314.pyc
+│   │   │   ├── ui.cpython-313.pyc
+│   │   │   ├── ui.cpython-314.pyc
+│   │   │   ├── verification.cpython-313.pyc
+│   │   │   └── verification.cpython-314.pyc
+│   │   ├── backup.py
+│   │   ├── cleanup.py
+│   │   ├── dashboard.py
+│   │   ├── git_tools.py
+│   │   ├── logs.py
+│   │   ├── maintenance.py
+│   │   ├── memory_console.py
+│   │   ├── menu.py
+│   │   ├── release_tools.py
+│   │   ├── restore.py
+│   │   ├── statistics.py
+│   │   ├── time_utils.py
+│   │   ├── ui.py
+│   │   └── verification.py
+│   ├── developer_tools.py
+│   ├── developer_tools.py.bak
+│   ├── diagnostics.py
+│   ├── football.py
+│   ├── investment.py
+│   ├── markets.py
+│   ├── music.py
+│   ├── news_category.py
+│   ├── search.py
+│   ├── technology.py
+│   ├── uk_news.py
+│   ├── weather.py
+│   └── world_news.py
+├── output
+├── project_tree.txt
+├── prompts
+├── py_compile
+├── releases
+│   ├── 0.4.2-alpha_20260702_140025
+│   │   ├── README.md
+│   │   ├── ai
+│   │   │   ├── __init__.py
+│   │   │   ├── brain.py
+│   │   │   ├── exceptions.py
+│   │   │   ├── memory.py
+│   │   │   ├── models.py
+│   │   │   ├── planner.py
+│   │   │   ├── prompts.py
+│   │   │   ├── providers.py
+│   │   │   ├── response.py
+│   │   │   └── summariser.py
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── docs
+│   │   │   ├── AI.md
+│   │   │   ├── API.md
+│   │   │   ├── Architecture.md
+│   │   │   └── Development.md
+│   │   ├── feeds
+│   │   │   ├── feed_manager.py
+│   │   │   ├── rss.py
+│   │   │   └── rss_old.py
+│   │   ├── kaivor.py
+│   │   ├── logs
+│   │   │   └── kaivor.log
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   ├── scripts
+│   │   │   ├── backup.py
+│   │   │   ├── doctor.py
+│   │   │   ├── new_module.py
+│   │   │   └── release.py
+│   │   └── tests
+│   │       ├── test_ai.py
+│   │       ├── test_config.py
+│   │       ├── test_database.py
+│   │       ├── test_feeds.py
+│   │       └── test_search.py
+│   ├── 0.4.2-alpha_20260702_143945
+│   │   ├── README.md
+│   │   ├── ai
+│   │   │   ├── __init__.py
+│   │   │   ├── brain.py
+│   │   │   ├── exceptions.py
+│   │   │   ├── memory.py
+│   │   │   ├── models.py
+│   │   │   ├── planner.py
+│   │   │   ├── prompts.py
+│   │   │   ├── providers.py
+│   │   │   ├── response.py
+│   │   │   └── summariser.py
+│   │   ├── config
+│   │   │   ├── feeds.py
+│   │   │   ├── local_config.py
+│   │   │   ├── settings.py
+│   │   │   ├── sources
+│   │   │   └── version.py
+│   │   ├── core
+│   │   │   ├── article.py
+│   │   │   ├── banner.py
+│   │   │   ├── briefing.py
+│   │   │   ├── config.py
+│   │   │   ├── display.py
+│   │   │   ├── logger.py
+│   │   │   ├── menu.py
+│   │   │   ├── news_engine.py
+│   │   │   └── plugins.py
+│   │   ├── database
+│   │   │   ├── articles.json
+│   │   │   ├── cache.json
+│   │   │   ├── history.json
+│   │   │   ├── search.py
+│   │   │   ├── stats.py
+│   │   │   └── storage.py
+│   │   ├── docs
+│   │   │   ├── AI.md
+│   │   │   ├── API.md
+│   │   │   ├── Architecture.md
+│   │   │   └── Development.md
+│   │   ├── feeds
+│   │   │   ├── feed_manager.py
+│   │   │   ├── rss.py
+│   │   │   └── rss_old.py
+│   │   ├── kaivor.py
+│   │   ├── logs
+│   │   │   └── kaivor.log
+│   │   ├── modules
+│   │   │   ├── ai_daily_brief.py
+│   │   │   ├── ai_news.py
+│   │   │   ├── android.py
+│   │   │   ├── dashboard.py
+│   │   │   ├── developer
+│   │   │   ├── developer_tools.py
+│   │   │   ├── developer_tools.py.bak
+│   │   │   ├── diagnostics.py
+│   │   │   ├── football.py
+│   │   │   ├── investment.py
+│   │   │   ├── markets.py
+│   │   │   ├── music.py
+│   │   │   ├── news_category.py
+│   │   │   ├── search.py
+│   │   │   ├── technology.py
+│   │   │   ├── uk_news.py
+│   │   │   ├── weather.py
+│   │   │   └── world_news.py
+│   │   ├── scripts
+│   │   │   ├── backup.py
+│   │   │   ├── doctor.py
+│   │   │   ├── new_module.py
+│   │   │   └── release.py
+│   │   └── tests
+│   │       ├── test_ai.py
+│   │       ├── test_config.py
+│   │       ├── test_database.py
+│   │       ├── test_feeds.py
+│   │       └── test_search.py
+│   ├── v0.4.2-alpha
+│   │   ├── CHANGELOG.md
+│   │   ├── INSTALL.md
+│   │   └── README.md
+│   └── v0.4.2-foundation
+│       ├── CHANGELOG.md
+│       ├── INSTALL.md
+│       └── README.md
+├── requirements.txt
+├── scripts
+│   ├── backup.py
+│   ├── doctor.py
+│   ├── new_module.py
+│   └── release.py
+├── source_tree.txt
+├── test.py
+├── tests
+│   ├── __pycache__
+│   │   ├── run_all.cpython-313.pyc
+│   │   └── run_all.cpython-314.pyc
+│   ├── run_all.py
+│   ├── test_ai.py
+│   ├── test_config.py
+│   ├── test_database.py
+│   ├── test_feeds.py
+│   └── test_search.py
+├── update.py
+└── workspace
+    ├── Business
+    │   ├── agents
+    │   ├── chats
+    │   ├── documents
+    │   ├── exports
+    │   ├── knowledge
+    │   ├── notes
+    │   ├── projects
+    │   └── tasks
+    ├── Default
+    │   ├── agents
+    │   ├── chats
+    │   ├── documents
+    │   ├── exports
+    │   ├── knowledge
+    │   ├── notes
+    │   ├── projects
+    │   └── tasks
+    ├── Personal
+    │   ├── agents
+    │   ├── chats
+    │   ├── documents
+    │   ├── exports
+    │   ├── knowledge
+    │   ├── notes
+    │   ├── projects
+    │   └── tasks
+    └── Research
+        ├── agents
+        ├── chats
+        ├── documents
+        ├── exports
+        ├── knowledge
+        ├── notes
+        ├── projects
+        └── tasks
+
+227 directories, 957 files
