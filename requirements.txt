@@ -1,0 +1,6 @@
+flask
+flask-sqlalchemy
+feedparser
+requests
+psycopg2-binary
+gunicorn
