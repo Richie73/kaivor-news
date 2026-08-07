@@ -6,36 +6,41 @@ from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import google.generativeai as genai
 
-# Setup logging so we can see errors in Render logs
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# --- DATABASE SETUP ---
-# Fix for Render/Supabase connection strings
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///news.db')
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# --- DATABASE LOGIC ---
+def get_db_url():
+    raw_url = os.environ.get('DATABASE_URL', '').strip()
+    
+    if not raw_url:
+        logger.info("DATABASE_URL is empty. Using local SQLite.")
+        return 'sqlite:///news.db'
+    
+    # Fix 'postgres://' to 'postgresql://' (Required by SQLAlchemy)
+    if raw_url.startswith("postgres://"):
+        raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+    
+    # Add SSL mode for Supabase/Cloud providers
+    if "postgresql" in raw_url and "sslmode" not in raw_url:
+        sep = "&" if "?" in raw_url else "?"
+        raw_url += f"{sep}sslmode=require"
+    
+    return raw_url
 
-# Add SSL requirement for Supabase if using Postgres
-if "postgresql" in DATABASE_URL and "sslmode" not in DATABASE_URL:
-    if "?" in DATABASE_URL:
-        DATABASE_URL += "&sslmode=require"
-    else:
-        DATABASE_URL += "?sslmode=require"
-
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = get_db_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-# --- AI SETUP ---
-api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-    ai_model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    ai_model = None
+# Try to initialize SQLAlchemy without crashing
+try:
+    db = SQLAlchemy(app)
+except Exception as e:
+    logger.error(f"SQLAlchemy Init Failed: {e}")
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///news.db'
+    db = SQLAlchemy(app)
 
 # --- MODELS ---
 class Feed(db.Model):
@@ -49,26 +54,29 @@ class Saved(db.Model):
     link = db.Column(db.String(500))
     source = db.Column(db.String(100))
 
-# Initialize Database
-try:
-    with app.app_context():
+with app.app_context():
+    try:
         db.create_all()
-    logger.info("Database initialized successfully")
-except Exception as e:
-    logger.error(f"Database initialization failed: {e}")
+    except Exception as e:
+        logger.error(f"Table Creation Failed: {e}")
+
+# --- AI SETUP ---
+api_key = os.environ.get("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    ai_model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    ai_model = None
 
 @app.route('/')
 def index():
     try:
         feeds = Feed.query.all()
         saved = Saved.query.order_by(Saved.id.desc()).all()
-    except Exception as e:
-        logger.error(f"Error fetching from DB: {e}")
-        return f"Database Error: {e}", 500
-
-    news_grouped = {}
+    except:
+        feeds, saved = [], []
     
-    # Guardian Trending
+    news_grouped = {}
     g_key = os.environ.get('GUARDIAN_API_KEY')
     if g_key:
         try:
@@ -76,24 +84,18 @@ def index():
             res = requests.get(g_url).json()
             if 'response' in res:
                 news_grouped['World Trending'] = [{
-                    'title': r['webTitle'], 
-                    'link': r['webUrl'],
+                    'title': r['webTitle'], 'link': r['webUrl'],
                     'img': r.get('fields', {}).get('thumbnail', '')
                 } for r in res['response']['results']]
-        except Exception as e:
-            logger.warning(f"Guardian API failed: {e}")
+        except: pass
 
-    # RSS Feeds
     for feed in feeds:
         try:
             parsed = feedparser.parse(feed.url)
             news_grouped[feed.name] = [{
-                'title': e.title, 
-                'link': e.link,
-                'img': None
+                'title': e.title, 'link': e.link, 'img': None
             } for e in parsed.entries[:6]]
-        except Exception as e:
-            logger.warning(f"Failed to parse {feed.name}: {e}")
+        except: continue
             
     return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
 
@@ -102,12 +104,10 @@ def summarize():
     title = request.json.get('title')
     if ai_model:
         try:
-            prompt = f"In one short sentence, explain why this matters: {title}"
-            response = ai_model.generate_content(prompt)
+            response = ai_model.generate_content(f"Summarize this news headline in 1 short sentence: {title}")
             return jsonify({"summary": response.text})
-        except Exception as e:
-            logger.error(f"AI Summary failed: {e}")
-    return jsonify({"summary": "Summary unavailable."})
+        except: pass
+    return jsonify({"summary": "Brief unavailable."})
 
 @app.route('/add', methods=['POST'])
 def add_feed():
@@ -116,13 +116,6 @@ def add_feed():
         db.session.add(Feed(name=name, url=url))
         db.session.commit()
     return redirect('/')
-
-@app.route('/save', methods=['POST'])
-def save_article():
-    data = request.json
-    db.session.add(Saved(title=data['title'], link=data['link'], source=data['source']))
-    db.session.commit()
-    return jsonify({"status": "success"})
 
 @app.route('/delete_feed/<int:id>')
 def delete_feed(id):
