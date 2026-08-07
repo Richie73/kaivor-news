@@ -4,3 +4,4 @@ feedparser
 requests
 psycopg2-binary
 gunicorn
+google-generativeai
