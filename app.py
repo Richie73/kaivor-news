@@ -1,48 +1,26 @@
-import os
-import requests
-import feedparser
-import logging
+import os, requests, feedparser, logging
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import urlparse
 import google.generativeai as genai
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 app = Flask(__name__)
 
 # --- DATABASE LOGIC ---
 def get_db_url():
     raw_url = os.environ.get('DATABASE_URL', '').strip()
-    
-    if not raw_url:
-        logger.info("DATABASE_URL is empty. Using local SQLite.")
-        return 'sqlite:///news.db'
-    
-    # Fix 'postgres://' to 'postgresql://' (Required by SQLAlchemy)
-    if raw_url.startswith("postgres://"):
-        raw_url = raw_url.replace("postgres://", "postgresql://", 1)
-    
-    # Add SSL mode for Supabase/Cloud providers
+    if not raw_url: return 'sqlite:///news.db'
+    if raw_url.startswith("postgres://"): raw_url = raw_url.replace("postgres://", "postgresql://", 1)
     if "postgresql" in raw_url and "sslmode" not in raw_url:
-        sep = "&" if "?" in raw_url else "?"
-        raw_url += f"{sep}sslmode=require"
-    
+        raw_url += "&sslmode=require" if "?" in raw_url else "?sslmode=require"
     return raw_url
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# Try to initialize SQLAlchemy without crashing
-try:
-    db = SQLAlchemy(app)
-except Exception as e:
-    logger.error(f"SQLAlchemy Init Failed: {e}")
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///news.db'
-    db = SQLAlchemy(app)
-
-# --- MODELS ---
 class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -55,59 +33,59 @@ class Saved(db.Model):
     source = db.Column(db.String(100))
 
 with app.app_context():
-    try:
-        db.create_all()
-    except Exception as e:
-        logger.error(f"Table Creation Failed: {e}")
+    db.create_all()
 
 # --- AI SETUP ---
-api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-    ai_model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    ai_model = None
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
 def index():
-    try:
-        feeds = Feed.query.all()
-        saved = Saved.query.order_by(Saved.id.desc()).all()
-    except:
-        feeds, saved = [], []
-    
+    feeds = Feed.query.all()
+    saved = Saved.query.order_by(Saved.id.desc()).all()
     news_grouped = {}
-    g_key = os.environ.get('GUARDIAN_API_KEY')
-    if g_key:
+    weather = {"temp": "--", "desc": "..."}
+    market = []
+    
+    # 1. Weather
+    w_key = os.environ.get('WEATHER_KEY')
+    if w_key:
         try:
-            g_url = f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=10"
-            res = requests.get(g_url).json()
-            if 'response' in res:
-                news_grouped['World Trending'] = [{
-                    'title': r['webTitle'], 'link': r['webUrl'],
-                    'img': r.get('fields', {}).get('thumbnail', '')
-                } for r in res['response']['results']]
+            w_res = requests.get(f"https://api.openweathermap.org/data/2.5/weather?q=London&appid={w_key}&units=metric").json()
+            weather = {"temp": int(w_res['main']['temp']), "desc": w_res['weather'][0]['main']}
         except: pass
 
-    for feed in feeds:
+    # 2. Stocks (BTC and S&P 500)
+    s_key = os.environ.get('STOCK_KEY')
+    if s_key:
         try:
-            parsed = feedparser.parse(feed.url)
-            news_grouped[feed.name] = [{
-                'title': e.title, 'link': e.link, 'img': None
-            } for e in parsed.entries[:6]]
+            s_res = requests.get(f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=BTCUSD&apikey={s_key}").json()
+            if "Global Quote" in s_res and "05. price" in s_res["Global Quote"]:
+                price = float(s_res['Global Quote']['05. price'])
+                market.append({"symbol": "BTC", "price": f"${price:,.0f}"})
+        except: pass
+
+    # 3. News Logic
+    logo_token = os.environ.get('LOGODEV_TOKEN')
+    for f in feeds:
+        try:
+            parsed = feedparser.parse(f.url)
+            domain = urlparse(f.url).netloc.replace('feeds.', '').replace('www.', '')
+            news_grouped[f.name] = {
+                "logo": f"https://img.logo.dev/{domain}?token={logo_token}",
+                "articles": [{'title': e.title, 'link': e.link} for e in parsed.entries[:5]]
+            }
         except: continue
-            
-    return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
+
+    return render_template('index.html', news_grouped=news_grouped, weather=weather, market=market, saved=saved)
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
     title = request.json.get('title')
-    if ai_model:
-        try:
-            response = ai_model.generate_content(f"Summarize this news headline in 1 short sentence: {title}")
-            return jsonify({"summary": response.text})
-        except: pass
-    return jsonify({"summary": "Brief unavailable."})
+    try:
+        response = ai_model.generate_content(f"Why this headline matters in 1 short sentence: {title}")
+        return jsonify({"summary": response.text})
+    except: return jsonify({"summary": "Brief unavailable."})
 
 @app.route('/add', methods=['POST'])
 def add_feed():
@@ -116,6 +94,13 @@ def add_feed():
         db.session.add(Feed(name=name, url=url))
         db.session.commit()
     return redirect('/')
+
+@app.route('/save', methods=['POST'])
+def save_article():
+    data = request.json
+    db.session.add(Saved(title=data['title'], link=data['link'], source=data['source']))
+    db.session.commit()
+    return jsonify({"status": "success"})
 
 @app.route('/delete_feed/<int:id>')
 def delete_feed(id):
