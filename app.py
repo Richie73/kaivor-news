@@ -1,73 +1,86 @@
-import sqlite3
-import feedparser
+import os, requests, feedparser, sqlite3
 from flask import Flask, render_template, request, redirect, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import urlparse
+import google.generativeai as genai
 
 app = Flask(__name__)
 
-# --- DATABASE SETUP ---
-def get_db():
-    db = sqlite3.connect('news.db')
-    db.row_factory = sqlite3.Row
-    return db
+# Database
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///news.db')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+db = SQLAlchemy(app)
 
-def init_db():
-    with get_db() as db:
-        db.execute('CREATE TABLE IF NOT EXISTS feeds (id INTEGER PRIMARY KEY, name TEXT, url TEXT)')
-        db.execute('CREATE TABLE IF NOT EXISTS saved (id INTEGER PRIMARY KEY, title TEXT, link TEXT, source TEXT)')
-        db.commit()
+# AI Setup
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
-init_db()
+class Feed(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    url = db.Column(db.String(500))
+
+class Saved(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500))
+    link = db.Column(db.String(500))
+    source = db.Column(db.String(100))
+
+with app.app_context():
+    db.create_all()
+
+def get_domain(url):
+    """Turns http://feeds.bbci.co.uk/news into bbc.co.uk"""
+    return urlparse(url).netloc.replace('feeds.', '').replace('www.', '')
 
 @app.route('/')
 def index():
-    db = get_db()
-    feeds = db.execute('SELECT * FROM feeds').fetchall()
-    saved = db.execute('SELECT * FROM saved ORDER BY id DESC').fetchall()
-    
+    feeds = Feed.query.all()
+    saved = Saved.query.order_by(Saved.id.desc()).all()
     news_grouped = {}
-    for feed in feeds:
+    
+    # 1. Weather logic
+    weather = {"temp": "--", "desc": "Loading..."}
+    w_key = os.environ.get('WEATHER_KEY')
+    if w_key:
         try:
-            parsed = feedparser.parse(feed['url'])
-            news_grouped[feed['name']] = [{'title': e.title, 'link': e.link} for e in parsed.entries[:8]]
+            # Change 'London' to your city
+            w_url = f"https://api.openweathermap.org/data/2.5/weather?q=London&appid={w_key}&units=metric"
+            res = requests.get(w_url).json()
+            weather = {"temp": int(res['main']['temp']), "desc": res['weather'][0]['main']}
+        except: pass
+
+    # 2. News Logic
+    logo_token = os.environ.get('LOGODEV_TOKEN')
+    for f in feeds:
+        try:
+            parsed = feedparser.parse(f.url)
+            domain = get_domain(f.url)
+            # Add Logo.dev URL to the source
+            logo = f"https://img.logo.dev/{domain}?token={logo_token}"
+            news_grouped[f.name] = {
+                "logo": logo,
+                "articles": [{'title': e.title, 'link': e.link} for e in parsed.entries[:5]]
+            }
         except: continue
-            
-    return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
+
+    return render_template('index.html', news_grouped=news_grouped, weather=weather, saved=saved)
+
+@app.route('/summarize', methods=['POST'])
+def summarize():
+    title = request.json.get('title')
+    try:
+        response = ai_model.generate_content(f"Why does this headline matter? {title}")
+        return jsonify({"summary": response.text})
+    except: return jsonify({"summary": "Error."})
 
 @app.route('/add', methods=['POST'])
 def add_feed():
-    name, url = request.form.get('name'), request.form.get('url')
-    if name and url:
-        with get_db() as db:
-            db.execute('INSERT INTO feeds (name, url) VALUES (?, ?)', (name, url))
+    db.session.add(Feed(name=request.form.get('name'), url=request.form.get('url')))
+    db.session.commit()
     return redirect('/')
-
-@app.route('/save', methods=['POST'])
-def save_article():
-    data = request.json
-    with get_db() as db:
-        db.execute('INSERT INTO saved (title, link, source) VALUES (?, ?, ?)', 
-                   (data['title'], data['link'], data['source']))
-    return jsonify({"status": "success"})
-
-@app.route('/delete_feed/<int:id>')
-def delete_feed(id):
-    with get_db() as db:
-        db.execute('DELETE FROM feeds WHERE id = ?', (id,))
-    return redirect('/')
-
-# PWA Support routes
-@app.route('/manifest.json')
-def manifest():
-    return jsonify({
-        "short_name": "KaivorNews",
-        "name": "Kaivor News Aggregator",
-        "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/21/21601.png", "type": "image/png", "sizes": "512x512"}],
-        "start_url": "/",
-        "background_color": "#000000",
-        "display": "standalone",
-        "scope": "/",
-        "theme_color": "#000000"
-    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

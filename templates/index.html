@@ -4,130 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
-    <title>Kaivor News</title>
+    <title>Kaivor</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.1); }
-        .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 5rem); }
-        .card-active:active { transform: scale(0.98); transition: 0.1s; }
-        .hidden-view { display: none; }
+        body { background: #000; color: #fff; font-family: sans-serif; }
+        .glass { background: rgba(15,15,15,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid #222; }
     </style>
 </head>
-<body class="bg-black text-white overflow-x-hidden selection:bg-blue-500">
+<body class="pb-24">
 
-    <!-- View: News Feed -->
-    <main id="view-home" class="safe-bottom animate-in fade-in duration-500">
-        <header class="p-6 pt-12">
-            <p class="text-[10px] font-black tracking-[0.3em] text-gray-500 uppercase">Kaivor Intelligence</p>
-            <h1 class="text-4xl font-extrabold tracking-tighter">The Brief</h1>
-        </header>
+    <!-- TOP HEADER -->
+    <header class="glass sticky top-0 p-6 flex justify-between items-center z-50">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter">KAIVOR</h1>
+            <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Intelligence</p>
+        </div>
+        <!-- Weather Badge -->
+        <div class="text-right bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+            <p class="text-lg font-bold leading-none">{{ weather.temp }}°</p>
+            <p class="text-[10px] uppercase font-black text-gray-500">{{ weather.desc }}</p>
+        </div>
+    </header>
 
-        {% for source, articles in news_grouped.items() %}
-        <div class="px-6 mb-10">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-blue-500">{{ source }}</h2>
-                <div class="h-[1px] flex-1 mx-4 bg-gray-900"></div>
+    <main class="p-6 space-y-10">
+        {% for source, data in news_grouped.items() %}
+        <section>
+            <div class="flex items-center gap-3 mb-5">
+                <img src="{{ data.logo }}" class="w-6 h-6 rounded-md shadow-lg" onerror="this.style.display='none'">
+                <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest">{{ source }}</h2>
             </div>
             
             <div class="space-y-4">
-                {% for item in articles %}
-                <div class="card-active relative bg-[#0d0d0d] border border-gray-900 rounded-2xl p-5 shadow-sm">
-                    <a href="{{ item.link }}" class="block pr-8">
-                        <h3 class="text-md leading-snug font-medium text-gray-200">{{ item.title }}</h3>
-                    </a>
-                    <button onclick="saveArticle('{{ item.title|replace("'", "\\'") }}', '{{ item.link }}', '{{ source }}')" 
-                            class="absolute top-5 right-4 text-gray-700 active:text-yellow-500 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                        </svg>
+                {% for item in data.articles %}
+                <div class="bg-[#111] p-5 rounded-3xl border border-white/5 shadow-xl">
+                    <a href="{{ item.link }}" class="text-[17px] font-bold leading-tight block mb-4">{{ item.title }}</a>
+                    <button onclick="briefMe('{{ item.title|replace("'", "") }}', this)" 
+                            class="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-4 py-2 rounded-full">
+                        Brief Me
                     </button>
+                    <p class="hidden text-xs text-gray-400 mt-4 italic border-l-2 border-blue-600 pl-3 py-1"></p>
                 </div>
                 {% endfor %}
             </div>
-        </div>
+        </section>
         {% endfor %}
     </main>
 
-    <!-- View: Saved -->
-    <main id="view-saved" class="hidden-view safe-bottom p-6 pt-12">
-        <h1 class="text-4xl font-extrabold tracking-tighter mb-8">Saved Items</h1>
-        <div class="space-y-4">
-            {% for item in saved %}
-            <div class="bg-[#0d0d0d] border border-gray-900 rounded-2xl p-5">
-                <span class="text-[10px] font-bold text-gray-600 uppercase">{{ item.source }}</span>
-                <a href="{{ item.link }}" class="block text-md font-medium text-gray-300 mt-1 italic">{{ item.title }}</a>
-            </div>
-            {% endfor %}
-            {% if not saved %}
-                <p class="text-gray-600 text-center pt-20">No saved articles yet.</p>
-            {% endif %}
-        </div>
-    </main>
-
-    <!-- View: Management -->
-    <main id="view-settings" class="hidden-view safe-bottom p-6 pt-12">
-        <h1 class="text-4xl font-extrabold tracking-tighter mb-8">Sources</h1>
-        <form action="/add" method="POST" class="bg-[#0d0d0d] p-6 rounded-3xl border border-gray-900 mb-8">
-            <input type="text" name="name" placeholder="Publisher Name" class="w-full bg-black mb-4 p-4 rounded-xl text-sm border border-gray-800 outline-none focus:border-blue-600 transition-all">
-            <input type="url" name="url" placeholder="RSS URL" class="w-full bg-black mb-6 p-4 rounded-xl text-sm border border-gray-800 outline-none focus:border-blue-600 transition-all">
-            <button class="w-full bg-white text-black py-4 rounded-xl font-bold text-sm tracking-tight active:scale-95 transition-all">Connect Source</button>
-        </form>
-
-        <div class="space-y-2">
-            {% for feed in feeds %}
-            <div class="flex justify-between items-center p-4 bg-gray-900/30 rounded-xl">
-                <span class="text-sm font-medium">{{ feed.name }}</span>
-                <a href="/delete_feed/{{ feed.id }}" class="text-xs text-red-500 font-bold">Remove</a>
-            </div>
-            {% endfor %}
-        </div>
-    </main>
-
-    <!-- Bottom Navigation Bar -->
-    <nav class="glass fixed bottom-0 left-0 right-0 px-8 pb-6 pt-4 flex justify-between items-center z-[100]">
-        <button onclick="showView('home')" class="nav-btn text-blue-500" id="btn-home">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-        </button>
-        <button onclick="showView('saved')" class="nav-btn text-gray-600" id="btn-saved">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>
-        </button>
-        <button onclick="showView('settings')" class="nav-btn text-gray-600" id="btn-settings">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-        </button>
-    </nav>
-
     <script>
-        // SPA View Swapper
-        function showView(viewName) {
-            ['home', 'saved', 'settings'].forEach(v => {
-                document.getElementById('view-' + v).classList.add('hidden-view');
-                document.getElementById('btn-' + v).classList.replace('text-blue-500', 'text-gray-600');
-            });
-            document.getElementById('view-' + viewName).classList.remove('hidden-view');
-            document.getElementById('btn-' + viewName).classList.replace('text-gray-600', 'text-blue-500');
-            window.scrollTo(0,0);
-        }
-
-        // Bookmark logic
-        async function saveArticle(title, link, source) {
-            await fetch('/save', {
+        async function briefMe(title, btn) {
+            btn.innerText = "Processing...";
+            const res = await fetch('/summarize', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title, link, source})
+                body: JSON.stringify({title})
             });
-            // Native-style feedback
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 px-6 py-2 rounded-full text-xs font-bold shadow-xl animate-bounce';
-            toast.innerText = 'Saved to Bookmarks';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            const data = await res.json();
+            const box = btn.nextElementSibling;
+            box.innerText = data.summary;
+            box.classList.remove('hidden');
+            btn.innerText = "Briefed";
         }
-
-        // Auto Refresh
-        setTimeout(() => { location.reload(); }, 600000);
     </script>
 </body>
 </html>
