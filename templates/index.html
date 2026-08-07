@@ -3,46 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <link rel="manifest" href="/manifest.json">
     <title>Kaivor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; }
-        .glass { background: rgba(15,15,15,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid #222; }
+        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 20s linear infinite; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
     </style>
 </head>
 <body class="pb-24">
+    <!-- MARKET TICKER -->
+    <div class="ticker-wrap py-1">
+        <div class="ticker text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            {% for item in market %}
+            <span class="mx-8">{{ item.symbol }}: <span class="text-green-500">{{ item.price }}</span></span>
+            {% endfor %}
+            • LIVE MARKET INTELLIGENCE • KAIVOR TERMINAL 
+        </div>
+    </div>
 
-    <!-- TOP HEADER -->
-    <header class="glass sticky top-0 p-6 flex justify-between items-center z-50">
+    <header class="p-6 flex justify-between items-center border-b border-white/5 sticky top-0 bg-black/80 backdrop-blur-xl z-50">
         <div>
             <h1 class="text-2xl font-black tracking-tighter">KAIVOR</h1>
             <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Intelligence</p>
         </div>
-        <!-- Weather Badge -->
-        <div class="text-right bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
-            <p class="text-lg font-bold leading-none">{{ weather.temp }}°</p>
-            <p class="text-[10px] uppercase font-black text-gray-500">{{ weather.desc }}</p>
+        <div class="text-right">
+            <p class="text-xl font-bold">{{ weather.temp }}°</p>
+            <p class="text-[9px] uppercase font-black text-gray-500">{{ weather.desc }}</p>
         </div>
     </header>
 
     <main class="p-6 space-y-10">
         {% for source, data in news_grouped.items() %}
         <section>
-            <div class="flex items-center gap-3 mb-5">
-                <img src="{{ data.logo }}" class="w-6 h-6 rounded-md shadow-lg" onerror="this.style.display='none'">
-                <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest">{{ source }}</h2>
+            <div class="flex items-center gap-2 mb-4">
+                <img src="{{ data.logo }}" class="w-5 h-5 rounded" onerror="this.style.display='none'">
+                <h2 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{{ source }}</h2>
             </div>
-            
-            <div class="space-y-4">
+            <div class="space-y-3">
                 {% for item in data.articles %}
-                <div class="bg-[#111] p-5 rounded-3xl border border-white/5 shadow-xl">
-                    <a href="{{ item.link }}" class="text-[17px] font-bold leading-tight block mb-4">{{ item.title }}</a>
-                    <button onclick="briefMe('{{ item.title|replace("'", "") }}', this)" 
-                            class="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-4 py-2 rounded-full">
-                        Brief Me
-                    </button>
-                    <p class="hidden text-xs text-gray-400 mt-4 italic border-l-2 border-blue-600 pl-3 py-1"></p>
+                <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-3xl">
+                    <a href="{{ item.link }}" class="text-md font-semibold leading-tight block mb-4">{{ item.title }}</a>
+                    <button onclick="brief(this, '{{ item.title|replace("'", "") }}')" class="text-[10px] font-black text-blue-500">BRIEF ME</button>
+                    <p class="hidden text-xs text-gray-500 mt-4 italic"></p>
                 </div>
                 {% endfor %}
             </div>
@@ -50,19 +54,34 @@
         {% endfor %}
     </main>
 
+    <nav class="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-around text-[10px] font-bold uppercase tracking-widest">
+        <a href="/" class="text-blue-500">Home</a>
+        <button onclick="document.getElementById('add-modal').classList.toggle('hidden')" class="text-gray-500">Sources</button>
+    </nav>
+
+    <!-- Simple Add Source Modal -->
+    <div id="add-modal" class="hidden fixed inset-0 bg-black/90 p-10 z-[100]">
+        <h2 class="text-2xl font-bold mb-6">Add Source</h2>
+        <form action="/add" method="POST" class="space-y-4">
+            <input type="text" name="name" placeholder="Name" class="w-full bg-white/5 p-4 rounded-2xl border border-white/10">
+            <input type="url" name="url" placeholder="RSS URL" class="w-full bg-white/5 p-4 rounded-2xl border border-white/10">
+            <button class="w-full bg-blue-600 p-4 rounded-2xl font-bold">Save</button>
+            <button type="button" onclick="document.getElementById('add-modal').classList.add('hidden')" class="w-full text-gray-500">Cancel</button>
+        </form>
+    </div>
+
     <script>
-        async function briefMe(title, btn) {
-            btn.innerText = "Processing...";
+        async function brief(btn, title) {
+            btn.innerText = "THINKING...";
             const res = await fetch('/summarize', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({title})
             });
             const data = await res.json();
-            const box = btn.nextElementSibling;
-            box.innerText = data.summary;
-            box.classList.remove('hidden');
-            btn.innerText = "Briefed";
+            btn.nextElementSibling.innerText = data.summary;
+            btn.nextElementSibling.classList.remove('hidden');
+            btn.innerText = "BRIEFED";
         }
     </script>
 </body>
