@@ -8,46 +8,68 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
-# --- DATABASE LOGIC ---
-def get_db_url():
+# --- THE SAFETY NET ---
+def setup_database(app_instance):
     raw_url = os.environ.get('DATABASE_URL', '').strip()
-    if not raw_url: return 'sqlite:///news.db'
-    if raw_url.startswith("postgres://"): raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+    # If the URL is missing or looks obviously wrong, use local SQLite
+    if not raw_url or len(raw_url) < 10:
+        logger.info("No valid DATABASE_URL found. Using local SQLite.")
+        return 'sqlite:///news.db'
+    
+    # Fix 'postgres://' to 'postgresql://'
+    if raw_url.startswith("postgres://"):
+        raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+    
+    # Add SSL mode for Supabase
     if "postgresql" in raw_url and "sslmode" not in raw_url:
-        raw_url += "&sslmode=require" if "?" in raw_url else "?sslmode=require"
+        sep = "&" if "?" in raw_url else "?"
+        raw_url += f"{sep}sslmode=require"
+    
     return raw_url
 
-app.config['SQLALCHEMY_DATABASE_URI'] = get_db_url()
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+try:
+    app.config['SQLALCHEMY_DATABASE_URI'] = setup_database(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db = SQLAlchemy(app)
+except Exception as e:
+    logger.error(f"Critical Database Error: {e}")
+    # Emergency fallback
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///news.db'
+    db = SQLAlchemy(app)
 
+# --- MODELS ---
 class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    url = db.Column(db.String(500))
+    name = db.Column(db.String(100)); url = db.Column(db.String(500))
 
 class Saved(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500))
-    link = db.Column(db.String(500))
-    source = db.Column(db.String(100))
+    title = db.Column(db.String(500)); link = db.Column(db.String(500)); source = db.Column(db.String(100))
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except: pass
 
-# --- AI SETUP ---
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-ai_model = genai.GenerativeModel('gemini-1.5-flash')
+# AI Setup
+api_key = os.environ.get("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    ai_model = genai.GenerativeModel('gemini-1.5-flash')
+else: ai_model = None
 
 @app.route('/')
 def index():
-    feeds = Feed.query.all()
-    saved = Saved.query.order_by(Saved.id.desc()).all()
+    try:
+        feeds = Feed.query.all()
+        saved = Saved.query.order_by(Saved.id.desc()).all()
+    except: feeds, saved = [], []
+    
     news_grouped = {}
     weather = {"temp": "--", "desc": "..."}
     market = []
     
-    # 1. Weather
+    # Weather & News logic
     w_key = os.environ.get('WEATHER_KEY')
     if w_key:
         try:
@@ -55,17 +77,6 @@ def index():
             weather = {"temp": int(w_res['main']['temp']), "desc": w_res['weather'][0]['main']}
         except: pass
 
-    # 2. Stocks (BTC and S&P 500)
-    s_key = os.environ.get('STOCK_KEY')
-    if s_key:
-        try:
-            s_res = requests.get(f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=BTCUSD&apikey={s_key}").json()
-            if "Global Quote" in s_res and "05. price" in s_res["Global Quote"]:
-                price = float(s_res['Global Quote']['05. price'])
-                market.append({"symbol": "BTC", "price": f"${price:,.0f}"})
-        except: pass
-
-    # 3. News Logic
     logo_token = os.environ.get('LOGODEV_TOKEN')
     for f in feeds:
         try:
@@ -82,25 +93,20 @@ def index():
 @app.route('/summarize', methods=['POST'])
 def summarize():
     title = request.json.get('title')
-    try:
-        response = ai_model.generate_content(f"Why this headline matters in 1 short sentence: {title}")
-        return jsonify({"summary": response.text})
-    except: return jsonify({"summary": "Brief unavailable."})
+    if ai_model:
+        try:
+            response = ai_model.generate_content(f"Significance of this in 1 short sentence: {title}")
+            return jsonify({"summary": response.text})
+        except: pass
+    return jsonify({"summary": "Brief unavailable."})
 
 @app.route('/add', methods=['POST'])
 def add_feed():
-    name, url = request.form.get('name'), request.form.get('url')
-    if name and url:
-        db.session.add(Feed(name=name, url=url))
+    n, u = request.form.get('name'), request.form.get('url')
+    if n and u:
+        db.session.add(Feed(name=n, url=u))
         db.session.commit()
     return redirect('/')
-
-@app.route('/save', methods=['POST'])
-def save_article():
-    data = request.json
-    db.session.add(Saved(title=data['title'], link=data['link'], source=data['source']))
-    db.session.commit()
-    return jsonify({"status": "success"})
 
 @app.route('/delete_feed/<int:id>')
 def delete_feed(id):
