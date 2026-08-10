@@ -1,29 +1,23 @@
 import os, requests, feedparser, logging
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import quote_plus
 import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("KAIVOR_SYSTEM")
 app = Flask(__name__)
 
-# --- INDUSTRIAL STRENGTH DATABASE LOGIC ---
+# --- SELF-HEALING DATABASE LOGIC ---
 def get_db_uri():
-    u = os.environ.get('DB_USER')
-    p = os.environ.get('DB_PASSWORD')
-    h = os.environ.get('DB_HOST')
-    n = os.environ.get('DB_NAME')
-    
+    u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
     if all([u, p, h, n]):
-        # The 'psycopg2' driver is the most stable for Render to Supabase
-        return f"postgresql+psycopg2://{u}:{p}@{h}:5432/{n}?sslmode=require"
-    return "sqlite:///emergency_local.db"
+        # Encode password just in case
+        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:5432/{n}?sslmode=require"
+    return "sqlite:///kaivor_local.db"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Auto-recovery for stale connections
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "pool_recycle": 300}
-
 db = SQLAlchemy(app)
 
 class Feed(db.Model):
@@ -31,17 +25,22 @@ class Feed(db.Model):
     name = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(500), nullable=False)
 
-# Force-Sync Database
+# Diagnostics Variable
+SYSTEM_MSG = "INITIALIZING..."
+
 with app.app_context():
     try:
         db.create_all()
         db.session.execute(db.text("SELECT 1"))
-        SYSTEM_STATUS = "CONNECTED"
+        SYSTEM_MSG = "CLOUD_CONNECTED"
     except Exception as e:
-        logger.error(f"DB FAILURE: {e}")
-        SYSTEM_STATUS = "DB_AUTH_ERROR"
+        logger.error(f"DB ERROR: {e}")
+        # FAILSAFE: Switch to local database if cloud fails
+        app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///kaivor_local.db"
+        db.create_all()
+        SYSTEM_MSG = f"LOCAL_MODE: {str(e)[:20]}"
 
-# AI Configuration
+# AI Setup
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -49,19 +48,16 @@ ai = genai.GenerativeModel('gemini-1.5-flash')
 def index():
     try:
         feeds = Feed.query.all()
-        status = SYSTEM_STATUS
-    except:
-        feeds, status = [], "DATABASE_OFFLINE"
-
+    except: feeds = []
+    
     news = {}
     market = []
     
-    # 1. Market Ticker (Binance API)
+    # 1. Market Ticker
     try:
         m = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=2).json()
         market.append({"symbol": "BTC", "price": f"${float(m['price']):,.0f}"})
-    except:
-        market = [{"symbol": "MKT", "price": "LIVE"}]
+    except: market = [{"symbol": "MKT", "price": "LIVE"}]
 
     # 2. Weather
     w_key = os.environ.get('WEATHER_KEY')
@@ -72,13 +68,11 @@ def index():
             weather = {"temp": int(w['main']['temp']), "desc": w['weather'][0]['main'].upper()}
         except: pass
 
-    # 3. News Processing (Spoofing Desktop Headers)
+    # 3. News (Spoofing Desktop Browser)
     token = os.environ.get('LOGODEV_TOKEN')
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
-    
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     for f in feeds:
         try:
-            # Crucial: Fetch raw data then parse (bypasses most blocks)
             r = requests.get(f.url, headers=headers, timeout=5)
             p = feedparser.parse(r.content)
             if p.entries:
@@ -89,30 +83,30 @@ def index():
                 }
         except: continue
 
-    return render_template('index.html', news=news, weather=weather, market=market, status=status)
+    return render_template('index.html', news=news, weather=weather, market=market, status=SYSTEM_MSG)
 
 @app.route('/add', methods=['POST'])
 def add():
     n, u = request.form.get('name'), request.form.get('url')
     if n and u:
         try:
-            # Force HTTPS
+            # Force HTTPS for stability
             if u.startswith("http://"): u = u.replace("http://", "https://")
-            db.session.add(Feed(name=n, url=u))
+            new_feed = Feed(name=n, url=u)
+            db.session.add(new_feed)
             db.session.commit()
-            logger.info(f"ADDED: {n}")
         except Exception as e:
             db.session.rollback()
-            logger.error(f"ADD_FAILED: {e}")
+            logger.error(f"Add failed: {e}")
     return redirect('/')
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"In 1 short sentence, why is this important: {t}")
+        res = ai.generate_content(f"In 15 words: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Briefing service unavailable."})
+    except: return jsonify({"summary": "AI Busy."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
