@@ -11,28 +11,28 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .view { display: none; padding-bottom: 120px; } .view-active { display: block; animation: viewIn 0.3s ease-out; }
         @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #080808; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: #050505; border-top: 1px solid #111; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        input::placeholder { color: #444; }
     </style>
 </head>
 <body>
 
-    <!-- MARKET TERMINAL -->
+    <!-- MARKET -->
     <div class="px-4 py-3 bg-black sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3 backdrop-blur-xl bg-black/80">
         {% for m in market %}
         <div class="bg-[#0a0a0a] px-4 py-2 rounded-xl border border-white/5 min-w-[115px] shadow-sm">
-            <span class="text-[8px] font-black text-gray-500 uppercase tracking-widest">{{ m.s }}</span>
-            <p class="text-[13px] font-bold text-green-400">{{ m.p }}</p>
+            <span class="text-[8px] font-black text-gray-600 uppercase tracking-widest">{{ m.s }}</span>
+            <p class="text-[13px] font-bold text-green-500">{{ m.p }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- VIEW: BRIEFING -->
+    <!-- FEED -->
     <main id="view-home" class="view view-active p-6">
         <header class="mb-10">
             <h1 class="text-4xl font-extrabold tracking-tighter italic">KAIVOR</h1>
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence Terminal</p>
+            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-[0.4em]">Intelligence Briefing</p>
         </header>
-
         {% for source, data in news.items() %}
         <div class="mb-12">
             <div class="flex items-center gap-2 mb-5 opacity-40">
@@ -44,12 +44,12 @@
                 <div class="bg-[#0d0d0d] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
                     {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-80">{% endif %}
                     <div class="p-6">
-                        <a href="{{ item.link }}" class="text-[19px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
+                        <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
                         <div class="flex gap-2">
                             <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase">Brief</button>
                             <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase">Save</button>
                         </div>
-                        <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-sm text-gray-300 border-l-2 border-blue-500 italic"></div>
+                        <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-sm text-gray-300 border-l-2 border-blue-600 italic"></div>
                     </div>
                 </div>
                 {% endfor %}
@@ -58,35 +58,35 @@
         {% endfor %}
     </main>
 
-    <!-- VIEW: EXPLORE -->
+    <!-- EXPLORE -->
     <main id="view-agent" class="view p-8 pt-20">
-        <h2 class="text-4xl font-extrabold tracking-tighter mb-2">Explore</h2>
-        <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-10">AI Signal Discovery</p>
-        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-[3rem] text-center shadow-3xl">
-            <input id="topic" type="text" placeholder="e.g. Cyber Security" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-5 outline-none text-white font-bold">
-            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all">Search Signals</button>
-            <p id="st" class="hidden mt-8 text-[11px] text-blue-500 font-black uppercase tracking-widest animate-pulse"></p>
+        <h2 class="text-5xl font-black mb-2 tracking-tighter">Explore</h2>
+        <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-12">AI Signal Discovery</p>
+        <div class="bg-[#0a0a0a] border border-white/5 p-10 rounded-[3.5rem] shadow-3xl">
+            <input id="topic" type="text" placeholder="Topic, Industry, or Site" class="w-full bg-black p-6 rounded-2xl border border-white/10 mb-6 outline-none text-white font-medium text-lg">
+            <button id="find-btn" onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl">Activate Agent</button>
+            <p id="st" class="hidden mt-8 text-[11px] text-blue-500 font-bold uppercase tracking-widest text-center animate-pulse"></p>
         </div>
     </main>
 
-    <!-- VIEW: LIBRARY -->
+    <!-- LIBRARY -->
     <main id="view-vault" class="view p-8 pt-20">
-        <h2 class="text-4xl font-extrabold tracking-tighter mb-10">Library</h2>
+        <h2 class="text-5xl font-black mb-10 tracking-tighter">Library</h2>
         <div class="space-y-4 mb-16">
-            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest px-1">Bookmarks</h3>
+            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Bookmarks</h3>
             {% for b in bookmarks %}
-            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center shadow-lg">
+            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
                 {% if b.img %}<img src="{{ b.img }}" class="w-12 h-12 rounded-xl object-cover">{% endif %}
                 <a href="{{ b.link }}" class="text-sm font-bold leading-snug flex-1">{{ b.title }}</a>
             </div>
             {% endfor %}
         </div>
         <div class="space-y-2">
-            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest px-1">Signals</h3>
+            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Signals</h3>
             {% for f in feeds %}
             <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
-                <span class="text-xs font-bold text-gray-300">{{ f.name }}</span>
-                <a href="/delete_feed/{{ f.id }}" class="text-[9px] font-black text-red-500 uppercase">Drop</a>
+                <span class="text-xs font-bold text-gray-400">{{ f.name }}</span>
+                <a href="/delete_feed/{{ f.id }}" class="text-[9px] font-black text-red-500/50 uppercase">Remove</a>
             </div>
             {% endfor %}
         </div>
@@ -94,13 +94,13 @@
 
     <nav class="bottom-nav">
         <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-widest">Briefing</span>
+            <span class="text-[10px] font-black uppercase">Feed</span>
         </button>
         <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-widest">Explore</span>
+            <span class="text-[10px] font-black uppercase">Explore</span>
         </button>
         <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-widest">Library</span>
+            <span class="text-[10px] font-black uppercase">Library</span>
         </button>
     </nav>
 
@@ -112,22 +112,22 @@
             event.currentTarget.classList.add('text-blue-500'); event.currentTarget.classList.remove('text-gray-500');
             window.scrollTo(0,0);
         }
-        async function saveBookmark(title, link, img, source) {
-            await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            alert("Secured in Library");
-        }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
             const s = document.getElementById('st');
-            s.innerText = "Agent is scanning global signals..."; s.classList.remove('hidden');
+            const btn = document.getElementById('find-btn');
+            btn.innerText = "AGENT WORKING..."; btn.disabled = true;
+            s.innerText = "Scanning Global News Signals..."; s.classList.remove('hidden');
+            
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            if(d.status === 'success') { s.innerText = "Signal Acquired: " + d.name; setTimeout(() => location.reload(), 1500); }
-            else if(d.status === 'exists') { s.innerText = "Signal Already Active"; }
-            else { s.innerText = "Signal Search Failed"; }
+            
+            btn.disabled = false; btn.innerText = "Activate Agent";
+            if(d.status === 'success') { s.innerText = "SIGNAL ACQUIRED: " + d.name; setTimeout(() => location.reload(), 1500); }
+            else { s.innerText = "AGENT FAILED: NO SECURE SIGNAL FOUND"; }
         }
         async function getBrief(btn, title) {
-            btn.innerText = "Analyzing...";
+            btn.innerText = "Analysing...";
             const r = await fetch('/summarize', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
             const d = await r.json();
             const div = btn.parentElement.nextElementSibling;

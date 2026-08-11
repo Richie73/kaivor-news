@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("KAIVOR_SYSTEM")
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
@@ -25,10 +26,14 @@ with app.app_context():
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
-def clean_json(text):
-    """Removes AI conversational filler and backticks."""
-    match = re.search(r'\{.*\}', text, re.DOTALL)
-    return match.group(0) if match else text
+def extract_json(text):
+    """Finds JSON anywhere in the AI's response."""
+    try:
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except: pass
+    return None
 
 @app.route('/')
 def index():
@@ -55,7 +60,8 @@ def index():
             for e in p.entries[:5]:
                 img = e.media_thumbnail[0]['url'] if 'media_thumbnail' in e else (e.media_content[0]['url'] if 'media_content' in e else None)
                 articles.append({'title': e.title, 'link': e.link, 'img': img})
-            news[f.name] = {"logo": f"https://img.logo.dev/{f.url.split('//')[-1].split('/')[0]}?token={token}", "articles": articles}
+            domain = f.url.split('//')[-1].split('/')[0].replace('www.','')
+            news[f.name] = {"logo": f"https://img.logo.dev/{domain}?token={token}", "articles": articles}
         except: continue
 
     # 3. MARKET DATA
@@ -71,23 +77,51 @@ def index():
 def auto_add():
     topic = request.json.get('topic')
     key = os.environ.get('OPENROUTER_API_KEY')
+    
+    if not key:
+        return jsonify({"status": "failed", "reason": "No API Key"})
+
     try:
-        prompt = f"Find the official RSS feed URL for {topic}. Return ONLY a JSON object: {{\"n\": \"Newspaper Name\", \"u\": \"https://link-to-rss.xml\"}}"
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions",
-            headers={"Authorization": f"Bearer {key}"},
-            json={"model": "google/gemini-2.0-flash-exp:free", "messages": [{"role": "user", "content": prompt}]}).json()
+        # Strict instructions for the AI
+        prompt = f"Find a valid RSS feed URL for {topic}. Output ONLY a JSON object: {{\"n\": \"Site Name\", \"u\": \"https://rss-url.xml\"}}"
         
-        raw_content = res['choices'][0]['message']['content']
-        data = json.loads(clean_json(raw_content))
+        # Added required OpenRouter headers (HTTP-Referer and X-Title)
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "HTTP-Referer": "https://kaivor-news.onrender.com",
+            "X-Title": "Kaivor Intelligence",
+            "Content-Type": "application/json"
+        }
         
-        if not Feed.query.filter_by(url=data['u']).first():
-            db.session.add(Feed(name=data['n'], url=data['u']))
-            db.session.commit()
-            return jsonify({"status": "success", "name": data['n']})
-        return jsonify({"status": "exists"})
+        payload = {
+            "model": "mistralai/mistral-7b-instruct:free",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1 # Low temp = more focused JSON
+        }
+
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        raw_data = res.json()
+        
+        # Debugging: Print to Render logs
+        logger.info(f"Agent Raw Response: {raw_data}")
+
+        if 'choices' in raw_data:
+            content = raw_data['choices'][0]['message']['content']
+            parsed = extract_json(content)
+            
+            if parsed and 'u' in parsed:
+                # Add to DB
+                if not Feed.query.filter_by(url=parsed['u']).first():
+                    db.session.add(Feed(name=parsed['n'], url=parsed['u']))
+                    db.session.commit()
+                    return jsonify({"status": "success", "name": parsed['n']})
+                return jsonify({"status": "exists"})
+                
+        return jsonify({"status": "failed", "reason": "No valid URL in AI response"})
+
     except Exception as e:
-        print(f"Agent Error: {e}")
-        return jsonify({"status": "failed"})
+        logger.error(f"Agent System Error: {e}")
+        return jsonify({"status": "failed", "reason": str(e)})
 
 @app.route('/bookmark', methods=['POST'])
 def save_bookmark():
@@ -107,7 +141,7 @@ def summarize():
     try:
         res = ai.generate_content(f"In 15 words, why is this important: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Briefing unavailable."})
+    except: return jsonify({"summary": "Briefing failed."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
