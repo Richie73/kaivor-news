@@ -5,4 +5,4 @@ requests
 psycopg2-binary
 gunicorn
 google-generativeai
-beautifulsoup4
+yfinance
