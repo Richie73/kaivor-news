@@ -7,70 +7,65 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; }
+        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; padding-bottom: 120px; } 
-        .view-active { display: block; animation: viewFade 0.3s ease-in-out; }
-        @keyframes viewFade { from { opacity: 0; } to { opacity: 1; } }
-
-        /* THE TITANIUM HEADER */
-        .fixed-top { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #000; }
-        .ticker-box { height: 40px; background: #000; border-bottom: 1px solid #111; overflow: hidden; }
-        .brand-box { height: 80px; background: #000; border-bottom: 1px solid #111; display: flex; align-items: center; padding: 0 24px; justify-content: space-between; }
         
-        /* THE CONTENT AREA */
-        .scroller { padding-top: 140px; }
-
-        /* DOCKED NAV */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #0a0a0a; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
-        .nav-item { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; transition: 0.2s; }
+        /* HEADER STACK */
+        header { flex-shrink: 0; background: #000; border-bottom: 1px solid #111; z-index: 100; }
+        .ticker-wrap { height: 36px; border-bottom: 1px solid #111; overflow: hidden; }
         
-        .chip { border: 1px solid #1a1a1a; transition: 0.2s; white-space: nowrap; }
+        /* CONTENT SCROLLER */
+        main { flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+        .view { display: none; } .view-active { display: block; }
+
+        /* DOCKED FOOTER */
+        nav { flex-shrink: 0; height: 80px; background: #080808; border-top: 1px solid #111; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
+        
+        .chip { flex-shrink: 0; border: 1px solid #1a1a1a; transition: 0.2s; }
         .chip-active { background: #2563eb !important; color: white !important; border-color: #3b82f6 !important; }
     </style>
 </head>
 <body>
 
-    <!-- FIXED TOP COMMAND CENTER -->
-    <div class="fixed-top">
-        <div class="ticker-box">
+    <header>
+        <!-- MARKET DATA -->
+        <div class="ticker-wrap">
             <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-            {"symbols":[{"proName":"BITSTAMP:BTCUSD","title":"BTC"},{"proName":"FOREXCOM:SPX500","title":"S&P 500"},{"proName":"NASDAQ:IXIC","title":"NASDAQ"},{"proName":"TVC:GOLD","title":"GOLD"},{"proName":"TVC:USOIL","title":"CRUDE"}],"colorTheme":"dark","isTransparent":false,"displayMode":"adaptive","locale":"en"}
+            {"symbols":[{"proName":"BITSTAMP:BTCUSD","title":"BTC"},{"proName":"FOREXCOM:SPX500","title":"S&P 500"},{"proName":"NASDAQ:IXIC","title":"NASDAQ"},{"proName":"TVC:GOLD","title":"GOLD"}],"colorTheme":"dark","isTransparent":false,"displayMode":"adaptive","locale":"en"}
             </script>
         </div>
-        <div class="brand-box">
+        <!-- BRANDING -->
+        <div class="px-6 py-4 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-black tracking-tighter italic leading-none">KAIVOR</h1>
-                <p class="text-[9px] font-bold text-blue-500 uppercase tracking-[0.4em] mt-1">Intelligence</p>
+                <h1 class="text-2xl font-black tracking-tighter italic leading-none">KAIVOR</h1>
+                <p class="text-[8px] font-bold text-blue-500 uppercase tracking-[0.3em] mt-1">Intelligence Terminal</p>
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                <span class="text-[9px] font-black text-gray-500 uppercase">Live</span>
+                <span class="text-[8px] font-black text-gray-500 uppercase">Live</span>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- MAIN SCROLLER -->
-    <div class="scroller">
-
+    <main class="no-scrollbar">
         <!-- VIEW: INTEL -->
-        <main id="view-home" class="view view-active px-6">
+        <div id="view-home" class="view view-active p-6">
             <div class="flex gap-2 overflow-x-auto no-scrollbar mb-8">
-                <button onclick="filterBy('all', this)" class="chip chip-active bg-[#111] text-gray-400 px-5 py-2 rounded-full text-[9px] font-black">ALL INTEL</button>
+                <button onclick="filterBy('all', this)" class="chip chip-active bg-[#111] text-white px-5 py-2 rounded-full text-[9px] font-black">ALL INTEL</button>
                 {% for cat in categories %}<button onclick="filterBy('{{ cat }}', this)" class="chip bg-[#080808] text-gray-500 px-5 py-2 rounded-full text-[9px] font-black uppercase">{{ cat }}</button>{% endfor %}
             </div>
 
             <div class="space-y-12">
                 {% for source, data in news.items() %}
                 <section class="news-section" data-cat="{{ data.cat }}">
-                    <div class="flex items-center gap-2 mb-5 opacity-40">
+                    <div class="flex items-center gap-2 mb-4 opacity-40">
                         <img src="{{ data.logo }}" class="w-4 h-4 rounded-sm" onerror="this.style.display='none'">
                         <h2 class="text-[10px] font-bold uppercase tracking-widest">{{ source }}</h2>
                     </div>
                     <div class="grid gap-6">
                         {% for item in data.articles %}
                         <div class="bg-[#0d0d0d] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                            {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-90">{% endif %}
+                            {% if item.img %}<img src="{{ item.img }}" class="w-full h-52 object-cover">{% endif %}
                             <div class="p-6">
                                 <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-5 text-gray-100">{{ item.title }}</a>
                                 <div class="flex gap-2">
@@ -85,47 +80,44 @@
                 </section>
                 {% endfor %}
             </div>
-        </main>
+        </div>
 
         <!-- VIEW: DISCOVERY -->
-        <main id="view-agent" class="view px-8 pt-10">
+        <div id="view-agent" class="view p-8 pt-10">
             <h2 class="text-4xl font-black mb-8 tracking-tighter">Discovery</h2>
             <div class="bg-[#0d0d0d] border border-white/5 p-10 rounded-[3.5rem] shadow-3xl text-center">
-                <p class="text-blue-500 text-[10px] font-black uppercase tracking-widest mb-6 text-center">Signal Agent</p>
                 <input id="topic" type="text" placeholder="Topic or Website" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-6 outline-none text-white font-bold text-lg">
-                <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em]">Locate Signal</button>
+                <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest">Identify Signal</button>
                 <p id="st" class="hidden mt-8 text-[11px] text-blue-500 font-bold uppercase tracking-widest animate-pulse"></p>
             </div>
-        </main>
+        </div>
 
-        <!-- VIEW: VAULT -->
-        <main id="view-vault" class="view px-6 pt-10">
-            <h2 class="text-4xl font-black mb-10 tracking-tighter">Vault</h2>
+        <!-- VIEW: LIBRARY -->
+        <div id="view-vault" class="view p-8 pt-10">
+            <h2 class="text-4xl font-black mb-10 tracking-tighter">Library</h2>
             <div class="space-y-4">
                 {% for b in bookmarks %}
                 <div class="bg-[#0d0d0d] p-5 rounded-3xl border border-white/5 flex gap-4 items-center shadow-lg">
-                    {% if b.img %}<img src="{{ b.img }}" class="w-14 h-14 rounded-xl object-cover">{% endif %}
+                    {% if b.img %}<img src="{{ b.img }}" class="w-12 h-12 rounded-xl object-cover">{% endif %}
                     <a href="{{ b.link }}" class="text-sm font-bold flex-1 text-gray-200 leading-snug">{{ b.title }}</a>
                 </div>
                 {% endfor %}
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <!-- DOCKED NAVIGATION BAR -->
-    <nav class="bottom-nav">
-        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center">INTEL</button>
-        <button onclick="showTab('agent')" class="nav-item text-gray-600 flex flex-col items-center">DISCOVERY</button>
-        <button onclick="showTab('vault')" class="nav-item text-gray-600 flex flex-col items-center">VAULT</button>
+    <nav>
+        <button onclick="showTab('home')" class="nav-btn text-blue-500 font-black text-[10px] uppercase tracking-tighter">Intel</button>
+        <button onclick="showTab('agent')" class="nav-btn text-gray-600 font-black text-[10px] uppercase tracking-tighter">Discovery</button>
+        <button onclick="showTab('vault')" class="nav-btn text-gray-600 font-black text-[10px] uppercase tracking-tighter">Library</button>
     </nav>
 
     <script>
         function showTab(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('view-active'));
             document.getElementById('view-' + id).classList.add('view-active');
-            document.querySelectorAll('.nav-item').forEach(n => { n.classList.replace('text-blue-500', 'text-gray-600'); });
+            document.querySelectorAll('.nav-btn').forEach(n => n.classList.replace('text-blue-500', 'text-gray-600'));
             event.currentTarget.classList.replace('text-gray-600', 'text-blue-500');
-            window.scrollTo(0,0);
         }
         function filterBy(val, btn) {
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('chip-active'));
@@ -138,13 +130,13 @@
             btn.innerText = "WAIT...";
             const r = await fetch('/summarize', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
             const d = await r.json();
-            const div = btn.parentElement.nextElementSibling;
-            div.innerText = d.summary; div.classList.remove('hidden');
+            btn.parentElement.nextElementSibling.innerText = d.summary;
+            btn.parentElement.nextElementSibling.classList.remove('hidden');
             btn.innerText = "Briefed";
         }
         async function saveB(title, link, img, source) {
             await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            alert("SECURED IN VAULT");
+            alert("SECURED");
         }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
@@ -152,8 +144,8 @@
             s.innerText = "SCANNING WEB PROTOCOLS..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "SIGNAL ACQUIRED" : "FAILED TO LOCATE";
-            if(d.status === 'success') setTimeout(() => location.reload(), 1500);
+            s.innerText = d.status === 'success' ? "SIGNAL ACQUIRED" : "FAILED";
+            if(d.status === 'success') setTimeout(() => location.reload(), 1000);
         }
     </script>
 </body>
