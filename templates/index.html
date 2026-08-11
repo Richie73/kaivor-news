@@ -9,28 +9,28 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; padding-bottom: 120px; } .view-active { display: block; animation: viewIn 0.4s ease-out; }
+        .view { display: none; padding-bottom: 120px; } .view-active { display: block; animation: viewIn 0.3s ease-out; }
         @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: #080808; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
     </style>
 </head>
 <body>
 
-    <!-- MARKET WATCH -->
+    <!-- MARKET TERMINAL -->
     <div class="px-4 py-3 bg-black sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3 backdrop-blur-xl bg-black/80">
         {% for m in market %}
-        <div class="bg-[#0a0a0a] px-4 py-2 rounded-xl border border-white/5 min-w-[115px] shadow-sm">
+        <div class="bg-[#0a0a0a] px-4 py-2 rounded-xl border border-white/5 min-w-[115px] shadow-sm text-center">
             <span class="text-[8px] font-black text-gray-500 uppercase tracking-widest">{{ m.s }}</span>
-            <p class="text-[13px] font-bold text-green-500">{{ m.p }}</p>
+            <p class="text-[13px] font-bold text-green-400">{{ m.p }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- VIEW 1: FEED -->
+    <!-- VIEW: INTELLIGENCE (FEED) -->
     <main id="view-home" class="view view-active p-6">
         <header class="mb-10">
-            <h1 class="text-4xl font-extrabold tracking-tighter italic">KAIVOR</h1>
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence Briefing</p>
+            <h1 class="text-4xl font-black tracking-tighter italic">KAIVOR</h1>
+            <p class="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em]">Intelligence Briefing</p>
         </header>
         {% for source, data in news.items() %}
         <div class="mb-12">
@@ -41,12 +41,12 @@
             <div class="grid gap-6">
                 {% for item in data.articles %}
                 <div class="bg-[#0d0d0d] rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
-                    {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-80">{% endif %}
+                    {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-90">{% endif %}
                     <div class="p-6">
                         <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
                         <div class="flex gap-2">
-                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase">Brief</button>
-                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase">Save</button>
+                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-white text-black px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-tighter">Summarize</button>
+                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-white/5 text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-tighter">Save</button>
                         </div>
                         <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-sm text-gray-300 border-l-2 border-blue-500 italic"></div>
                     </div>
@@ -57,30 +57,26 @@
         {% endfor %}
     </main>
 
-    <!-- VIEW 2: EXPLORE (SEARCH & AGENT) -->
+    <!-- VIEW: DISCOVERY (AGENT) -->
     <main id="view-agent" class="view p-6 pt-16">
-        <h2 class="text-4xl font-extrabold tracking-tighter mb-2 text-white">Explore</h2>
-        <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-10">Global Intelligence Discovery</p>
-        
+        <h2 class="text-4xl font-black mb-2 text-white tracking-tighter">Discovery</h2>
+        <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-10">Scan Global Signals</p>
         <div class="bg-[#0d0d0d] border border-white/5 p-8 rounded-[3rem] shadow-3xl mb-12">
             <input id="topic" type="text" placeholder="Topic, Site, or Industry" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-4 outline-none text-white font-medium text-lg">
             <div class="flex gap-2">
-                <button onclick="globalSearch()" class="flex-1 bg-white text-black p-4 rounded-2xl font-black uppercase text-[10px]">Search Web</button>
-                <button onclick="aiFind()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Follow Topic</button>
+                <button onclick="globalSearch()" class="flex-1 bg-white text-black p-4 rounded-2xl font-black uppercase text-[10px] tracking-tighter">Instant Search</button>
+                <button onclick="aiFind()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black uppercase text-[10px] tracking-tighter">Follow Signal</button>
             </div>
             <p id="st" class="hidden mt-6 text-[10px] text-blue-500 font-bold uppercase text-center animate-pulse"></p>
         </div>
-
-        <div id="search-results" class="space-y-6">
-            <!-- GNews Results Appear Here -->
-        </div>
+        <div id="search-results" class="space-y-6"></div>
     </main>
 
-    <!-- VIEW 3: LIBRARY -->
+    <!-- VIEW: LIBRARY -->
     <main id="view-vault" class="view p-8 pt-20">
-        <h2 class="text-5xl font-black mb-10 tracking-tighter">Library</h2>
+        <h2 class="text-4xl font-black mb-10 tracking-tighter">Library</h2>
         <div class="space-y-4 mb-16">
-            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Saved for Later</h3>
+            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Bookmarks</h3>
             {% for b in bookmarks %}
             <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
                 {% if b.img %}<img src="{{ b.img }}" class="w-14 h-14 rounded-xl object-cover">{% endif %}
@@ -89,20 +85,20 @@
             {% endfor %}
         </div>
         <div class="space-y-2">
-            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Following</h3>
+            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Active Signals</h3>
             {% for f in feeds %}
-            <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+            <div class="flex justify-between items-center p-4 bg-[#0a0a0a] rounded-2xl border border-white/5">
                 <span class="text-xs font-bold text-gray-400">{{ f.name }}</span>
-                <a href="/delete_feed/{{ f.id }}" class="text-[10px] font-black text-red-500/50 uppercase">Drop</a>
+                <a href="/delete_feed/{{ f.id }}" class="text-[9px] font-black text-red-500/50 uppercase">Remove</a>
             </div>
             {% endfor %}
         </div>
     </main>
 
     <nav class="bottom-nav">
-        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase">Feed</span></button>
-        <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase">Explore</span></button>
-        <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase">Library</span></button>
+        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Intelligence</span></button>
+        <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Discovery</span></button>
+        <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Library</span></button>
     </nav>
 
     <script>
@@ -110,37 +106,37 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('view-active'));
             document.getElementById('view-' + id).classList.add('view-active');
             document.querySelectorAll('.nav-item').forEach(n => { n.classList.replace('text-blue-500', 'text-gray-500'); });
-            event.currentTarget.classList.replace('text-gray-500', 'text-blue-500');
+            event.currentTarget.classList.add('text-blue-500'); event.currentTarget.classList.remove('text-gray-500');
             window.scrollTo(0,0);
         }
         async function globalSearch() {
             const query = document.getElementById('topic').value;
             const container = document.getElementById('search-results');
-            container.innerHTML = "<p class='text-center text-[10px] uppercase font-bold animate-pulse'>Fetching Intelligence...</p>";
+            container.innerHTML = "<p class='text-center text-[10px] uppercase font-black animate-pulse py-10'>Gathering Intel...</p>";
             const r = await fetch('/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query}) });
             const d = await r.json();
             container.innerHTML = d.map(item => `
-                <div class="bg-[#0d0d0d] border border-white/5 rounded-[2rem] overflow-hidden shadow-xl mb-4">
+                <div class="bg-[#0d0d0d] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-xl mb-4">
                     ${item.img ? `<img src="${item.img}" class="w-full h-40 object-cover opacity-80">` : ''}
                     <div class="p-6">
                         <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">${item.source}</span>
-                        <a href="${item.link}" class="text-[17px] font-bold block mb-4">${item.title}</a>
-                        <button onclick="saveBookmark('${item.title.replace(/'/g, "")}', '${item.link}', '${item.img}', '${item.source}')" class="bg-white/5 text-gray-400 px-4 py-2 rounded-full text-[9px] font-black uppercase">Save to Library</button>
+                        <a href="${item.link}" class="text-[18px] font-bold block mb-4">${item.title}</a>
+                        <button onclick="saveBookmark('${item.title.replace(/'/g, "")}', '${item.link}', '${item.img}', '${item.source}')" class="bg-white text-black px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-tighter">Secure to Library</button>
                     </div>
                 </div>
             `).join('');
         }
         async function saveBookmark(title, link, img, source) {
             await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            alert("Secured in Library");
+            alert("INTELLIGENCE SECURED");
         }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
             const s = document.getElementById('st');
-            s.innerText = "Agent scanning for signal..."; s.classList.remove('hidden');
+            s.innerText = "Agent is scanning global signal patterns..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "Subscribed to " + d.name : "Signal not found";
+            s.innerText = d.status === 'success' ? "SIGNAL CAPTURED: " + d.name : "AGENT FAILED: NO SECURE SIGNAL";
             if(d.status === 'success') setTimeout(() => location.reload(), 1500);
         }
         async function getBrief(btn, title) {
@@ -149,7 +145,7 @@
             const d = await r.json();
             const div = btn.parentElement.nextElementSibling;
             div.innerText = d.summary; div.classList.remove('hidden');
-            btn.innerText = "Brief";
+            btn.innerText = "Summarized";
         }
     </script>
 </body>
