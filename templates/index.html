@@ -7,27 +7,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #fff; font-family: ui-sans-serif, system-ui; }
-        .ticker-bar { background: #050505; border-bottom: 1px solid #111; overflow: hidden; white-space: nowrap; height: 35px; display: flex; align-items: center; }
-        .ticker-content { display: inline-block; animation: scroll 30s linear infinite; font-size: 10px; font-weight: 900; }
+        .ticker-wrap { background: #050505; border-bottom: 1px solid #111; overflow: hidden; white-space: nowrap; height: 35px; display: flex; align-items: center; z-index: 60; }
+        .ticker { display: inline-block; animation: scroll 25s linear infinite; font-size: 10px; font-weight: 900; }
         @keyframes scroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+        #m { background-color: rgba(0,0,0,1) !important; } /* Fix blending issue */
     </style>
 </head>
 <body class="pb-32">
-    <div class="ticker-bar">
-        <div class="ticker-content uppercase tracking-widest text-gray-500">
+    <div class="ticker-wrap fixed top-0 w-full">
+        <div class="ticker uppercase tracking-[0.2em] text-gray-500">
             {% for m in market %}
             <span class="mx-6 text-green-500">{{ m.symbol }}: {{ m.price }}</span>
             {% endfor %}
             <span class="mx-6 text-blue-500">SYSTEM: {{ status }}</span>
-            <span class="mx-6">• KAIVOR INTELLIGENCE TERMINAL LIVE •</span>
+            <span class="mx-6">• KAIVOR INTELLIGENCE TERMINAL ONLINE •</span>
         </div>
     </div>
 
-    <header class="p-6 sticky top-0 bg-black/90 backdrop-blur-xl border-b border-white/5 z-50 flex justify-between items-center">
-        <h1 class="text-3xl font-black tracking-tighter">KAIVOR</h1>
+    <header class="p-6 pt-14 bg-black border-b border-white/5 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black tracking-tighter">KAIVOR</h1>
+            <p class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Active Intelligence</p>
+        </div>
         <div class="text-right">
-            <p class="text-2xl font-black">18°</p>
-            <p class="text-[9px] font-bold text-gray-500 uppercase">CLOUDS</p>
+            <p class="text-2xl font-black text-white opacity-40">18°</p>
         </div>
     </header>
 
@@ -56,24 +59,24 @@
         {% endfor %}
     </main>
 
-    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] bg-white/5 backdrop-blur-2xl border border-white/10 p-5 rounded-[2rem] flex justify-around items-center z-50">
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] bg-black/90 backdrop-blur-2xl border border-white/10 p-5 rounded-[2rem] flex justify-around items-center z-50">
         <button onclick="location.reload()" class="text-blue-500 font-black text-[10px] uppercase tracking-widest">Refresh</button>
         <button onclick="document.getElementById('m').classList.remove('hidden')" class="text-gray-400 font-black text-[10px] uppercase tracking-widest">Sources</button>
     </nav>
 
-    <div id="m" class="hidden fixed inset-0 bg-black/98 p-8 z-[100] flex flex-col justify-center">
-        <h2 class="text-3xl font-black tracking-tighter mb-8 text-white">New Signal</h2>
+    <div id="m" class="hidden fixed inset-0 p-8 z-[100] flex flex-col justify-center bg-black">
+        <h2 class="text-3xl font-black tracking-tighter mb-8 text-white">Add Signal</h2>
         <form action="/add" method="POST" class="space-y-4">
-            <input type="text" name="name" placeholder="BBC News" class="w-full bg-white/5 p-6 rounded-3xl border border-white/10 outline-none">
-            <input type="url" name="url" placeholder="RSS Link" class="w-full bg-white/5 p-6 rounded-3xl border border-white/10 outline-none">
-            <button class="w-full bg-blue-600 p-6 rounded-3xl font-black uppercase text-sm">Connect</button>
+            <input type="text" name="name" placeholder="BBC News" class="w-full bg-white/5 p-6 rounded-3xl border border-white/10 outline-none font-bold text-white">
+            <input type="url" name="url" placeholder="RSS Link" class="w-full bg-white/5 p-6 rounded-3xl border border-white/10 outline-none text-sm text-white">
+            <button class="w-full bg-blue-600 p-6 rounded-3xl font-black uppercase text-sm text-white">Connect</button>
             <button type="button" onclick="document.getElementById('m').classList.add('hidden')" class="w-full text-gray-600 font-bold uppercase py-6 text-xs">Dismiss</button>
         </form>
     </div>
 
     <script>
         async function getBrief(btn, title) {
-            btn.innerText = "PROCESSING...";
+            btn.innerText = "THINKING...";
             const r = await fetch('/summarize', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
             const d = await r.json();
             const div = btn.nextElementSibling;
