@@ -5,6 +5,8 @@ import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
+
+# --- STABLE DATABASE ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -20,6 +22,7 @@ class Bookmark(db.Model):
 with app.app_context():
     db.create_all()
 
+# AI Setup
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -28,10 +31,20 @@ def index():
     feeds = Feed.query.all()
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
     news = {}
-    categories = set(['World', 'Tech'])
+    categories = set(['World', 'Tech', 'Breaking'])
     sources = set()
 
-    # 1. NYT TOP STORIES
+    # 1. NEWSDATA.IO (BREAKING INTELLIGENCE)
+    nd_key = os.environ.get('NEWSDATA_KEY')
+    if nd_key:
+        try:
+            r = requests.get(f"https://newsdata.io/api/1/news?apikey={nd_key}&language=en&category=top", timeout=5).json()
+            news['Breaking Intel'] = {"cat": "Breaking", "logo": "https://cdn-icons-png.flaticon.com/512/21/21601.png",
+                "articles": [{'title': a['title'], 'link': a['link'], 'img': a.get('image_url')} for a in r['results'][:5]]}
+            sources.add('Breaking Intel')
+        except: pass
+
+    # 2. NYT TOP STORIES
     nyt_key = os.environ.get('NYT_API_KEY')
     if nyt_key:
         try:
@@ -41,7 +54,7 @@ def index():
             sources.add('NYT')
         except: pass
 
-    # 2. GUARDIAN WORLD
+    # 3. GUARDIAN WORLD
     g_key = os.environ.get('GUARDIAN_API_KEY')
     if g_key:
         try:
@@ -51,7 +64,7 @@ def index():
             sources.add('The Guardian')
         except: pass
 
-    # 3. RSS SIGNALS
+    # 4. RSS SIGNALS
     token = os.environ.get('LOGODEV_TOKEN')
     for f in feeds:
         try:
