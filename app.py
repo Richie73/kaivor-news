@@ -7,8 +7,8 @@ import google.generativeai as genai
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# --- STABLE DATABASE ENGINE ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
+# --- STABLE DATABASE ---
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_core.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -38,19 +38,19 @@ def index():
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
     news_grouped = {}
     
-    # 1. Guardian API (Premium Feed)
+    # 1. PRIMARY SOURCE: THE GUARDIAN
     g_key = os.environ.get('GUARDIAN_API_KEY')
     if g_key:
         try:
-            g_url = f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=8"
-            r = requests.get(g_url).json()
-            news_grouped['World Trending'] = {
-                "logo": "https://img.logo.dev/theguardian.com?token="+os.environ.get('LOGODEV_TOKEN',''),
+            g_url = f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=10"
+            r = requests.get(g_url, timeout=5).json()
+            news_grouped['Top Stories'] = {
+                "logo": "https://img.logo.dev/theguardian.com?token=" + os.environ.get('LOGODEV_TOKEN',''),
                 "articles": [{'title': a['webTitle'], 'link': a['webUrl'], 'img': a.get('fields',{}).get('thumbnail')} for a in r['response']['results']]
             }
         except: pass
 
-    # 2. RSS Signals
+    # 2. FOLLOWED SOURCES
     token = os.environ.get('LOGODEV_TOKEN')
     for f in feeds:
         try:
@@ -60,39 +60,43 @@ def index():
             for e in p.entries[:5]:
                 img = e.media_thumbnail[0]['url'] if 'media_thumbnail' in e else (e.media_content[0]['url'] if 'media_content' in e else None)
                 articles.append({'title': e.title, 'link': e.link, 'img': img})
-            domain = f.url.split('//')[-1].split('/')[0].replace('www.','')
+            domain = f.url.split('//')[-1].split('/')[0].replace('www.','').replace('feeds.','')
             news_grouped[f.name] = {"logo": f"https://img.logo.dev/{domain}?token={token}", "articles": articles}
         except: continue
 
-    # 3. Market Terminal
+    # 3. MARKET WATCH
     market = []
     try:
         btc = requests.get("https://api.coinbase.com/v2/prices/BTC-USD/spot", timeout=2).json()
-        market = [{"s": "BTC", "p": f"${float(btc['data']['amount']):,.0f}"}, {"s": "GOLD", "p": "$2,451"}, {"s": "S&P 500", "p": "5,522"}, {"s": "NASDAQ", "p": "18,010"}]
-    except: market = [{"s": "MARKET", "p": "LIVE"}]
+        market = [
+            {"s": "BTC", "p": f"${float(btc['data']['amount']):,.0f}"},
+            {"s": "GOLD", "p": "$2,458"},
+            {"s": "S&P 500", "p": "5,522"},
+            {"s": "FTSE 100", "p": "8,210"}
+        ]
+    except: market = [{"s": "MARKETS", "p": "LIVE"}]
 
     return render_template('index.html', news=news_grouped, market=market, bookmarks=bookmarks, feeds=feeds)
 
 @app.route('/bookmark', methods=['POST'])
 def save_bookmark():
     data = request.json
-    new_b = Bookmark(title=data['title'], link=data['link'], img=data['img'], source=data['source'])
-    db.session.add(new_b); db.session.commit()
+    db.session.add(Bookmark(title=data['title'], link=data['link'], img=data['img'], source=data['source']))
+    db.session.commit()
     return jsonify({"status": "success"})
 
 @app.route('/delete_feed/<int:id>')
 def delete_feed(id):
-    f = Feed.query.get(id)
-    if f: db.session.delete(f); db.session.commit()
+    f = Feed.query.get(id); db.session.delete(f); db.session.commit()
     return redirect('/')
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"In 15 words: {t}")
+        res = ai.generate_content(f"In 15 words, why is this headline important: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Briefing failed."})
+    except: return jsonify({"summary": "Summarization unavailable."})
 
 @app.route('/auto-add', methods=['POST'])
 def auto_add():
@@ -101,7 +105,7 @@ def auto_add():
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {key}"},
-            json={"model": "deepseek/deepseek-chat", "messages": [{"role": "system", "content": "Return ONLY JSON: {'n': 'Name', 'u': 'RSS_URL'}"}, {"role": "user", "content": f"Official RSS for {topic}"}]}).json()
+            json={"model": "deepseek/deepseek-chat", "messages": [{"role": "system", "content": "Return ONLY JSON: {'n': 'Name', 'u': 'RSS_URL'}"}, {"role": "user", "content": f"Find official RSS for {topic}"}]}).json()
         d = json.loads(res['choices'][0]['message']['content'].strip())
         db.session.add(Feed(name=d['n'], url=d['u'])); db.session.commit()
         return jsonify({"status": "success", "name": d['n']})
