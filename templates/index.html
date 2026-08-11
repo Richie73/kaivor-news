@@ -6,68 +6,48 @@
     <title>KAIVOR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; padding-bottom: 100px; } 
-        .view-active { display: block; animation: viewIn 0.3s ease-out; }
+        .view { display: none; padding-bottom: 120px; } .view-active { display: block; animation: viewIn 0.3s ease-out; }
         @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* DOCKED DOCK NAVIGATION */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 75px;
-            background: #0a0a0a;
-            border-top: 1px solid #1a1a1a;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding-bottom: env(safe-area-inset-bottom); /* Fix for Pixel 6a Nav Pill */
-            z-index: 100;
-        }
-        .market-header {
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(10px);
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #080808; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
     </style>
 </head>
 <body>
 
-    <!-- MARKET WATCH -->
-    <div class="market-header px-4 py-3 sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3">
+    <!-- MARKET TERMINAL -->
+    <div class="px-4 py-3 bg-black sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3 backdrop-blur-xl bg-black/80">
         {% for m in market %}
-        <div class="bg-[#111] px-4 py-2 rounded-xl min-w-[115px] border border-white/5">
+        <div class="bg-[#0a0a0a] px-4 py-2 rounded-xl border border-white/5 min-w-[115px] shadow-sm">
             <span class="text-[8px] font-black text-gray-500 uppercase tracking-widest">{{ m.s }}</span>
             <p class="text-[13px] font-bold text-green-400">{{ m.p }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- VIEW 1: FEED -->
+    <!-- VIEW: BRIEFING -->
     <main id="view-home" class="view view-active p-6">
         <header class="mb-10">
             <h1 class="text-4xl font-extrabold tracking-tighter italic">KAIVOR</h1>
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence Briefing</p>
+            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence Terminal</p>
         </header>
 
         {% for source, data in news.items() %}
         <div class="mb-12">
             <div class="flex items-center gap-2 mb-5 opacity-40">
                 <img src="{{ data.logo }}" class="w-4 h-4 rounded-sm" onerror="this.style.display='none'">
-                <h2 class="text-[10px] font-bold uppercase tracking-widest">{{ source }}</h2>
+                <h2 class="text-[10px] font-black uppercase tracking-widest">{{ source }}</h2>
             </div>
             <div class="grid gap-6">
                 {% for item in data.articles %}
-                <div class="bg-[#0d0d0d] rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+                <div class="bg-[#0d0d0d] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
                     {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-80">{% endif %}
                     <div class="p-6">
-                        <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
+                        <a href="{{ item.link }}" class="text-[19px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
                         <div class="flex gap-2">
-                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Summarize</button>
-                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Save</button>
+                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase">Brief</button>
+                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase">Save</button>
                         </div>
                         <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-sm text-gray-300 border-l-2 border-blue-500 italic"></div>
                     </div>
@@ -78,40 +58,49 @@
         {% endfor %}
     </main>
 
-    <!-- VIEW 2: EXPLORE (AGENT) -->
+    <!-- VIEW: EXPLORE -->
     <main id="view-agent" class="view p-8 pt-20">
         <h2 class="text-4xl font-extrabold tracking-tighter mb-2">Explore</h2>
         <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-10">AI Signal Discovery</p>
-        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-[3rem] text-center">
-            <input id="topic" type="text" placeholder="Topic or Industry" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-5 outline-none text-white">
-            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest">Find News Source</button>
-            <p id="st" class="hidden mt-6 text-[10px] text-gray-500 font-bold uppercase"></p>
+        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-[3rem] text-center shadow-3xl">
+            <input id="topic" type="text" placeholder="e.g. Cyber Security" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-5 outline-none text-white font-bold">
+            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all">Search Signals</button>
+            <p id="st" class="hidden mt-8 text-[11px] text-blue-500 font-black uppercase tracking-widest animate-pulse"></p>
         </div>
     </main>
 
-    <!-- VIEW 3: LIBRARY -->
+    <!-- VIEW: LIBRARY -->
     <main id="view-vault" class="view p-8 pt-20">
         <h2 class="text-4xl font-extrabold tracking-tighter mb-10">Library</h2>
-        <div class="space-y-4 mb-12">
+        <div class="space-y-4 mb-16">
+            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest px-1">Bookmarks</h3>
             {% for b in bookmarks %}
-            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
+            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center shadow-lg">
                 {% if b.img %}<img src="{{ b.img }}" class="w-12 h-12 rounded-xl object-cover">{% endif %}
                 <a href="{{ b.link }}" class="text-sm font-bold leading-snug flex-1">{{ b.title }}</a>
             </div>
             {% endfor %}
         </div>
+        <div class="space-y-2">
+            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest px-1">Signals</h3>
+            {% for f in feeds %}
+            <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                <span class="text-xs font-bold text-gray-300">{{ f.name }}</span>
+                <a href="/delete_feed/{{ f.id }}" class="text-[9px] font-black text-red-500 uppercase">Drop</a>
+            </div>
+            {% endfor %}
+        </div>
     </main>
 
-    <!-- STATIC BOTTOM NAV -->
     <nav class="bottom-nav">
         <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-tighter">Feed</span>
+            <span class="text-[10px] font-black uppercase tracking-widest">Briefing</span>
         </button>
         <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-tighter">Explore</span>
+            <span class="text-[10px] font-black uppercase tracking-widest">Explore</span>
         </button>
         <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center">
-            <span class="text-[10px] font-black uppercase tracking-tighter">Library</span>
+            <span class="text-[10px] font-black uppercase tracking-widest">Library</span>
         </button>
     </nav>
 
@@ -119,34 +108,31 @@
         function showTab(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('view-active'));
             document.getElementById('view-' + id).classList.add('view-active');
-            document.querySelectorAll('.nav-item').forEach(n => {
-                n.classList.remove('text-blue-500');
-                n.classList.add('text-gray-500');
-            });
-            event.currentTarget.classList.add('text-blue-500');
-            event.currentTarget.classList.remove('text-gray-500');
+            document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('text-blue-500'); n.classList.add('text-gray-500'); });
+            event.currentTarget.classList.add('text-blue-500'); event.currentTarget.classList.remove('text-gray-500');
             window.scrollTo(0,0);
         }
         async function saveBookmark(title, link, img, source) {
             await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            alert("Added to Library");
+            alert("Secured in Library");
         }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
             const s = document.getElementById('st');
-            s.innerText = "AGENT SCANNING..."; s.classList.remove('hidden');
+            s.innerText = "Agent is scanning global signals..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "CONNECTED" : "FAILED";
-            if(d.status === 'success') setTimeout(() => location.reload(), 1000);
+            if(d.status === 'success') { s.innerText = "Signal Acquired: " + d.name; setTimeout(() => location.reload(), 1500); }
+            else if(d.status === 'exists') { s.innerText = "Signal Already Active"; }
+            else { s.innerText = "Signal Search Failed"; }
         }
         async function getBrief(btn, title) {
-            btn.innerText = "Wait...";
+            btn.innerText = "Analyzing...";
             const r = await fetch('/summarize', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
             const d = await r.json();
             const div = btn.parentElement.nextElementSibling;
             div.innerText = d.summary; div.classList.remove('hidden');
-            btn.innerText = "Summary";
+            btn.innerText = "Briefed";
         }
     </script>
 </body>

@@ -1,4 +1,4 @@
-import os, requests, feedparser, logging, json
+import os, requests, feedparser, logging, json, re
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from urllib.parse import quote_plus
@@ -7,50 +7,45 @@ import google.generativeai as genai
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# --- STABLE DATABASE ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_core.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    url = db.Column(db.String(500))
-    category = db.Column(db.String(50), default='General')
+    name = db.Column(db.String(100)); url = db.Column(db.String(500))
 
 class Bookmark(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500))
-    link = db.Column(db.String(500))
-    img = db.Column(db.String(500))
-    source = db.Column(db.String(100))
+    title = db.Column(db.String(500)); link = db.Column(db.String(500)); img = db.Column(db.String(500)); source = db.Column(db.String(100))
 
 with app.app_context():
     db.create_all()
 
-# AI Setup
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
+
+def clean_json(text):
+    """Removes AI conversational filler and backticks."""
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    return match.group(0) if match else text
 
 @app.route('/')
 def index():
     feeds = Feed.query.all()
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
-    news_grouped = {}
+    news = {}
     
-    # 1. PRIMARY SOURCE: THE GUARDIAN
+    # 1. GUARDIAN API
     g_key = os.environ.get('GUARDIAN_API_KEY')
     if g_key:
         try:
-            g_url = f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=10"
-            r = requests.get(g_url, timeout=5).json()
-            news_grouped['Top Stories'] = {
-                "logo": "https://img.logo.dev/theguardian.com?token=" + os.environ.get('LOGODEV_TOKEN',''),
-                "articles": [{'title': a['webTitle'], 'link': a['webUrl'], 'img': a.get('fields',{}).get('thumbnail')} for a in r['response']['results']]
-            }
+            r = requests.get(f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=10", timeout=5).json()
+            news['Global Briefing'] = {"logo": "https://img.logo.dev/theguardian.com?token="+os.environ.get('LOGODEV_TOKEN',''),
+                "articles": [{'title': a['webTitle'], 'link': a['webUrl'], 'img': a.get('fields',{}).get('thumbnail')} for a in r['response']['results']]}
         except: pass
 
-    # 2. FOLLOWED SOURCES
+    # 2. RSS SIGNALS
     token = os.environ.get('LOGODEV_TOKEN')
     for f in feeds:
         try:
@@ -60,28 +55,44 @@ def index():
             for e in p.entries[:5]:
                 img = e.media_thumbnail[0]['url'] if 'media_thumbnail' in e else (e.media_content[0]['url'] if 'media_content' in e else None)
                 articles.append({'title': e.title, 'link': e.link, 'img': img})
-            domain = f.url.split('//')[-1].split('/')[0].replace('www.','').replace('feeds.','')
-            news_grouped[f.name] = {"logo": f"https://img.logo.dev/{domain}?token={token}", "articles": articles}
+            news[f.name] = {"logo": f"https://img.logo.dev/{f.url.split('//')[-1].split('/')[0]}?token={token}", "articles": articles}
         except: continue
 
-    # 3. MARKET WATCH
+    # 3. MARKET DATA
     market = []
     try:
         btc = requests.get("https://api.coinbase.com/v2/prices/BTC-USD/spot", timeout=2).json()
-        market = [
-            {"s": "BTC", "p": f"${float(btc['data']['amount']):,.0f}"},
-            {"s": "GOLD", "p": "$2,458"},
-            {"s": "S&P 500", "p": "5,522"},
-            {"s": "FTSE 100", "p": "8,210"}
-        ]
-    except: market = [{"s": "MARKETS", "p": "LIVE"}]
+        market = [{"s": "BTC", "p": f"${float(btc['data']['amount']):,.0f}"}, {"s": "GOLD", "p": "$2,458"}, {"s": "S&P 500", "p": "5,522"}, {"s": "NASDAQ", "p": "18,010"}]
+    except: market = [{"s": "MARKET", "p": "LIVE"}]
 
-    return render_template('index.html', news=news_grouped, market=market, bookmarks=bookmarks, feeds=feeds)
+    return render_template('index.html', news=news, market=market, bookmarks=bookmarks, feeds=feeds)
+
+@app.route('/auto-add', methods=['POST'])
+def auto_add():
+    topic = request.json.get('topic')
+    key = os.environ.get('OPENROUTER_API_KEY')
+    try:
+        prompt = f"Find the official RSS feed URL for {topic}. Return ONLY a JSON object: {{\"n\": \"Newspaper Name\", \"u\": \"https://link-to-rss.xml\"}}"
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}"},
+            json={"model": "google/gemini-2.0-flash-exp:free", "messages": [{"role": "user", "content": prompt}]}).json()
+        
+        raw_content = res['choices'][0]['message']['content']
+        data = json.loads(clean_json(raw_content))
+        
+        if not Feed.query.filter_by(url=data['u']).first():
+            db.session.add(Feed(name=data['n'], url=data['u']))
+            db.session.commit()
+            return jsonify({"status": "success", "name": data['n']})
+        return jsonify({"status": "exists"})
+    except Exception as e:
+        print(f"Agent Error: {e}")
+        return jsonify({"status": "failed"})
 
 @app.route('/bookmark', methods=['POST'])
 def save_bookmark():
-    data = request.json
-    db.session.add(Bookmark(title=data['title'], link=data['link'], img=data['img'], source=data['source']))
+    d = request.json
+    db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source']))
     db.session.commit()
     return jsonify({"status": "success"})
 
@@ -94,22 +105,9 @@ def delete_feed(id):
 def summarize():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"In 15 words, why is this headline important: {t}")
+        res = ai.generate_content(f"In 15 words, why is this important: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Summarization unavailable."})
-
-@app.route('/auto-add', methods=['POST'])
-def auto_add():
-    topic = request.json.get('topic')
-    key = os.environ.get('OPENROUTER_API_KEY')
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions",
-            headers={"Authorization": f"Bearer {key}"},
-            json={"model": "deepseek/deepseek-chat", "messages": [{"role": "system", "content": "Return ONLY JSON: {'n': 'Name', 'u': 'RSS_URL'}"}, {"role": "user", "content": f"Find official RSS for {topic}"}]}).json()
-        d = json.loads(res['choices'][0]['message']['content'].strip())
-        db.session.add(Feed(name=d['n'], url=d['u'])); db.session.commit()
-        return jsonify({"status": "success", "name": d['n']})
-    except: return jsonify({"status": "failed"})
+    except: return jsonify({"summary": "Briefing unavailable."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
