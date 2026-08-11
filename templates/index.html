@@ -8,47 +8,37 @@
     <style>
         body { background: #000; color: #fff; font-family: ui-sans-serif, system-ui; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; }
-        .view-active { display: block; }
+        .view { display: none; } .view-active { display: block; }
     </style>
 </head>
 <body class="pb-32">
-
     <!-- MARKET TERMINAL -->
-    <div class="p-4 bg-black border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl bg-black/80">
-        <div class="flex gap-4 overflow-x-auto no-scrollbar">
-            {% for m in market %}
-            <div class="bg-white/5 px-4 py-2 rounded-xl border border-white/10 flex-shrink-0 min-w-[110px]">
-                <p class="text-[9px] font-black text-gray-500 uppercase tracking-tighter">{{ m.s }}</p>
-                <p class="text-sm font-bold text-green-400">{{ m.p }}</p>
-            </div>
-            {% endfor %}
+    <div class="p-4 bg-[#050505] border-b border-white/5 sticky top-0 z-50 flex gap-4 overflow-x-auto no-scrollbar backdrop-blur-xl">
+        {% for m in market %}
+        <div class="bg-white/5 px-4 py-2 rounded-xl border border-white/10 min-w-[110px]">
+            <p class="text-[9px] font-black text-gray-500 uppercase">{{ m.s }}</p>
+            <p class="text-xs font-bold text-green-400">{{ m.p }}</p>
         </div>
+        {% endfor %}
     </div>
 
-    <!-- MAIN BRIEFING VIEW -->
+    <!-- MAIN BRIEFING -->
     <main id="home" class="view view-active p-6 space-y-12">
-        <header class="flex justify-between items-end mb-10">
-            <div>
-                <h1 class="text-5xl font-black tracking-tighter">KAIVOR</h1>
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence</p>
-            </div>
-        </header>
-
+        <h1 class="text-5xl font-black tracking-tighter">KAIVOR</h1>
         {% for source, data in news.items() %}
         <section>
             <div class="flex items-center gap-3 mb-6">
                 <img src="{{ data.logo }}" class="w-6 h-6 rounded" onerror="this.style.display='none'">
-                <h2 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">{{ source }}</h2>
+                <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ source }}</h2>
             </div>
             <div class="grid gap-6">
                 {% for item in data.articles %}
                 <div class="bg-[#0d0d0d] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                     {% if item.img %}<img src="{{ item.img }}" class="w-full h-48 object-cover opacity-90">{% endif %}
                     <div class="p-6">
-                        <a href="{{ item.link }}" class="text-[19px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
+                        <a href="{{ item.link }}" class="text-[19px] font-bold leading-tight block mb-4">{{ item.title }}</a>
                         <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600/10 text-blue-500 px-5 py-2 rounded-full font-black text-[10px] uppercase">Brief Me</button>
-                        <div class="hidden mt-4 text-sm text-gray-400 italic border-l-2 border-blue-600 pl-4 py-1 leading-relaxed"></div>
+                        <div class="hidden mt-4 text-sm text-gray-400 italic border-l-2 border-blue-600 pl-4 py-1"></div>
                     </div>
                 </div>
                 {% endfor %}
@@ -57,39 +47,21 @@
         {% endfor %}
     </main>
 
-    <!-- AGENT SIGNALS VIEW -->
+    <!-- SIGNALS (AGENT) -->
     <main id="settings" class="view p-8">
-        <h2 class="text-4xl font-black mb-2 tracking-tighter">Signals</h2>
-        <p class="text-gray-500 text-xs uppercase font-bold tracking-widest mb-10">Chief Intelligence Officer</p>
-
-        <!-- AI Discovery Agent -->
-        <div class="bg-blue-600/10 border border-blue-500/20 p-6 rounded-[2rem] mb-10">
-            <h3 class="text-blue-500 font-black text-[10px] uppercase mb-4 tracking-widest">AI Discovery Agent</h3>
-            <div class="flex gap-2">
-                <input id="ai-topic" type="text" placeholder="Topic (e.g. Crypto news)" class="flex-1 bg-black p-4 rounded-2xl border border-white/10 text-sm outline-none">
-                <button onclick="aiDiscover()" class="bg-blue-600 px-6 rounded-2xl font-black text-xs uppercase">Find</button>
-            </div>
-            <p id="ai-status" class="hidden mt-4 text-[10px] text-gray-400 italic text-center"></p>
+        <h2 class="text-4xl font-black mb-8 tracking-tighter">Intelligence Agent</h2>
+        <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-[2.5rem] mb-10 text-center">
+            <p class="text-blue-500 font-black text-[10px] uppercase mb-6 tracking-widest">Auto-Discovery</p>
+            <input id="topic" type="text" placeholder="Topic (e.g. AI News)" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-4 outline-none">
+            <button onclick="aiFind()" class="w-full bg-blue-600 p-5 rounded-2xl font-black uppercase text-xs">Find & Connect</button>
+            <p id="status" class="hidden mt-6 text-xs text-gray-500 italic"></p>
         </div>
-
-        <form action="/add" method="POST" class="space-y-4 opacity-30">
-            <h3 class="text-gray-600 font-black text-[10px] uppercase px-2 tracking-widest">Manual Input</h3>
-            <input type="text" name="name" placeholder="Name" class="w-full bg-white/5 p-5 rounded-2xl border border-white/10 outline-none">
-            <input type="url" name="url" placeholder="RSS Link" class="w-full bg-white/5 p-5 rounded-2xl border border-white/10 outline-none text-sm">
-            <button class="w-full bg-white/10 p-5 rounded-2xl font-black uppercase text-xs">Manual Connect</button>
-        </form>
     </main>
 
-    <!-- BOTTOM NAV -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-3xl border-t border-white/5 flex justify-around items-center p-6 z-50">
-        <button onclick="show('home')" class="flex flex-col items-center gap-1">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-            <span class="text-[10px] font-black uppercase text-blue-500">Briefing</span>
-        </button>
-        <button onclick="show('settings')" class="flex flex-col items-center gap-1">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-600"></div>
-            <span class="text-[10px] font-black uppercase text-gray-400">Signals</span>
-        </button>
+    <!-- NAV -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-2xl border-t border-white/5 flex justify-around p-6 z-50">
+        <button onclick="show('home')" class="text-blue-500 font-black text-[10px] uppercase tracking-widest">Briefing</button>
+        <button onclick="show('settings')" class="text-gray-400 font-black text-[10px] uppercase tracking-widest">Agent</button>
     </nav>
 
     <script>
@@ -98,19 +70,14 @@
             document.getElementById(id).classList.add('view-active');
             window.scrollTo(0,0);
         }
-        async function aiDiscover() {
-            const topic = document.getElementById('ai-topic').value;
-            const status = document.getElementById('ai-status');
-            status.innerText = "DEEPSEEK IS SCANNING FOR SIGNALS...";
-            status.classList.remove('hidden');
-            const r = await fetch('/auto-discover', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
+        async function aiFind() {
+            const topic = document.getElementById('topic').value;
+            const s = document.getElementById('status');
+            s.innerText = "AGENT SCANNING..."; s.classList.remove('hidden');
+            const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            if(d.status === 'success') {
-                status.innerText = "SUCCESS: ADDED " + d.source.toUpperCase();
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                status.innerText = "FAILED: NO SIGNAL FOUND";
-            }
+            s.innerText = d.status === 'success' ? "CONNECTED: " + d.name : "NO SIGNAL FOUND";
+            if(d.status === 'success') setTimeout(() => location.reload(), 1500);
         }
         async function getBrief(btn, title) {
             btn.innerText = "DECODING...";
