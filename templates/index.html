@@ -13,11 +13,11 @@
 </head>
 <body class="pb-32">
     <!-- MARKET TERMINAL -->
-    <div class="p-4 bg-[#050505] border-b border-white/5 sticky top-0 z-50 flex gap-4 overflow-x-auto no-scrollbar backdrop-blur-xl">
+    <div class="p-4 bg-black border-b border-white/5 sticky top-0 z-50 flex gap-3 overflow-x-auto no-scrollbar backdrop-blur-xl">
         {% for m in market %}
-        <div class="bg-white/5 px-4 py-2 rounded-xl border border-white/10 min-w-[110px]">
-            <p class="text-[9px] font-black text-gray-500 uppercase">{{ m.s }}</p>
-            <p class="text-xs font-bold text-green-400">{{ m.p }}</p>
+        <div class="bg-white/5 px-4 py-2 rounded-2xl border border-white/10 min-w-[120px] shadow-xl">
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-tighter">{{ m.s }}</p>
+            <p class="text-sm font-bold text-green-400">{{ m.p }}</p>
         </div>
         {% endfor %}
     </div>
@@ -29,7 +29,7 @@
         <section>
             <div class="flex items-center gap-3 mb-6">
                 <img src="{{ data.logo }}" class="w-6 h-6 rounded" onerror="this.style.display='none'">
-                <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ source }}</h2>
+                <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">{{ source }}</h2>
             </div>
             <div class="grid gap-6">
                 {% for item in data.articles %}
@@ -47,21 +47,21 @@
         {% endfor %}
     </main>
 
-    <!-- SIGNALS (AGENT) -->
+    <!-- AGENT VIEW -->
     <main id="settings" class="view p-8">
-        <h2 class="text-4xl font-black mb-8 tracking-tighter">Intelligence Agent</h2>
-        <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-[2.5rem] mb-10 text-center">
-            <p class="text-blue-500 font-black text-[10px] uppercase mb-6 tracking-widest">Auto-Discovery</p>
-            <input id="topic" type="text" placeholder="Topic (e.g. AI News)" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-4 outline-none">
-            <button onclick="aiFind()" class="w-full bg-blue-600 p-5 rounded-2xl font-black uppercase text-xs">Find & Connect</button>
-            <p id="status" class="hidden mt-6 text-xs text-gray-500 italic"></p>
+        <h2 class="text-4xl font-black mb-8 tracking-tighter">AI Agent</h2>
+        <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-[2.5rem] text-center mb-10">
+            <p class="text-blue-500 font-black text-[10px] uppercase mb-4 tracking-widest">Signal Discovery</p>
+            <input id="topic" type="text" placeholder="Topic (e.g. London Real Estate)" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-4 outline-none">
+            <button onclick="aiFind()" class="w-full bg-blue-600 p-5 rounded-2xl font-black uppercase text-xs">Search Intelligence</button>
+            <p id="st" class="hidden mt-6 text-xs text-gray-500 italic"></p>
         </div>
     </main>
 
     <!-- NAV -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-2xl border-t border-white/5 flex justify-around p-6 z-50">
-        <button onclick="show('home')" class="text-blue-500 font-black text-[10px] uppercase tracking-widest">Briefing</button>
-        <button onclick="show('settings')" class="text-gray-400 font-black text-[10px] uppercase tracking-widest">Agent</button>
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] bg-black/90 backdrop-blur-2xl border border-white/10 p-5 rounded-[2rem] flex justify-around items-center z-50">
+        <button onclick="show('home')" class="text-blue-500 font-black text-[10px] uppercase">Briefing</button>
+        <button onclick="show('settings')" class="text-gray-400 font-black text-[10px] uppercase">Agent</button>
     </nav>
 
     <script>
@@ -72,11 +72,11 @@
         }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
-            const s = document.getElementById('status');
+            const s = document.getElementById('st');
             s.innerText = "AGENT SCANNING..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "CONNECTED: " + d.name : "NO SIGNAL FOUND";
+            s.innerText = d.status === 'success' ? "CONNECTED: " + d.name : "NO SIGNAL DETECTED";
             if(d.status === 'success') setTimeout(() => location.reload(), 1500);
         }
         async function getBrief(btn, title) {
