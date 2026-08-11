@@ -6,110 +6,112 @@
     <title>KAIVOR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; } .view-active { display: block; animation: viewIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes viewIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .glass-nav { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px); border-top: 0.5px solid rgba(255,255,255,0.1); }
-        .market-card { background: linear-gradient(145deg, #111, #080808); border: 0.5px solid rgba(255,255,255,0.05); }
+        .view { display: none; padding-bottom: 100px; } 
+        .view-active { display: block; animation: viewIn 0.3s ease-out; }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* DOCKED DOCK NAVIGATION */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75px;
+            background: #0a0a0a;
+            border-top: 1px solid #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom); /* Fix for Pixel 6a Nav Pill */
+            z-index: 100;
+        }
+        .market-header {
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
-<body class="pb-32">
+<body>
 
     <!-- MARKET WATCH -->
-    <div class="px-4 py-3 bg-black sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3">
+    <div class="market-header px-4 py-3 sticky top-0 z-50 border-b border-white/5 overflow-x-auto no-scrollbar flex gap-3">
         {% for m in market %}
-        <div class="market-card px-4 py-2 rounded-xl min-w-[110px] flex flex-col justify-center">
-            <span class="text-[8px] font-bold text-gray-500 uppercase tracking-widest">{{ m.s }}</span>
-            <span class="text-[13px] font-bold text-green-500">{{ m.p }}</span>
+        <div class="bg-[#111] px-4 py-2 rounded-xl min-w-[115px] border border-white/5">
+            <span class="text-[8px] font-black text-gray-500 uppercase tracking-widest">{{ m.s }}</span>
+            <p class="text-[13px] font-bold text-green-400">{{ m.p }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- VIEW 1: TOP STORIES -->
-    <main id="view-home" class="view view-active p-6 space-y-12">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-black tracking-tight text-white italic">KAIVOR</h1>
-            <div class="bg-blue-600/10 px-3 py-1 rounded-full border border-blue-500/20">
-                <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Live Updates</span>
-            </div>
+    <!-- VIEW 1: FEED -->
+    <main id="view-home" class="view view-active p-6">
+        <header class="mb-10">
+            <h1 class="text-4xl font-extrabold tracking-tighter italic">KAIVOR</h1>
+            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">Intelligence Briefing</p>
         </header>
 
         {% for source, data in news.items() %}
-        <section>
-            <div class="flex items-center gap-2 mb-5 opacity-60">
+        <div class="mb-12">
+            <div class="flex items-center gap-2 mb-5 opacity-40">
                 <img src="{{ data.logo }}" class="w-4 h-4 rounded-sm" onerror="this.style.display='none'">
-                <h2 class="text-[10px] font-bold uppercase tracking-[0.2em]">{{ source }}</h2>
+                <h2 class="text-[10px] font-bold uppercase tracking-widest">{{ source }}</h2>
             </div>
             <div class="grid gap-6">
                 {% for item in data.articles %}
-                <div class="bg-[#0a0a0a] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl group active:scale-[0.98] transition-all">
-                    {% if item.img %}<img src="{{ item.img }}" class="w-full h-52 object-cover">{% endif %}
+                <div class="bg-[#0d0d0d] rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+                    {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-80">{% endif %}
                     <div class="p-6">
-                        <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100 hover:text-blue-400">{{ item.title }}</a>
+                        <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
                         <div class="flex gap-2">
-                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-white/5 hover:bg-white/10 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors">Summarize</button>
-                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-white/5 hover:bg-white/10 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors text-gray-400">Save</button>
+                            <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Summarize</button>
+                            <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ source }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Save</button>
                         </div>
                         <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-sm text-gray-300 border-l-2 border-blue-500 italic"></div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        </section>
+        </div>
         {% endfor %}
     </main>
 
-    <!-- VIEW 2: EXPLORE (AI AGENT) -->
-    <main id="view-agent" class="view p-8 pt-24">
-        <div class="max-w-sm mx-auto text-center">
-            <h2 class="text-4xl font-black mb-2 tracking-tighter">Explore</h2>
-            <p class="text-gray-500 text-xs font-bold uppercase tracking-[0.2em] mb-12">Search global news signals</p>
-            
-            <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-[3rem] shadow-3xl">
-                <input id="topic" type="text" placeholder="Topic, Industry, or Site" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-5 outline-none focus:border-blue-500 transition-all font-medium">
-                <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all">Discover Source</button>
-                <p id="st" class="hidden mt-6 text-[10px] text-gray-500 font-bold uppercase tracking-widest"></p>
-            </div>
+    <!-- VIEW 2: EXPLORE (AGENT) -->
+    <main id="view-agent" class="view p-8 pt-20">
+        <h2 class="text-4xl font-extrabold tracking-tighter mb-2">Explore</h2>
+        <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-10">AI Signal Discovery</p>
+        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-[3rem] text-center">
+            <input id="topic" type="text" placeholder="Topic or Industry" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-5 outline-none text-white">
+            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[11px] tracking-widest">Find News Source</button>
+            <p id="st" class="hidden mt-6 text-[10px] text-gray-500 font-bold uppercase"></p>
         </div>
     </main>
 
     <!-- VIEW 3: LIBRARY -->
-    <main id="view-vault" class="view p-8 pt-24">
-        <h2 class="text-4xl font-black mb-12 tracking-tighter">Library</h2>
-        
-        <div class="space-y-4 mb-16">
-            <h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest px-1">Saved for later</h3>
+    <main id="view-vault" class="view p-8 pt-20">
+        <h2 class="text-4xl font-extrabold tracking-tighter mb-10">Library</h2>
+        <div class="space-y-4 mb-12">
             {% for b in bookmarks %}
-            <div class="bg-[#0a0a0a] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
-                {% if b.img %}<img src="{{ b.img }}" class="w-14 h-14 rounded-xl object-cover">{% endif %}
+            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
+                {% if b.img %}<img src="{{ b.img }}" class="w-12 h-12 rounded-xl object-cover">{% endif %}
                 <a href="{{ b.link }}" class="text-sm font-bold leading-snug flex-1">{{ b.title }}</a>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="space-y-3">
-            <h3 class="text-[10px] font-black text-gray-600 uppercase tracking-widest px-1">Subscriptions</h3>
-            {% for f in feeds %}
-            <div class="flex justify-between items-center p-5 bg-[#0a0a0a] rounded-2xl border border-white/5">
-                <span class="text-xs font-bold">{{ f.name }}</span>
-                <a href="/delete_feed/{{ f.id }}" class="text-[10px] font-black text-red-500/50 uppercase">Remove</a>
             </div>
             {% endfor %}
         </div>
     </main>
 
-    <!-- TAB NAVIGATION -->
-    <nav class="glass-nav fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl">
-        <button onclick="showTab('home')" class="nav-item text-blue-500 transition-all">
-            <span class="text-[10px] font-black uppercase tracking-widest">Feed</span>
+    <!-- STATIC BOTTOM NAV -->
+    <nav class="bottom-nav">
+        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center">
+            <span class="text-[10px] font-black uppercase tracking-tighter">Feed</span>
         </button>
-        <button onclick="showTab('agent')" class="nav-item text-gray-500 transition-all">
-            <span class="text-[10px] font-black uppercase tracking-widest">Explore</span>
+        <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center">
+            <span class="text-[10px] font-black uppercase tracking-tighter">Explore</span>
         </button>
-        <button onclick="showTab('vault')" class="nav-item text-gray-500 transition-all">
-            <span class="text-[10px] font-black uppercase tracking-widest">Library</span>
+        <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center">
+            <span class="text-[10px] font-black uppercase tracking-tighter">Library</span>
         </button>
     </nav>
 
@@ -117,29 +119,29 @@
         function showTab(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('view-active'));
             document.getElementById('view-' + id).classList.add('view-active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.replace('text-blue-500', 'text-gray-500'));
-            event.currentTarget.classList.replace('text-gray-500', 'text-blue-500');
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.classList.remove('text-blue-500');
+                n.classList.add('text-gray-500');
+            });
+            event.currentTarget.classList.add('text-blue-500');
+            event.currentTarget.classList.remove('text-gray-500');
             window.scrollTo(0,0);
         }
         async function saveBookmark(title, link, img, source) {
             await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            const t = document.createElement('div');
-            t.className = 'fixed top-10 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest z-[200]';
-            t.innerText = 'Added to Library';
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 2000);
+            alert("Added to Library");
         }
         async function aiFind() {
             const topic = document.getElementById('topic').value;
             const s = document.getElementById('st');
-            s.innerText = "Analyzing web signals..."; s.classList.remove('hidden');
+            s.innerText = "AGENT SCANNING..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "Subscribed to " + d.name : "Signal not found";
-            if(d.status === 'success') setTimeout(() => location.reload(), 1500);
+            s.innerText = d.status === 'success' ? "CONNECTED" : "FAILED";
+            if(d.status === 'success') setTimeout(() => location.reload(), 1000);
         }
         async function getBrief(btn, title) {
-            btn.innerText = "Processing...";
+            btn.innerText = "Wait...";
             const r = await fetch('/summarize', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
             const d = await r.json();
             const div = btn.parentElement.nextElementSibling;
