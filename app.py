@@ -1,23 +1,22 @@
-import os, requests, feedparser, logging
+import os, requests, feedparser, logging, traceback
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from urllib.parse import quote_plus
 import google.generativeai as genai
 
-logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# --- THE SUPABASE CONNECTION (HEAVILY PROTECTED) ---
+# --- THE "STAY ALIVE" DATABASE LOGIC ---
 def get_db_uri():
-    u = os.environ.get('DB_USER', 'postgres')
-    p = os.environ.get('DB_PASSWORD', 'KaivorNews2026') # Change if you reset it
-    h = os.environ.get('DB_HOST', 'db.dvzofvhpczawhvnbncfi.supabase.co')
-    n = os.environ.get('DB_NAME', 'postgres')
+    u = os.environ.get('DB_USER', '').strip()
+    p = os.environ.get('DB_PASSWORD', '').strip()
+    h = os.environ.get('DB_HOST', '').strip()
+    n = os.environ.get('DB_NAME', 'postgres').strip()
     
-    if p and h:
-        # Use quote_plus for the password and force the IPv4 pooler port 5432
-        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:5432/{n}?sslmode=require"
-    return "sqlite:///kaivor_local.db"
+    if all([u, p, h]):
+        # Port 6543 is the Supabase Pooler (Highest stability)
+        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:6543/{n}?sslmode=require"
+    return "sqlite:///emergency.db"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -28,59 +27,60 @@ class Feed(db.Model):
     name = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(500), nullable=False)
 
-# INITIALIZATION: Add BBC by default so it's NEVER empty
-with app.app_context():
-    try:
+# INITIALIZATION
+SYSTEM_INFO = "INIT"
+try:
+    with app.app_context():
         db.create_all()
-        if not Feed.query.filter_by(name='BBC World').first():
-            db.session.add(Feed(name='BBC World', url='https://feeds.bbci.co.uk/news/rss.xml'))
+        # Auto-add BBC if missing
+        if not Feed.query.filter_by(name='BBC').first():
+            db.session.add(Feed(name='BBC', url='https://feeds.bbci.co.uk/news/rss.xml'))
             db.session.commit()
-        STATUS = "CONNECTED"
-    except Exception as e:
-        STATUS = "LOCAL_MODE"
-
-# AI SETUP
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-ai = genai.GenerativeModel('gemini-1.5-flash')
+    SYSTEM_INFO = "DATABASE_READY"
+except Exception as e:
+    SYSTEM_INFO = f"DB_ERROR: {str(e)[:30]}"
 
 @app.route('/')
 def index():
-    feeds = []
-    try: feeds = Feed.query.all()
-    except: pass
-    
-    news, market = {}, []
-    # Binance Ticker
     try:
-        m = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=1).json()
-        market.append({"symbol": "BTC", "price": f"${float(m['price']):,.0f}"})
-    except: market = [{"symbol": "MKT", "price": "LIVE"}]
-
-    # News Fetching (Improved Headers)
-    token = os.environ.get('LOGODEV_TOKEN')
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KaivorNews/1.0'}
-    for f in feeds:
+        feeds = Feed.query.all()
+        news, market = {}, []
+        
+        # 1. Market Ticker
         try:
-            r = requests.get(f.url, headers=headers, timeout=5)
-            p = feedparser.parse(r.content)
-            if p.entries:
-                domain = f.url.split('//')[-1].split('/')[0].replace('www.','').replace('feeds.','')
-                news[f.name] = {
-                    "logo": f"https://img.logo.dev/{domain}?token={token}",
-                    "articles": [{'title': e.title, 'link': e.link} for e in p.entries[:6]]
-                }
-        except: continue
+            m = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=2).json()
+            market.append({"symbol": "BTC", "price": f"${float(m['price']):,.0f}"})
+        except: market = [{"symbol": "MKT", "price": "LIVE"}]
 
-    return render_template('index.html', news=news, market=market, status=STATUS)
+        # 2. News Logic (Professional Desktop Spoofing)
+        token = os.environ.get('LOGODEV_TOKEN')
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Kaivor/1.0'}
+        
+        for f in feeds:
+            try:
+                r = requests.get(f.url, headers=headers, timeout=5)
+                p = feedparser.parse(r.content)
+                if p.entries:
+                    domain = f.url.split('//')[-1].split('/')[0].replace('www.','').replace('feeds.','')
+                    news[f.name] = {
+                        "logo": f"https://img.logo.dev/{domain}?token={token}",
+                        "articles": [{'title': e.title, 'link': e.link} for e in p.entries[:5]]
+                    }
+            except: continue
+
+        return render_template('index.html', news=news, market=market, status=SYSTEM_INFO)
+
+    except Exception as e:
+        # If the app crashes, show the error on the screen
+        return f"<h1>Kaivor Core Crash</h1><p>Error: {str(e)}</p><pre>{traceback.format_exc()}</pre>", 500
 
 @app.route('/add', methods=['POST'])
 def add():
-    name = request.form.get('name')
-    url = request.form.get('url')
-    if name and url:
+    n, u = request.form.get('name'), request.form.get('url')
+    if n and u:
         try:
-            if url.startswith("http://"): url = url.replace("http://", "https://")
-            db.session.add(Feed(name=name, url=url))
+            if u.startswith("http://"): u = u.replace("http://", "https://")
+            db.session.add(Feed(name=n, url=u))
             db.session.commit()
         except: db.session.rollback()
     return redirect('/')
@@ -89,9 +89,11 @@ def add():
 def summarize():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"In 1 sentence: {t}")
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+        ai = genai.GenerativeModel('gemini-1.5-flash')
+        res = ai.generate_content(f"Significance in 1 sentence: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Brief unavailable."})
+    except: return jsonify({"summary": "AI Intelligence Offline."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
