@@ -5,8 +5,6 @@ import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
-
-# --- STABLE DATABASE ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -22,7 +20,6 @@ class Bookmark(db.Model):
 with app.app_context():
     db.create_all()
 
-# AI Setup
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -31,17 +28,28 @@ def index():
     feeds = Feed.query.all()
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
     news = {}
-    categories = set(['World', 'Tech', 'Breaking'])
+    categories = set(['Intelligence', 'World', 'Tech'])
     sources = set()
 
-    # 1. NEWSDATA.IO (BREAKING INTELLIGENCE)
+    # 1. CUSTOM NEWSDATA.IO STREAM (Your specific filters)
     nd_key = os.environ.get('NEWSDATA_KEY')
     if nd_key:
         try:
-            r = requests.get(f"https://newsdata.io/api/1/news?apikey={nd_key}&language=en&category=top", timeout=5).json()
-            news['Breaking Intel'] = {"cat": "Breaking", "logo": "https://cdn-icons-png.flaticon.com/512/21/21601.png",
-                "articles": [{'title': a['title'], 'link': a['link'], 'img': a.get('image_url')} for a in r['results'][:5]]}
-            sources.add('Breaking Intel')
+            # We use your customized query here (Optimized for stability)
+            query = (
+                f"https://newsdata.io/api/1/latest?"
+                f"apikey={nd_key}"
+                f"&country=gb,us,de,ru,cn"
+                f"&language=en"
+                f"&category=breaking,top,world"
+                f"&image=1"
+                f"&removeduplicate=1"
+            )
+            r = requests.get(query, timeout=5).json()
+            if 'results' in r:
+                news['Breaking Intel'] = {"cat": "Intelligence", "logo": "https://cdn-icons-png.flaticon.com/512/21/21601.png",
+                    "articles": [{'title': a['title'], 'link': a['link'], 'img': a.get('image_url')} for a in r['results'][:6]]}
+                sources.add('Breaking Intel')
         except: pass
 
     # 2. NYT TOP STORIES
@@ -60,7 +68,7 @@ def index():
         try:
             r = requests.get(f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=8", timeout=5).json()
             news['The Guardian'] = {"cat": "World", "logo": "https://img.logo.dev/theguardian.com?token="+os.environ.get('LOGODEV_TOKEN',''),
-                "articles": [{'title': a['webTitle'], 'link': a['webUrl'], 'img': a.get('fields',{}).get('thumbnail')} for a in r['response']['results']]}
+                "articles": [{'title': a['webTitle'], 'link': a['webUrl'], 'img': a.get('fields',{}).get('thumbnail')} for a in r['results']]}
             sources.add('The Guardian')
         except: pass
 
@@ -80,6 +88,8 @@ def index():
 
     return render_template('index.html', news=news, bookmarks=bookmarks, feeds=feeds, categories=sorted(list(categories)), sources=sorted(list(sources)))
 
+# ... (rest of the routes: /search, /bookmark, /auto-add, /summarize, /delete_feed)
+# (Copying those from previous successful build)
 @app.route('/search', methods=['POST'])
 def search_news():
     query = request.json.get('query'); key = os.environ.get('GNEWS_API_KEY')
