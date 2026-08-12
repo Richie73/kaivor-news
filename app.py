@@ -1,17 +1,27 @@
 import os, requests, feedparser, logging, json, re
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import quote_plus
 import google.generativeai as genai
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
+
+# --- STABLE CLOUD DATABASE LOGIC ---
+def get_db_uri():
+    u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
+    if all([u, p, h, n]):
+        # quote_plus handles your special characters (*, !, ) perfectly
+        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:5432/{n}?sslmode=require"
+    return "sqlite:///kaivor_emergency.db"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100)); url = db.Column(db.String(500)); category = db.Column(db.String(50), default='General')
+    name = db.Column(db.String(100)); url = db.Column(db.String(500)); cat = db.Column(db.String(50))
 
 class Bookmark(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,68 +33,56 @@ with app.app_context():
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
+def get_news(url, count=5):
+    try:
+        p = feedparser.parse(requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5).content)
+        return [{'title': e.title, 'link': e.link, 'img': e.get('media_thumbnail', [{}])[0].get('url') or e.get('media_content', [{}])[0].get('url')} for e in p.entries[:count]]
+    except: return []
+
 @app.route('/')
 def index():
-    feeds = Feed.query.all()
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
-    news = {}
-    categories = set(['Intelligence', 'Markets', 'World'])
+    # A-F CATEGORY MAPPING
+    intel = {
+        "UK": get_news("https://feeds.bbci.co.uk/news/uk/rss.xml", 3),
+        "World": [],
+        "Markets": get_news("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance", 3),
+        "Sport": get_news("https://feeds.bbci.co.uk/sport/football/rss.xml", 3),
+        "Tech": [],
+        "Music": get_news("https://www.nme.com/news/music/feed", 3)
+    }
     
-    # 1. NEWSDATA.IO (BREAKING)
-    nd_key = os.environ.get('NEWSDATA_KEY')
-    if nd_key:
-        try:
-            r = requests.get(f"https://newsdata.io/api/1/latest?apikey={nd_key}&country=gb,us&language=en&category=top&image=1", timeout=5).json()
-            if 'results' in r:
-                news['Breaking Intel'] = {"cat": "Intelligence", "logo": "https://cdn-icons-png.flaticon.com/512/21/21601.png",
-                    "articles": [{'title': a['title'], 'link': a['link'], 'img': a.get('image_url')} for a in r['results'][:5]]}
-        except: pass
-
-    # 2. NYT & GUARDIAN
-    nyt_key, g_key = os.environ.get('NYT_API_KEY'), os.environ.get('GUARDIAN_API_KEY')
+    # Fill World with NYT
+    nyt_key = os.environ.get('NYT_API_KEY')
     if nyt_key:
         try:
             r = requests.get(f"https://api.nytimes.com/svc/topstories/v2/home.json?api-key={nyt_key}").json()
-            news['NYT'] = {"cat": "World", "logo": "https://img.logo.dev/nytimes.com?token="+os.environ.get('LOGODEV_TOKEN',''),
-                "articles": [{'title': a['title'], 'link': a['url'], 'img': a['multimedia'][0]['url'] if a.get('multimedia') else None} for a in r['results'][:5]]}
-        except: pass
-    if g_key:
-        try:
-            r = requests.get(f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail").json()
-            news['The Guardian'] = {"cat": "World", "logo": "https://img.logo.dev/theguardian.com?token="+os.environ.get('LOGODEV_TOKEN',''),
-                "articles": [{'title': r['webTitle'], 'link': r['webUrl'], 'img': r.get('fields',{}).get('thumbnail')} for r in r['response']['results'][:5]]}
+            intel['World'] = [{'title': a['title'], 'link': a['url'], 'img': a['multimedia'][0]['url'] if a.get('multimedia') else None} for a in r['results'][:3]]
         except: pass
 
-    # 3. RSS SIGNALS
-    token = os.environ.get('LOGODEV_TOKEN')
-    for f in feeds:
-        try:
-            r = requests.get(f.url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
-            p = feedparser.parse(r.content)
-            articles = []
-            for e in p.entries[:5]:
-                img = e.media_thumbnail[0]['url'] if 'media_thumbnail' in e else (e.media_content[0]['url'] if 'media_content' in e else None)
-                articles.append({'title': e.title, 'link': e.link, 'img': img})
-            news[f.name] = {"cat": f.category, "logo": f"https://img.logo.dev/{f.url.split('//')[-1].split('/')[0]}?token={token}", "articles": articles}
-            categories.add(f.category)
-        except: continue
+    # Fill Tech with Hacker News
+    try:
+        r = requests.get("https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=3").json()
+        intel['Tech'] = [{'title': a['title'], 'link': a['url'] or f"https://news.ycombinator.com/item?id={a['objectID']}", 'img': None} for a in r['hits']]
+    except: pass
 
-    return render_template('index.html', news=news, bookmarks=bookmarks, feeds=feeds, categories=sorted(list(categories)))
+    return render_template('index.html', intel=intel, bookmarks=bookmarks, feeds=Feed.query.all())
 
 @app.route('/bookmark', methods=['POST'])
 def save_bookmark():
     d = request.json
-    db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source'])); db.session.commit()
+    db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source']))
+    db.session.commit()
     return jsonify({"status": "success"})
 
 @app.route('/auto-add', methods=['POST'])
 def auto_add():
     topic = request.json.get('topic'); key = os.environ.get('OPENROUTER_API_KEY')
     try:
-        prompt = f"Official RSS for {topic}. JSON: {{\"n\": \"Name\", \"u\": \"URL\", \"c\": \"Category\"}}"
+        prompt = f"Find official RSS for {topic}. Return JSON: {{\"n\": \"Name\", \"u\": \"URL\", \"c\": \"Category\"}}"
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers={"Authorization": f"Bearer {key}"}, json={"model": "deepseek/deepseek-chat", "messages": [{"role": "user", "content": prompt}]}).json()
         d = json.loads(re.search(r'\{.*\}', res['choices'][0]['message']['content'], re.DOTALL).group(0))
-        db.session.add(Feed(name=d['n'], url=d['u'], category=d['c'])); db.session.commit()
+        db.session.add(Feed(name=d['n'], url=d['u'], cat=d['c'])); db.session.commit()
         return jsonify({"status": "success", "name": d['n']})
     except: return jsonify({"status": "failed"})
 
@@ -92,14 +90,9 @@ def auto_add():
 def summarize():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"In 15 words: {t}")
+        res = ai.generate_content(f"Explain in 1 sentence: {t}")
         return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "AI briefing failed."})
-
-@app.route('/delete_feed/<int:id>')
-def delete_feed(id):
-    f = Feed.query.get(id); db.session.delete(f); db.session.commit()
-    return redirect('/')
+    except: return jsonify({"summary": "AI Intel Syncing..."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
