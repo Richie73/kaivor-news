@@ -9,7 +9,10 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .view { display: none; padding-top: 150px; padding-bottom: 120px; } .view-active { display: block; }
+        .view { display: none; padding-bottom: 120px; } .view-active { display: block; animation: viewIn 0.3s ease-out; }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+        
+        /* DOCKED ELEMENTS */
         .app-header { position: fixed; top: 0; left: 0; right: 0; background: #000; z-index: 100; border-bottom: 1px solid #111; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #080808; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
         .chip { transition: all 0.2s; border: 1px solid #1a1a1a; white-space: nowrap; flex-shrink: 0; }
@@ -18,26 +21,24 @@
 </head>
 <body>
 
+    <!-- TOP: FIXED TERMINAL -->
     <div class="app-header">
-        <!-- MARKET TICKER (WIDGET) -->
         <div class="h-[40px] border-b border-white/5 overflow-hidden">
             <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
             { "symbols": [{"proName": "BITSTAMP:BTCUSD", "title": "BTC"},{"proName": "TVC:GOLD", "title": "GOLD"},{"proName": "FOREXCOM:SPX500", "title": "S&P 500"},{"proName": "NASDAQ:IXIC", "title": "NASDAQ"}], "colorTheme": "dark", "isTransparent": false, "displayMode": "adaptive", "locale": "en" }
             </script>
         </div>
-        <!-- BRANDING & CHIPS -->
         <div class="px-6 py-4 flex justify-between items-center bg-black">
             <h1 class="text-2xl font-black tracking-tighter italic">KAIVOR</h1>
-            <span class="text-[8px] font-bold text-blue-500 uppercase tracking-widest">{{ status }}</span>
-        </div>
-        <div class="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-4">
-            <button onclick="filterTab('all', this)" class="chip chip-active bg-[#111] text-[9px] font-bold uppercase px-4 py-1.5 rounded-full text-white">Briefing</button>
-            {% for cat in intel.keys() %}<button onclick="filterTab('{{ cat }}', this)" class="chip bg-[#080808] text-gray-500 text-[9px] font-bold uppercase px-4 py-1.5 rounded-full">{{ cat }}</button>{% endfor %}
+            <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                <button onclick="filterTab('all', this)" class="chip chip-active bg-[#111] text-[9px] font-bold uppercase px-4 py-1.5 rounded-full">Briefing</button>
+                {% for cat in intel.keys() %}<button onclick="filterTab('{{ cat }}', this)" class="chip bg-[#080808] text-gray-500 text-[9px] font-bold uppercase px-4 py-1.5 rounded-full">{{ cat }}</button>{% endfor %}
+            </div>
         </div>
     </div>
 
-    <!-- VIEW 1: INTEL BRIEFING -->
-    <main id="view-home" class="view view-active p-6">
+    <!-- VIEW 1: INTELLIGENCE BRIEFING -->
+    <main id="view-home" class="view view-active p-6 pt-36">
         <div id="news-container">
             {% for cat, articles in intel.items() %}
             <section class="news-section mb-12" data-cat="{{ cat }}">
@@ -47,10 +48,10 @@
                     <div class="bg-[#0d0d0d] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl active:scale-[0.98] transition-all">
                         {% if item.img %}<img src="{{ item.img }}" class="w-full h-52 object-cover opacity-90">{% endif %}
                         <div class="p-6">
-                            <a href="{{ item.link }}" class="text-[19px] font-bold leading-snug block mb-4">{{ item.title }}</a>
+                            <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-4 text-gray-100">{{ item.title }}</a>
                             <div class="flex gap-2">
                                 <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase">Brief</button>
-                                <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ cat }}')" class="bg-white/5 text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase">Archive</button>
+                                <button onclick="saveBookmark('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ cat }}')" class="bg-[#1a1a1a] text-gray-400 px-5 py-2 rounded-full text-[10px] font-black uppercase">Save</button>
                             </div>
                             <div class="hidden mt-4 p-4 bg-blue-500/5 rounded-2xl text-xs text-gray-300 italic"></div>
                         </div>
@@ -62,12 +63,13 @@
         </div>
     </main>
 
-    <!-- VIEW 2: DISCOVERY -->
-    <main id="view-agent" class="view p-8 pt-40">
-        <h2 class="text-4xl font-black mb-8 tracking-tighter">Discovery</h2>
-        <div class="bg-[#0d0d0d] border border-white/5 p-10 rounded-[3rem] shadow-3xl text-center">
-            <input id="topic" type="text" placeholder="Intelligence Query..." class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-6 outline-none text-white font-bold">
-            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[10px]">Command Agent</button>
+    <!-- VIEW 2: EXPLORE -->
+    <main id="view-agent" class="view p-8 pt-40 text-center">
+        <h2 class="text-4xl font-black mb-2 tracking-tighter">Explore</h2>
+        <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-10">AI Signal Discovery</p>
+        <div class="bg-[#0d0d0d] border border-white/5 p-10 rounded-[3rem] shadow-3xl">
+            <input id="topic" type="text" placeholder="Topic Query (e.g. AI News)" class="w-full bg-black p-5 rounded-2xl border border-white/10 mb-6 outline-none text-white font-bold">
+            <button onclick="aiFind()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[10px] tracking-widest">Connect to Network</button>
             <p id="st" class="hidden mt-8 text-[10px] text-blue-500 font-bold uppercase animate-pulse"></p>
         </div>
     </main>
@@ -75,19 +77,20 @@
     <!-- VIEW 3: LIBRARY -->
     <main id="view-vault" class="view p-8 pt-40">
         <h2 class="text-4xl font-black mb-10 tracking-tighter">Library</h2>
-        <div class="space-y-4 mb-12">
+        <div class="space-y-4">
             {% for b in bookmarks %}
-            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center">
+            <div class="bg-[#0d0d0d] p-4 rounded-2xl border border-white/5 flex gap-4 items-center shadow-lg">
                 {% if b.img %}<img src="{{ b.img }}" class="w-12 h-12 rounded-xl object-cover">{% endif %}
-                <a href="{{ b.link }}" class="text-sm font-bold flex-1">{{ b.title }}</a>
+                <a href="{{ b.link }}" class="text-sm font-bold flex-1 text-gray-200">{{ b.title }}</a>
             </div>
             {% endfor %}
         </div>
     </main>
 
+    <!-- BOTTOM DOCK -->
     <nav class="bottom-nav">
-        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Briefing</span></button>
-        <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Discovery</span></button>
+        <button onclick="showTab('home')" class="nav-item text-blue-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Intel</span></button>
+        <button onclick="showTab('agent')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Explore</span></button>
         <button onclick="showTab('vault')" class="nav-item text-gray-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Library</span></button>
     </nav>
 
@@ -109,7 +112,7 @@
         }
         async function saveBookmark(title, link, img, source) {
             await fetch('/bookmark', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source}) });
-            alert("SECURED");
+            alert("SECURED IN LIBRARY");
         }
         async function getBrief(btn, title) {
             btn.innerText = "...";
@@ -122,10 +125,10 @@
         async function aiFind() {
             const topic = document.getElementById('topic').value;
             const s = document.getElementById('st');
-            s.innerText = "AGENT DISCOVERING SIGNAL..."; s.classList.remove('hidden');
+            s.innerText = "AGENT SCANNING WORLDWIDE SIGNALS..."; s.classList.remove('hidden');
             const r = await fetch('/auto-add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
             const d = await r.json();
-            s.innerText = d.status === 'success' ? "SIGNAL CAPTURED" : "FAILED";
+            s.innerText = d.status === 'success' ? "CONNECTED" : "FAILED";
             if(d.status === 'success') setTimeout(() => location.reload(), 1000);
         }
     </script>
