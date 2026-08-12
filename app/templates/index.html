@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>KAIVOR PRO</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: ui-sans-serif, system-ui; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="pb-24">
+    <!-- Header -->
+    <header class="p-6 sticky top-0 bg-black/90 backdrop-blur-xl border-b border-white/5 z-50">
+        <h1 class="text-2xl font-black italic tracking-tighter">KAIVOR <span class="text-blue-500 text-xs not-italic font-bold uppercase tracking-widest">System</span></h1>
+    </header>
+
+    <!-- Main Feed -->
+    <main id="content" class="p-4 space-y-6">
+        {% for article in articles %}
+        <div class="bg-[#0d0d0d] rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+            {% if article.image_url %}<img src="{{ article.image_url }}" class="w-full h-48 object-cover">{% endif %}
+            <div class="p-6">
+                <a href="{{ article.article_url }}" class="text-xl font-bold leading-tight block mb-4">{{ article.title }}</a>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">{{ article.source_name }}</span>
+                    <button hx-post="/bookmark/{{ article.id }}" class="text-blue-500 font-bold text-xs uppercase">Archive</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </main>
+
+    <!-- Navigation Dock -->
+    <nav class="fixed bottom-0 left-0 right-0 h-20 bg-[#080808] border-t border-white/5 flex justify-around items-center px-6 pb-safe z-50">
+        <button class="flex flex-col items-center gap-1 text-blue-500">
+            <span class="text-[10px] font-black uppercase">Intel</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-gray-500">
+            <span class="text-[10px] font-black uppercase">Discovery</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-gray-500">
+            <span class="text-[10px] font-black uppercase">Vault</span>
+        </button>
+    </nav>
+</body>
+</html>
