@@ -4,32 +4,50 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from urllib.parse import quote_plus
 from datetime import datetime
+import google.generativeai as genai
 
-# --- LOGGING & APP SETUP ---
+# --- SYSTEM LOGGING ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("KAIVOR_SYSTEM")
+logger = logging.getLogger("KAIVOR_REPAIR_ST1")
 app = Flask(__name__, template_folder='app/templates')
 
-# --- STABLE DATABASE LOGIC ---
+# --- FORCED DATABASE LOGIC (BYPASSING RENDER DEFAULTS) ---
 def get_db_uri():
-    u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
+    # We look for your individual DB_ boxes first to force the 6543 port
+    u = os.environ.get('DB_USER')
+    p = os.environ.get('DB_PASSWORD')
+    h = os.environ.get('DB_HOST')
+    n = os.environ.get('DB_NAME')
+    # Force 6543 if we are on Render, otherwise use default
+    port = '6543' if 'RENDER' in os.environ else os.environ.get('DB_PORT', '5432')
+    
     if all([u, p, h]):
-        # quote_plus handles special characters in your password perfectly
-        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:5432/{n or 'postgres'}?sslmode=require"
-    return "sqlite:///kaivor_vault.db"
+        logger.info(f"Connecting to Cloud DB on Port {port}...")
+        pw = quote_plus(p)
+        return f"postgresql+psycopg2://{u}:{pw}@{h}:{port}/{n}?sslmode=require"
+    
+    logger.warning("No Cloud DB variables found. Using local fallback.")
+    return 'sqlite:///kaivor_permanent.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 280,
+}
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# --- PRODUCTION DATA MODELS ---
+# --- MODELS ---
 class Source(db.Model):
     __tablename__ = 'sources'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    feed_url = db.Column(db.String(500), unique=True)
-    category = db.Column(db.String(50), default='General')
+    feed_url = db.Column(db.String(500), unique=True, nullable=False)
+    categories = db.Column(db.String(200))
+    enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Article(db.Model):
     __tablename__ = 'articles'
@@ -39,6 +57,7 @@ class Article(db.Model):
     image_url = db.Column(db.String(500))
     source_name = db.Column(db.String(100))
     category = db.Column(db.String(50))
+    is_saved = db.Column(db.Boolean, default=False)
     imported_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Library(db.Model):
@@ -47,15 +66,15 @@ class Library(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), unique=True)
     saved_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- THE "LIGHTWEIGHT" AI LOGIC ---
-def ask_gemini(prompt):
-    key = os.environ.get("GEMINI_API_KEY")
-    if not key: return "AI Key Missing."
+# --- RESILIENT BOOT ---
+# This wrapper prevents the "Internal Server Error" if the DB fails
+with app.app_context():
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-        res = requests.post(url, json={"contents": [{"parts":[{"text": prompt}]}]}, timeout=10).json()
-        return res['candidates'][0]['content']['parts'][0]['text']
-    except: return "AI Service busy."
+        db.create_all()
+        SYSTEM_STATUS = "CONNECTED"
+    except Exception as e:
+        logger.error(f"DB CONNECTION FAILED: {e}")
+        SYSTEM_STATUS = "OFFLINE"
 
 # --- ROUTES ---
 @app.route('/health')
@@ -63,14 +82,20 @@ def health():
     try:
         db.session.execute(db.text("SELECT 1"))
         return jsonify({"status": "healthy", "database": "connected"}), 200
-    except: return jsonify({"status": "unhealthy"}), 500
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "error": "Database unreachable on Port 6543"}), 500
 
 @app.route('/')
 def index():
-    # This renders the existing UI you liked
-    bookmarks = db.session.query(Article).join(Library).all()
-    return render_template('index.html', intel={}, market=[], bookmarks=bookmarks, status="STABLE")
+    # If the database is offline, show an empty list instead of crashing
+    try:
+        saved = db.session.query(Article).join(Library).all()
+    except:
+        saved = []
+    
+    # Existing UI needs this data
+    matrix = {"UK": [], "Markets": [], "Sport": [], "Tech": [], "Culture": []}
+    return render_template('index.html', matrix=matrix, saved=saved, status=SYSTEM_STATUS)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
