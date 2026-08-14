@@ -1,111 +1,76 @@
 import os, requests, feedparser, logging, json, re, hashlib
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from urllib.parse import quote_plus, urlparse, urljoin
+from flask_migrate import Migrate
+from urllib.parse import quote_plus
 from datetime import datetime
-import google.generativeai as genai
 
-# --- SYSTEM ARCHITECTURE ---
+# --- LOGGING & APP SETUP ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("KAIVOR_OS")
+logger = logging.getLogger("KAIVOR_SYSTEM")
 app = Flask(__name__, template_folder='app/templates')
 
-# --- RESILIENT DATABASE LOGIC ---
-# Default to local storage to guarantee 100% Uptime on Render
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor_vault.db'
+# --- STABLE DATABASE LOGIC ---
+def get_db_uri():
+    u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
+    if all([u, p, h]):
+        # quote_plus handles special characters in your password perfectly
+        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:5432/{n or 'postgres'}?sslmode=require"
+    return "sqlite:///kaivor_vault.db"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+# --- PRODUCTION DATA MODELS ---
 class Source(db.Model):
+    __tablename__ = 'sources'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    url = db.Column(db.String(500), unique=True)
-    cat = db.Column(db.String(50))
+    feed_url = db.Column(db.String(500), unique=True)
+    category = db.Column(db.String(50), default='General')
 
 class Article(db.Model):
+    __tablename__ = 'articles'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)
-    link = db.Column(db.String(500), unique=True)
-    img = db.Column(db.String(500))
-    source = db.Column(db.String(100))
-    cat = db.Column(db.String(50))
-    is_saved = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    article_url = db.Column(db.String(500), unique=True)
+    image_url = db.Column(db.String(500))
+    source_name = db.Column(db.String(100))
+    category = db.Column(db.String(50))
+    imported_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-with app.app_context():
-    db.create_all()
+class Library(db.Model):
+    __tablename__ = 'library'
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), unique=True)
+    saved_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- INTELLIGENCE SERVICES ---
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-ai = genai.GenerativeModel('gemini-1.5-flash')
-
-def ingest(url, category="General", source_name="Signal", limit=5):
-    articles = []
+# --- THE "LIGHTWEIGHT" AI LOGIC ---
+def ask_gemini(prompt):
+    key = os.environ.get("GEMINI_API_KEY")
+    if not key: return "AI Key Missing."
     try:
-        h = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Kaivor/2.0'}
-        r = requests.get(url, headers=h, timeout=5)
-        feed = feedparser.parse(r.content)
-        for e in feed.entries[:limit]:
-            img = e.get('media_thumbnail', [{}])[0].get('url') or e.get('media_content', [{}])[0].get('url')
-            articles.append({'title': e.title, 'link': e.link, 'img': img, 'source': source_name, 'cat': category})
-    except: pass
-    return articles
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+        res = requests.post(url, json={"contents": [{"parts":[{"text": prompt}]}]}, timeout=10).json()
+        return res['candidates'][0]['content']['parts'][0]['text']
+    except: return "AI Service busy."
+
+# --- ROUTES ---
+@app.route('/health')
+def health():
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        return jsonify({"status": "healthy", "database": "connected"}), 200
+    except: return jsonify({"status": "unhealthy"}), 500
 
 @app.route('/')
-def dashboard():
-    # A-F CATEGORY MAPPING
-    matrix = {
-        "UK": ingest("https://feeds.bbci.co.uk/news/uk/rss.xml", "UK", "BBC"),
-        "World": [],
-        "Markets": ingest("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance", "Markets", "CNBC"),
-        "Sport": ingest("https://feeds.bbci.co.uk/sport/football/rss.xml", "Sport", "BBC Sport"),
-        "Tech": ingest("https://www.theverge.com/rss/index.xml", "Tech", "The Verge"),
-        "Culture": ingest("https://www.nme.com/news/music/feed", "Culture", "NME")
-    }
-    
-    # World News API (NYT)
-    nyt_key = os.environ.get('NYT_API_KEY')
-    if nyt_key:
-        try:
-            r = requests.get(f"https://api.nytimes.com/svc/topstories/v2/world.json?api-key={nyt_key}").json()
-            matrix["World"] = [{'title': a['title'], 'link': a['url'], 'img': a.get('multimedia',[{}])[0].get('url'), 'source': 'NYT', 'cat': 'World'} for a in r['results'][:5]]
-        except: pass
-    if not matrix["World"]: matrix["World"] = ingest("https://feeds.bbci.co.uk/news/world/rss.xml", "World", "BBC World")
-
-    saved = Article.query.filter_by(is_saved=True).all()
-    return render_template('index.html', matrix=matrix, saved=saved)
-
-@app.route('/intel/save', methods=['POST'])
-def save():
-    d = request.json
-    if not Article.query.filter_by(link=d['link']).first():
-        db.session.add(Article(title=d['title'], link=d['link'], img=d['img'], source=d['source'], cat=d['cat'], is_saved=True))
-        db.session.commit()
-    return jsonify({"status": "success"})
-
-@app.route('/agent/search', methods=['POST'])
-def agent_search():
-    topic = request.json.get('topic')
-    key = os.environ.get('OPENROUTER_API_KEY')
-    try:
-        prompt = f"Identify the primary RSS feed for {topic}. Return ONLY JSON: {{'n': 'Source Name', 'u': 'RSS URL'}}"
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", 
-            headers={"Authorization": f"Bearer {key}", "HTTP-Referer": "https://kaivor.io"},
-            json={"model": "deepseek/deepseek-chat", "messages": [{"role": "user", "content": prompt}]}).json()
-        data = json.loads(re.search(r'\{.*\}', res['choices'][0]['message']['content'], re.DOTALL).group(0))
-        # Automatic Ingestion
-        db.session.add(Source(name=data['n'], url=data['u'], cat="Discovery"))
-        db.session.commit()
-        return jsonify({"status": "success", "name": data['n']})
-    except: return jsonify({"status": "failed"})
-
-@app.route('/intel/brief', methods=['POST'])
-def brief():
-    t = request.json.get('title')
-    try:
-        res = ai.generate_content(f"In 15 words: {t}")
-        return jsonify({"summary": res.text})
-    except: return jsonify({"summary": "Briefing failed."})
+def index():
+    # This renders the existing UI you liked
+    bookmarks = db.session.query(Article).join(Library).all()
+    return render_template('index.html', intel={}, market=[], bookmarks=bookmarks, status="STABLE")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)

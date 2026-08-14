@@ -1,5 +1,6 @@
 flask
 flask-sqlalchemy
+Flask-Migrate
 feedparser
 requests
 psycopg2-binary
