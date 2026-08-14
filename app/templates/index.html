@@ -6,39 +6,133 @@
     <title>KAIVOR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #000; color: #fff; font-family: ui-sans-serif, system-ui; margin: 0; }
-        .view { padding-top: 20px; padding-bottom: 100px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .view { display: none; padding-top: 155px; padding-bottom: 120px; } 
+        .view-active { display: block; animation: vIn 0.3s ease-out; }
+        @keyframes vIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+        
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: #000; z-index: 100; border-bottom: 1px solid #111; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #080808; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        
+        .chip { border: 1px solid #1a1a1a; white-space: nowrap; flex-shrink: 0; transition: 0.2s; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 6px 18px; border-radius: 99px; }
+        .chip-active { background: #2563eb !important; border-color: #3b82f6 !important; color: #fff !important; }
     </style>
 </head>
 <body>
-    <header class="p-6 border-b border-white/5 sticky top-0 bg-black z-50">
-        <h1 class="text-2xl font-black italic tracking-tighter">KAIVOR <span class="text-blue-500 text-xs not-italic font-bold uppercase tracking-widest">{{ status }}</span></h1>
-    </header>
 
-    <main class="p-4 space-y-12 view">
-        {% for cat, articles in matrix.items() %}
-        <section>
-            <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-4 border-l-2 border-blue-600 pl-3">{{ cat }}</h2>
-            <div class="space-y-4">
-                {% for item in articles %}
-                <div class="bg-[#0d0d0d] p-5 rounded-[2rem] border border-white/5">
-                    <a href="{{ item.article_url }}" class="text-lg font-bold leading-tight block mb-2">{{ item.title }}</a>
-                    <span class="text-[10px] font-bold text-gray-500 uppercase">{{ item.source_name }}</span>
+    <div class="top-bar">
+        <!-- FINANCE TICKER -->
+        <div class="h-[45px] border-b border-white/5 overflow-hidden bg-black">
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            { "symbols": [{"proName": "BITSTAMP:BTCUSD", "title": "BTC"},{"proName": "TVC:GOLD", "title": "GOLD"},{"proName": "FOREXCOM:SPX500", "title": "S&P 500"},{"proName": "NASDAQ:IXIC", "title": "NASDAQ"}], "colorTheme": "dark", "isTransparent": false, "displayMode": "adaptive", "locale": "en" }
+            </script>
+        </div>
+        <!-- BRANDING -->
+        <div class="px-6 py-4 flex justify-between items-center bg-black">
+            <h1 class="text-2xl font-black tracking-tighter italic">KAIVOR</h1>
+            <div class="bg-blue-600/10 px-4 py-1.5 rounded-full border border-blue-500/20"><span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Protocol Active</span></div>
+        </div>
+        <!-- CATEGORY SELECTOR -->
+        <div class="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-4 bg-black">
+            <button onclick="filterTab('all', this)" class="chip chip-active bg-[#111] text-white">Full Brief</button>
+            {% for cat in intel.keys() %}<button onclick="filterTab('{{ cat }}', this)" class="chip bg-[#080808] text-gray-500">{{ cat }}</button>{% endfor %}
+        </div>
+    </div>
+
+    <!-- VIEW 1: BRIEFING (HOME) -->
+    <main id="view-home" class="view view-active p-6">
+        <div id="news-container">
+            {% for cat, articles in intel.items() %}
+            <section class="news-section mb-14" data-cat="{{ cat }}">
+                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-8 pl-3 border-l-2 border-blue-600 ml-1">{{ cat }} INTELLIGENCE</h2>
+                <div class="grid gap-8">
+                    {% for item in articles %}
+                    <div class="bg-[#0d0d0d] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
+                        {% if item.img %}<img src="{{ item.img }}" class="w-full h-56 object-cover opacity-90">{% endif %}
+                        <div class="p-8">
+                            <a href="{{ item.link }}" class="text-[20px] font-bold leading-tight block mb-6 text-gray-100">{{ item.title }}</a>
+                            <div class="flex gap-3">
+                                <button onclick="getBrief(this, '{{ item.title|replace("'", "") }}')" class="bg-blue-600 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-tighter">Summarize</button>
+                                <button onclick="saveB('{{ item.title|replace("'", "") }}', '{{ item.link }}', '{{ item.img }}', '{{ item.source }}', '{{ cat }}')" class="bg-[#1a1a1a] text-gray-400 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-tighter border border-white/5">Archive</button>
+                            </div>
+                            <div class="hidden mt-6 p-5 bg-blue-500/5 rounded-3xl text-sm text-gray-300 italic border-l border-blue-600"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-                {% if not articles %}
-                    <p class="text-gray-700 text-xs italic px-3">Waiting for signal synchronization...</p>
-                {% endif %}
-            </div>
-        </section>
-        {% endfor %}
+            </section>
+            {% endfor %}
+        </div>
     </main>
 
-    <footer class="p-8 border-t border-white/5">
-        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Saved Library</h3>
-        {% for b in saved %}
-        <div class="mb-2 text-sm"><a href="{{ b.article_url }}">{{ b.title }}</a></div>
-        {% endfor %}
-    </footer>
+    <!-- VIEW 2: DISCOVERY -->
+    <main id="view-agent" class="view p-8 pt-40">
+        <h2 class="text-4xl font-black mb-10 tracking-tighter text-center">Discovery Agent</h2>
+        <div class="bg-[#0d0d0d] border border-white/5 p-10 rounded-[3.5rem] shadow-3xl text-center">
+            <p class="text-blue-500 text-[10px] font-black uppercase mb-8 tracking-widest opacity-60">Scout Network Signals</p>
+            <input id="topic" type="text" placeholder="Intelligence Target..." class="w-full bg-black p-6 rounded-[2rem] border border-white/10 mb-8 outline-none text-white font-bold text-center">
+            <button onclick="aiFind()" class="w-full bg-white text-black p-6 rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl">Initialize Scan</button>
+            <p id="st" class="hidden mt-10 text-[10px] text-blue-500 font-bold uppercase animate-pulse"></p>
+        </div>
+    </main>
+
+    <!-- VIEW 3: LIBRARY -->
+    <main id="view-vault" class="view p-8 pt-40">
+        <h2 class="text-4xl font-black mb-12 tracking-tighter">Library</h2>
+        <div class="space-y-6">
+            {% for b in bookmarks %}
+            <div class="bg-[#0d0d0d] p-6 rounded-[2.5rem] border border-white/5 flex gap-5 items-center shadow-lg">
+                {% if b.img %}<img src="{{ b.img }}" class="w-16 h-16 rounded-2xl object-cover">{% endif %}
+                <a href="{{ b.link }}" class="text-[15px] font-bold flex-1 leading-snug">{{ b.title }}</a>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- DOCKED NAVIGATION -->
+    <nav class="bottom-nav">
+        <button onclick="showTab('home')" class="nav-btn text-blue-500 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Intel</span></button>
+        <button onclick="showTab('agent')" class="nav-btn text-gray-600 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Discovery</span></button>
+        <button onclick="showTab('vault')" class="nav-btn text-gray-600 flex flex-col items-center"><span class="text-[10px] font-black uppercase tracking-widest">Library</span></button>
+    </nav>
+
+    <script>
+        function showTab(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('view-active'));
+            document.getElementById('view-' + id).classList.add('view-active');
+            document.querySelectorAll('.nav-btn').forEach(n => { n.classList.replace('text-blue-500', 'text-gray-600'); });
+            event.currentTarget.classList.replace('text-gray-600', 'text-blue-500');
+            window.scrollTo(0,0);
+        }
+        function filterTab(val, btn) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('chip-active', 'text-white'));
+            btn.classList.add('chip-active', 'text-white');
+            document.querySelectorAll('.news-section').forEach(s => { s.style.display = (val === 'all' || s.getAttribute('data-cat') === val) ? 'block' : 'none'; });
+            window.scrollTo(0,0);
+        }
+        async function saveB(title, link, img, source, cat) {
+            await fetch('/intel/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, link, img, source, cat}) });
+            alert("SECURED");
+        }
+        async function getBrief(btn, title) {
+            btn.innerText = "...";
+            const r = await fetch('/intel/brief', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title}) });
+            const d = await r.json();
+            btn.parentElement.nextElementSibling.innerText = d.summary;
+            btn.parentElement.nextElementSibling.classList.remove('hidden');
+            btn.innerText = "Briefed";
+        }
+        async function aiFind() {
+            const topic = document.getElementById('topic').value;
+            const s = document.getElementById('st');
+            s.innerText = "SIGNAL SCAN IN PROGRESS..."; s.classList.remove('hidden');
+            const r = await fetch('/agent/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
+            const d = await r.json();
+            s.innerText = d.status === 'success' ? "CONNECTED" : "SIGNAL LOST";
+            if(d.status === 'success') setTimeout(() => location.reload(), 1000);
+        }
+    </script>
 </body>
 </html>
