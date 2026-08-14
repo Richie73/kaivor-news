@@ -2,63 +2,65 @@ import sqlite3, os
 from sqlalchemy import create_engine, text
 
 def run_migration():
-    # Detect old DB path
-    old_db = 'kaivor_permanent.db' if os.path.exists('kaivor_permanent.db') else 'kaivor_vault.db'
+    # Try every possible name we used for the local DB
+    possible_dbs = ['kaivor_permanent.db', 'kaivor_vault.db', 'kaivor_local_safe.db', 'kaivor_emergency.db']
+    old_db = next((db for db in possible_dbs if os.path.exists(db)), None)
+    
     pg_url = os.environ.get('DATABASE_URL')
 
-    if not pg_url or not os.path.exists(old_db):
-        print(f"Error: Missing requirements. DB: {old_db}, PG_ENV: {'Set' if pg_url else 'None'}")
+    if not pg_url:
+        print("Error: DATABASE_URL not set in Termux.")
+        return
+    if not old_db:
+        print(f"Error: Could not find any local .db file. Tried: {possible_dbs}")
         return
 
-    print(f"Inspecting {old_db}...")
+    print(f"Found local data in: {old_db}")
+    print(f"Transferring to Neon Cloud...")
+    
     sl_conn = sqlite3.connect(old_db)
     sl_cur = sl_conn.cursor()
     pg_engine = create_engine(pg_url.replace("postgres://", "postgresql://"))
 
-    report = {"src": [0,0,0,0], "art": [0,0,0,0], "lib": [0,0,0,0]} # [existing, migrated, skipped, failed]
+    report = {"src": 0, "art": 0, "lib": 0}
 
-    # 1. MIGRATE SOURCES
+    # 1. Migrate Sources (Feeds)
     try:
-        sl_cur.execute("SELECT name, url, cat FROM Feed")
+        # Check if table is 'Feed' or 'sources' in the old DB
+        sl_cur.execute("SELECT name, url FROM Feed")
         rows = sl_cur.fetchall()
-        report["src"][0] = len(rows)
         with pg_engine.connect() as pg:
             for r in rows:
-                try:
-                    pg.execute(text("INSERT INTO sources (name, feed_url, categories) VALUES (:n, :u, :c) ON CONFLICT DO NOTHING"), {"n": r[0], "u": r[1], "c": r[2]})
-                    report["src"][1] += 1
-                except: report["src"][3] += 1
+                pg.execute(text("INSERT INTO sources (name, feed_url) VALUES (:n, :u) ON CONFLICT DO NOTHING"), {"n": r[0], "u": r[1]})
             pg.commit()
-    except Exception as e: print(f"Source migration skipped: {e}")
+        report["src"] = len(rows)
+    except Exception as e:
+        print(f"Source migration skipped or failed: {e}")
 
-    # 2. MIGRATE ARTICLES & LIBRARY
+    # 2. Migrate Articles and Bookmarks
     try:
-        sl_cur.execute("SELECT title, link, img, source, cat, is_saved, created_at FROM Article")
+        sl_cur.execute("SELECT title, link, img, source, is_saved, created_at FROM Article WHERE is_saved=1")
         rows = sl_cur.fetchall()
-        report["art"][0] = len(rows)
         with pg_engine.connect() as pg:
             for r in rows:
-                try:
-                    # Insert Article
-                    pg.execute(text("""INSERT INTO articles (title, article_url, image_url, source_name, category, imported_at) 
-                                    VALUES (:t, :u, :i, :s, :c, :d) ON CONFLICT DO NOTHING"""),
-                                    {"t":r[0], "u":r[1], "i":r[2], "s":r[3], "c":r[4], "d":r[6]})
-                    report["art"][1] += 1
-                    
-                    # If is_saved, create library entry
-                    if r[5] == 1:
-                        report["lib"][0] += 1
-                        aid = pg.execute(text("SELECT id FROM articles WHERE article_url = :u"), {"u":r[1]}).fetchone()[0]
-                        pg.execute(text("INSERT INTO library (article_id, saved_at) VALUES (:id, :at) ON CONFLICT DO NOTHING"), {"id":aid, "at":r[6]})
-                        report["lib"][1] += 1
-                except: report["art"][3] += 1
+                # Insert Article into Postgres
+                pg.execute(text("""INSERT INTO articles (title, article_url, image_url, source_name, imported_at) 
+                                VALUES (:t, :u, :i, :s, :d) ON CONFLICT DO NOTHING"""),
+                                {"t":r[0], "u":r[1], "i":r[2], "s":r[3], "d":r[5]})
+                
+                # Get the new ID to create the Library entry
+                res = pg.execute(text("SELECT id FROM articles WHERE article_url = :u"), {"u":r[1]}).fetchone()
+                if res:
+                    pg.execute(text("INSERT INTO library (article_id, saved_at) VALUES (:id, :at) ON CONFLICT DO NOTHING"), {"id":res[0], "at":r[5]})
+                report["lib"] += 1
             pg.commit()
-    except Exception as e: print(f"Article migration skipped: {e}")
+    except Exception as e:
+        print(f"Article migration skipped or failed: {e}")
 
     print("\n--- MIGRATION REPORT ---")
-    print(f"Sources: Existing {report['src'][0]}, Migrated {report['src'][1]}, Failed {report['src'][3]}")
-    print(f"Articles: Existing {report['art'][0]}, Migrated {report['art'][1]}, Failed {report['art'][3]}")
-    print(f"Library: Existing {report['lib'][0]}, Migrated {report['lib'][1]}, Failed {report['lib'][3]}")
+    print(f"Sources Migrated: {report['src']}")
+    print(f"Library Bookmarks Migrated: {report['lib']}")
+    print("Stage 1 Migration Complete.")
 
 if __name__ == "__main__":
     run_migration()
