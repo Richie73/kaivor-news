@@ -2,31 +2,22 @@ import os, requests, feedparser, logging, json, re, hashlib
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from urllib.parse import quote_plus
 from datetime import datetime
 import google.generativeai as genai
 
-# --- SYSTEM LOGGING ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("KAIVOR_REPAIR_ST1")
+logger = logging.getLogger("KAIVOR_PROD")
 app = Flask(__name__, template_folder='app/templates')
 
-# --- FORCED DATABASE LOGIC (BYPASSING RENDER DEFAULTS) ---
+# --- PRODUCTION DATABASE LOGIC ---
+# This now looks for the IPv4-friendly Neon/Render URL
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
 def get_db_uri():
-    # We look for your individual DB_ boxes first to force the 6543 port
-    u = os.environ.get('DB_USER')
-    p = os.environ.get('DB_PASSWORD')
-    h = os.environ.get('DB_HOST')
-    n = os.environ.get('DB_NAME')
-    # Force 6543 if we are on Render, otherwise use default
-    port = '6543' if 'RENDER' in os.environ else os.environ.get('DB_PORT', '5432')
-    
-    if all([u, p, h]):
-        logger.info(f"Connecting to Cloud DB on Port {port}...")
-        pw = quote_plus(p)
-        return f"postgresql+psycopg2://{u}:{pw}@{h}:{port}/{n}?sslmode=require"
-    
-    logger.warning("No Cloud DB variables found. Using local fallback.")
+    if DATABASE_URL:
+        # Fix for Render legacy strings
+        uri = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        return uri
     return 'sqlite:///kaivor_permanent.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
@@ -46,8 +37,6 @@ class Source(db.Model):
     name = db.Column(db.String(100), nullable=False)
     feed_url = db.Column(db.String(500), unique=True, nullable=False)
     categories = db.Column(db.String(200))
-    enabled = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Article(db.Model):
     __tablename__ = 'articles'
@@ -66,15 +55,13 @@ class Library(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), unique=True)
     saved_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- RESILIENT BOOT ---
-# This wrapper prevents the "Internal Server Error" if the DB fails
+# Sync Database Tables
 with app.app_context():
     try:
         db.create_all()
-        SYSTEM_STATUS = "CONNECTED"
+        logger.info("Database synchronized.")
     except Exception as e:
-        logger.error(f"DB CONNECTION FAILED: {e}")
-        SYSTEM_STATUS = "OFFLINE"
+        logger.error(f"Sync error: {e}")
 
 # --- ROUTES ---
 @app.route('/health')
@@ -83,19 +70,19 @@ def health():
         db.session.execute(db.text("SELECT 1"))
         return jsonify({"status": "healthy", "database": "connected"}), 200
     except Exception as e:
-        return jsonify({"status": "unhealthy", "error": "Database unreachable on Port 6543"}), 500
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
 @app.route('/')
 def index():
-    # If the database is offline, show an empty list instead of crashing
     try:
         saved = db.session.query(Article).join(Library).all()
+        status = "CONNECTED"
     except:
         saved = []
+        status = "OFFLINE"
     
-    # Existing UI needs this data
-    matrix = {"UK": [], "Markets": [], "Sport": [], "Tech": [], "Culture": []}
-    return render_template('index.html', matrix=matrix, saved=saved, status=SYSTEM_STATUS)
+    market = [{"s": "BTC", "v": "$64,210"}, {"s": "GOLD", "v": "$2,458"}]
+    return render_template('index.html', intel={}, market=market, bookmarks=saved, status=status)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
