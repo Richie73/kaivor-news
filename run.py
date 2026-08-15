@@ -6,82 +6,58 @@ from urllib.parse import quote_plus
 from datetime import datetime
 import google.generativeai as genai
 
-# --- SYSTEM ARCHITECTURE ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("KAIVOR_OS")
 app = Flask(__name__, template_folder='app/templates')
 
-# --- RESILIENT DATABASE LOGIC ---
+# --- DATABASE ENGINE ---
 def get_db_uri():
-    # 1. Try direct DATABASE_URL (Neon/Postgres)
-    uri = os.environ.get('DATABASE_URL')
-    if uri:
-        return uri.replace("postgres://", "postgresql://", 1)
-    
-    # 2. Try split variables (Supabase)
     u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
-    if all([u, p, h]):
+    if all([u, p, h, n]):
         return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:6543/{n or 'postgres'}?sslmode=require"
-    
-    # 3. Fallback to local
-    return 'sqlite:///kaivor_vault_v2.db'
+    return "sqlite:///kaivor_vault.db"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# --- MODELS ---
-class Source(db.Model):
-    __tablename__ = 'sources'
+class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    url = db.Column(db.String(500), unique=True)
-    cat = db.Column(db.String(50))
+    name = db.Column(db.String(100)); url = db.Column(db.String(500)); cat = db.Column(db.String(50))
 
 class Bookmark(db.Model):
-    __tablename__ = 'bookmarks'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500), nullable=False)
-    link = db.Column(db.String(500), unique=True)
-    img = db.Column(db.String(500))
-    source = db.Column(db.String(100))
-    cat = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    title = db.Column(db.String(500)); link = db.Column(db.String(500)); img = db.Column(db.String(500)); source = db.Column(db.String(100))
 
 with app.app_context():
-    db.create_all()
+    try: db.create_all()
+    except: pass
 
-# --- INTELLIGENCE SERVICES ---
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 ai = genai.GenerativeModel('gemini-1.5-flash')
 
-def fetch_rss(url, limit=4):
+def fetch_rss(url, limit=10): # Increased limit
     try:
-        h = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Kaivor/3.0'}
-        r = requests.get(url, headers=h, timeout=5)
+        h = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        r = requests.get(url, headers=h, timeout=6)
         p = feedparser.parse(r.content)
-        return [{'title': e.title, 'link': e.link, 'img': e.get('media_thumbnail', [{}])[0].get('url') or e.get('media_content', [{}])[0].get('url')} for e in p.entries[:limit]]
+        articles = []
+        for e in p.entries[:limit]:
+            img = e.get('media_thumbnail', [{}])[0].get('url') or e.get('media_content', [{}])[0].get('url')
+            articles.append({'title': e.title, 'link': e.link, 'img': img})
+        return articles
     except: return []
-
-@app.route('/health')
-def health():
-    try:
-        db.session.execute(db.text("SELECT 1"))
-        return jsonify({"status": "healthy", "db": "connected"}), 200
-    except Exception as e:
-        return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
 @app.route('/')
 def index():
-    # A-F CATEGORY MATRIX
+    # A-F CATEGORY MAPPING (10 stories each)
     intel = {
         "UK": fetch_rss("https://feeds.bbci.co.uk/news/uk/rss.xml"),
         "World": fetch_rss("https://feeds.bbci.co.uk/news/world/rss.xml"),
         "Markets": fetch_rss("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance"),
         "Sport": fetch_rss("https://feeds.bbci.co.uk/sport/football/rss.xml"),
         "Tech": fetch_rss("https://www.theverge.com/rss/index.xml"),
-        "Music": fetch_rss("https://www.nme.com/news/music/feed")
+        "Culture": fetch_rss("https://www.nme.com/news/music/feed")
     }
     
     # Premium NYT Layer
@@ -90,7 +66,7 @@ def index():
         try:
             r = requests.get(f"https://api.nytimes.com/svc/topstories/v2/home.json?api-key={nyt_key}").json()
             if 'results' in r:
-                intel['World'] = [{'title': a['title'], 'link': a['url'], 'img': a.get('multimedia',[{}])[0].get('url')} for a in r['results'][:4]]
+                intel['World'] = [{'title': a['title'], 'link': a['url'], 'img': a.get('multimedia',[{}])[0].get('url')} for a in r['results'][:10]]
         except: pass
 
     bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
@@ -101,7 +77,7 @@ def save():
     d = request.json
     try:
         if not Bookmark.query.filter_by(link=d['link']).first():
-            db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source'], cat=d['cat']))
+            db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source']))
             db.session.commit()
         return jsonify({"status": "success"})
     except: return jsonify({"status": "error"}), 500
@@ -110,7 +86,7 @@ def save():
 def brief():
     t = request.json.get('title')
     try:
-        res = ai.generate_content(f"Explain in 15 words: {t}")
+        res = ai.generate_content(f"Significance in 15 words: {t}")
         return jsonify({"summary": res.text})
     except: return jsonify({"summary": "AI Intel Offline."})
 
@@ -121,7 +97,7 @@ def agent_search():
         prompt = f"Official RSS for {topic}. Return JSON: {{\"n\": \"Name\", \"u\": \"URL\", \"c\": \"Category\"}}"
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers={"Authorization": f"Bearer {key}"}, json={"model": "deepseek/deepseek-chat", "messages": [{"role": "user", "content": prompt}]}).json()
         d = json.loads(re.search(r'\{.*\}', res['choices'][0]['message']['content'], re.DOTALL).group(0))
-        db.session.add(Source(name=d['n'], url=d['u'], cat=d['c'])); db.session.commit()
+        db.session.add(Feed(name=d['n'], url=d['u'], cat=d['c'])); db.session.commit()
         return jsonify({"status": "success", "name": d['n']})
     except: return jsonify({"status": "failed"})
 
