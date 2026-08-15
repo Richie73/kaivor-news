@@ -1,0 +1,117 @@
+import os, requests, feedparser, logging, json, re, hashlib
+from flask import Flask, render_template, request, redirect, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from urllib.parse import quote_plus
+from datetime import datetime
+import google.generativeai as genai
+
+# --- SYSTEM STABILITY LAYER ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("KAIVOR_CORE")
+app = Flask(__name__, template_folder='app/templates')
+
+# --- HYBRID DATABASE (NEVER CRASH) ---
+def get_db_uri():
+    # Try Neon/Postgres if available
+    uri = os.environ.get('DATABASE_URL')
+    if uri:
+        return uri.replace("postgres://", "postgresql://", 1)
+    # If Cloud is unreachable or missing, use local storage to ensure the app stays UP
+    return 'sqlite:///kaivor_production.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# --- MODELS ---
+class Source(db.Model):
+    __tablename__ = 'sources'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    url = db.Column(db.String(500), unique=True)
+    cat = db.Column(db.String(50))
+
+class Article(db.Model):
+    __tablename__ = 'articles'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    link = db.Column(db.String(500), unique=True)
+    img = db.Column(db.String(500))
+    source = db.Column(db.String(100))
+    cat = db.Column(db.String(50))
+    is_saved = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+with app.app_context():
+    try: db.create_all()
+    except: pass
+
+# --- INTELLIGENCE LOGIC ---
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+ai = genai.GenerativeModel('gemini-1.5-flash')
+
+def fetch_signal(url, category, name, limit=10):
+    try:
+        h = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        r = requests.get(url, headers=h, timeout=5)
+        p = feedparser.parse(r.content)
+        return [{'title': e.title, 'link': e.link, 'img': e.get('media_thumbnail', [{}])[0].get('url') or e.get('media_content', [{}])[0].get('url'), 'source': name, 'cat': category} for e in p.entries[:limit]]
+    except: return []
+
+# --- ROUTES ---
+@app.route('/')
+def index():
+    # A-F CATEGORY MAPPING
+    matrix = {
+        "UK News": fetch_signal("https://feeds.bbci.co.uk/news/uk/rss.xml", "UK News", "BBC"),
+        "World News": fetch_signal("https://feeds.bbci.co.uk/news/world/rss.xml", "World News", "BBC World"),
+        "Market Intel": fetch_signal("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance", "Markets", "CNBC"),
+        "Sport (Football)": fetch_signal("https://feeds.bbci.co.uk/sport/football/rss.xml", "Sport", "BBC Sport"),
+        "Tech & AI": fetch_signal("https://www.theverge.com/rss/index.xml", "Tech", "The Verge"),
+        "Culture": fetch_signal("https://www.nme.com/news/music/feed", "Culture", "NME")
+    }
+    
+    # Premium NYT World Integration
+    nyt_key = os.environ.get('NYT_API_KEY')
+    if nyt_key:
+        try:
+            r = requests.get(f"https://api.nytimes.com/svc/topstories/v2/world.json?api-key={nyt_key}").json()
+            matrix["World News"] = [{'title': a['title'], 'link': a['url'], 'img': a.get('multimedia',[{}])[0].get('url'), 'source': 'NYT', 'cat': 'World'} for a in r['results'][:10]]
+        except: pass
+
+    saved = Article.query.filter_by(is_saved=True).all()
+    return render_template('index.html', matrix=matrix, saved=saved)
+
+@app.route('/intel/save', methods=['POST'])
+def save():
+    d = request.json
+    try:
+        if not Article.query.filter_by(link=d['link']).first():
+            db.session.add(Article(title=d['title'], link=d['link'], img=d['img'], source=d['source'], cat=d['cat'], is_saved=True))
+            db.session.commit()
+        return jsonify({"status": "success"})
+    except: return jsonify({"status": "error"}), 500
+
+@app.route('/agent/discover', methods=['POST'])
+def discover():
+    topic = request.json.get('topic'); key = os.environ.get('OPENROUTER_API_KEY')
+    try:
+        prompt = f"Identify the official RSS feed for {topic}. Return ONLY JSON: {{'n': 'Name', 'u': 'URL', 'c': 'Category'}}"
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers={"Authorization": f"Bearer {key}"}, json={"model": "deepseek/deepseek-chat", "messages": [{"role": "user", "content": prompt}]}).json()
+        d = json.loads(re.search(r'\{.*\}', res['choices'][0]['message']['content'], re.DOTALL).group(0))
+        db.session.add(Source(name=d['n'], url=d['u'], cat=d['c'])); db.session.commit()
+        return jsonify({"status": "success", "name": d['n']})
+    except: return jsonify({"status": "failed"})
+
+@app.route('/intel/summarize', methods=['POST'])
+def summarize():
+    t = request.json.get('title')
+    try:
+        res = ai.generate_content(f"In 15 words, why is this headline critical: {t}")
+        return jsonify({"summary": res.text})
+    except: return jsonify({"summary": "AI Intelligence Offline."})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
