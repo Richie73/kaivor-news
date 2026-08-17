@@ -1,99 +1,116 @@
-import os, requests, feedparser, logging, json, re, hashlib, traceback
+import os, requests, feedparser, logging, json, re, hashlib
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 from datetime import datetime
+import google.generativeai as genai
 
-# --- SYSTEM CORE ---
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("KAIVOR_PRO")
+logger = logging.getLogger("KAIVOR_OS")
 app = Flask(__name__, template_folder='app/templates')
 
-# --- DATABASE ARCHITECTURE ---
+# --- PRODUCTION DATABASE LOGIC ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
 def get_db_uri():
-    u, p, h, n = os.environ.get('DB_USER'), os.environ.get('DB_PASSWORD'), os.environ.get('DB_HOST'), os.environ.get('DB_NAME')
-    if all([u, p, h]):
-        return f"postgresql+psycopg2://{u}:{quote_plus(p)}@{h}:6543/{n or 'postgres'}?sslmode=require"
-    return os.environ.get('DATABASE_URL', 'sqlite:///kaivor_vault.db').replace("postgres://", "postgresql://", 1)
+    if DATABASE_URL:
+        return DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    return 'sqlite:///kaivor_permanent.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# --- MODELS ---
 class Source(db.Model):
     __tablename__ = 'sources'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    url = db.Column(db.String(500), unique=True)
-    cat = db.Column(db.String(50))
+    feed_url = db.Column(db.String(500), unique=True, nullable=False)
+    category = db.Column(db.String(50), default='General')
 
-class Bookmark(db.Model):
-    __tablename__ = 'bookmarks'
+class Article(db.Model):
+    __tablename__ = 'articles'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)
-    link = db.Column(db.String(500), unique=True)
-    img = db.Column(db.String(500))
-    source = db.Column(db.String(100))
-    cat = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    article_url = db.Column(db.String(500), unique=True)
+    image_url = db.Column(db.String(500))
+    source_name = db.Column(db.String(100))
+    category = db.Column(db.String(50))
+    content_hash = db.Column(db.String(64), unique=True)
+    imported_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Library(db.Model):
+    __tablename__ = 'library'
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), unique=True)
+    saved_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 with app.app_context():
-    try: db.create_all()
-    except: pass
+    db.create_all()
 
-# --- INTELLIGENCE SERVICES ---
-def fetch_intel(url, name="Source", limit=10):
+# --- HIGH-DEFINITION INGESTION ---
+def fetch_hd_intel(url, category, name, limit=10):
+    articles = []
     try:
-        h = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Kaivor/5.0'}
-        r = requests.get(url, headers=h, timeout=6)
+        h = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        r = requests.get(url, headers=h, timeout=8)
         p = feedparser.parse(r.content)
-        articles = []
         for e in p.entries[:limit]:
-            # HIGH-RES IMAGE LOGIC
+            # Digging for the high-res image
             img = None
-            if 'media_content' in e: img = e.media_content[-1]['url']
-            elif 'enclosure' in e: img = e.enclosure['url']
-            elif 'media_thumbnail' in e: img = e.media_thumbnail[-1]['url']
+            if 'links' in e:
+                for link in e.links:
+                    if 'image' in link.get('type', ''): img = link.href
+            if not img and 'media_content' in e: img = e.media_content[0]['url']
+            if not img and 'media_thumbnail' in e: img = e.media_thumbnail[-1]['url']
             
-            # Clean title
-            title = e.title.split(' - ')[0] if ' - ' in e.title else e.title
-            articles.append({'title': title, 'link': e.link, 'img': img, 'source': name})
-        return articles
-    except: return []
+            articles.append({
+                'title': e.title, 'article_url': e.link, 'image_url': img,
+                'source_name': name, 'category': category
+            })
+    except: pass
+    return articles
 
 @app.route('/')
 def index():
-    # A-F CURATED INTELLIGENCE MATRIX
+    # A-F CATEGORY MATRIX (POPULATED AUTOMATICALLY)
     matrix = {
-        "UK": fetch_intel("https://feeds.bbci.co.uk/news/uk/rss.xml", "BBC"),
-        "World": fetch_intel("https://feeds.bbci.co.uk/news/world/rss.xml", "World Intel"),
-        "Markets": fetch_intel("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance", "CNBC"),
-        "Sport": fetch_intel("https://feeds.bbci.co.uk/sport/football/rss.xml", "BBC Sport"),
-        "Tech": fetch_intel("https://www.theverge.com/rss/index.xml", "The Verge"),
-        "Music": fetch_intel("https://www.nme.com/news/music/feed", "NME")
+        "UK": fetch_hd_intel("https://feeds.bbci.co.uk/news/uk/rss.xml", "UK", "BBC"),
+        "World": fetch_hd_intel("https://feeds.bbci.co.uk/news/world/rss.xml", "World", "BBC World"),
+        "Markets": fetch_hd_intel("https://search.cnbc.com/rs/search/view.xml?partnerId=2000&keywords=finance", "Markets", "CNBC"),
+        "Sport": fetch_hd_intel("https://feeds.bbci.co.uk/sport/football/rss.xml", "Sport", "BBC Sport"),
+        "Tech": fetch_hd_intel("https://www.theverge.com/rss/index.xml", "Tech", "The Verge"),
+        "Culture": fetch_hd_intel("https://www.nme.com/news/music/feed", "Culture", "NME")
     }
     
-    # Premium NYT Layer
-    nyt_key = os.environ.get('NYT_API_KEY')
-    if nyt_key:
-        try:
-            r = requests.get(f"https://api.nytimes.com/svc/topstories/v2/home.json?api-key={nyt_key}").json()
-            if 'results' in r:
-                matrix['World'] = [{'title': a['title'], 'link': a['url'], 'img': a.get('multimedia',[{}])[0].get('url'), 'source': 'NYT'} for a in r['results'][:10]]
-        except: pass
-
-    bookmarks = Bookmark.query.order_by(Bookmark.id.desc()).all()
-    return render_template('index.html', matrix=matrix, saved=bookmarks, status="TERMINAL_ACTIVE")
+    saved = db.session.query(Article).join(Library).all()
+    return render_template('index.html', matrix=matrix, saved=saved, status="TERMINAL_ACTIVE")
 
 @app.route('/intel/save', methods=['POST'])
 def save():
     d = request.json
-    if not Bookmark.query.filter_by(link=d['link']).first():
-        db.session.add(Bookmark(title=d['title'], link=d['link'], img=d['img'], source=d['source'], cat=d['cat']))
-        db.session.commit()
-    return jsonify({"status": "success"})
+    try:
+        if not Article.query.filter_by(article_url=d['link']).first():
+            new_a = Article(title=d['title'], article_url=d['link'], image_url=d['img'], source_name=d['source'], category=d['cat'], content_hash=hashlib.sha256(d['link'].encode()).hexdigest())
+            db.session.add(new_a); db.session.flush()
+            db.session.add(Library(article_id=new_a.id)); db.session.commit()
+        return jsonify({"status": "success"})
+    except: return jsonify({"status": "error"}), 500
+
+@app.route('/agent/search', methods=['POST'])
+def agent_search():
+    topic = request.json.get('topic'); key = os.environ.get('OPENROUTER_API_KEY')
+    try:
+        prompt = f"Official RSS for {topic}. Return ONLY JSON: {{'n': 'Name', 'u': 'URL', 'c': 'Category'}}"
+        headers = {"Authorization": f"Bearer {key}", "HTTP-Referer": "https://kaivor.io"}
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": "deepseek/deepseek-chat", "messages": [{"role": "user", "content": prompt}]}).json()
+        raw = res['choices'][0]['message']['content']
+        d = json.loads(re.search(r'\{.*\}', raw, re.DOTALL).group(0))
+        db.session.add(Source(name=d['n'], feed_url=d['u'], category=d['c'])); db.session.commit()
+        return jsonify({"status": "success", "name": d['n']})
+    except: return jsonify({"status": "failed"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
