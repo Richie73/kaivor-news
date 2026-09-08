@@ -42,3 +42,8 @@ backups/
 # OS files
 .DS_Store
 Thumbs.db
+config/secrets.py
+*.key
+*.pem
+config/local_config.py
+config/secrets.py
