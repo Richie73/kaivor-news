@@ -1,0 +1,10 @@
+{
+  "project": "Kaivor",
+  "version": "0.9.64",
+  "milestone": "FP009",
+  "capability": "OpenRouter Provider Integration",
+  "status": "development",
+  "last_snapshot": "Kaivor-latest.zip",
+  "validation": "pending",
+  "tests": "pending"
+}

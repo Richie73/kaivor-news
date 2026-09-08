@@ -1,0 +1,28 @@
+{
+    "providers": {
+        "DeepSeek": {
+            "enabled": true,
+            "priority": 1
+        },
+        "OpenRouter": {
+            "enabled": true,
+            "priority": 2
+        },
+        "Google": {
+            "enabled": false,
+            "priority": 3
+        },
+        "Anthropic": {
+            "enabled": false,
+            "priority": 4
+        },
+        "OpenAI": {
+            "enabled": false,
+            "priority": 5
+        },
+        "Ollama": {
+            "enabled": false,
+            "priority": 99
+        }
+    }
+}

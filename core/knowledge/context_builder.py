@@ -11,13 +11,8 @@ class KnowledgeContextBuilder:
     def __init__(self):
         self.retriever = KnowledgeRetriever()
 
-    def build(
-        self,
-        query,
-        directory="knowledge",
-        limit=5,
-    ):
-        """Return context and source documents."""
+    def build(self, query, directory="knowledge", limit=5):
+        """Return combined document text."""
 
         self.retriever.load(directory)
 
@@ -27,29 +22,11 @@ class KnowledgeContextBuilder:
         )
 
         context = []
-        sources = []
 
         for document in documents:
 
-            title = getattr(
-                document,
-                "title",
-                "Untitled",
-            )
-
-            sources.append(title)
-
-            text = getattr(
-                document,
-                "text",
-                "",
-            )
-
             context.append(
-                f"# {title}\n\n{text}"
+                f"# {document.title}\n\n{document.text}"
             )
 
-        return {
-            "context": "\n\n".join(context),
-            "sources": sources,
-        }
+        return "\n\n".join(context)

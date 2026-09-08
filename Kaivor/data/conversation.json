@@ -1,0 +1,1322 @@
+[
+    {
+        "role": "user",
+        "content": "What is my name?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don't know your name unless you tell me. What should I call you?"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Who are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "I am Kaivor, an intelligent AI operating system designed to assist, inform, and interact with you in a helpful and thoughtful manner."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: Router Online"
+    },
+    {
+        "role": "assistant",
+        "content": "Router Online"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: Timing Online"
+    },
+    {
+        "role": "assistant",
+        "content": "Timing Online"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello! How can I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "whst is my name"
+    },
+    {
+        "role": "assistant",
+        "content": "You haven't told me your name yet. What would you like me to call you?"
+    },
+    {
+        "role": "user",
+        "content": "Richie"
+    },
+    {
+        "role": "assistant",
+        "content": "Nice to meet you, Richie! How can I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "Write a Python function that reverses a string."
+    },
+    {
+        "role": "assistant",
+        "content": "Here's a simple Python function that reverses a string:\n\n```python\ndef reverse_string(s):\n    return s[::-1]\n```\n\nThis uses Python's slicing feature with a step of `-1` to reverse the string. You can use it like this:\n\n```python\nprint(reverse_string(\"hello\"))  # Output: \"olleh\"\n```\n\nAlternatively, you could use the `reversed()` function and `join()`:\n\n```python\ndef reverse_string(s):\n    return ''.join(reversed(s))\n```\n\nBoth approaches work correctly. Let me know if you'd like an explanation or a version that handles edge cases!"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello again, Richie! How can I help you today?"
+    },
+    {
+        "role": "user",
+        "content": "whatvis 2+2"
+    },
+    {
+        "role": "assistant",
+        "content": "2 + 2 equals 4."
+    },
+    {
+        "role": "user",
+        "content": "are you sure?"
+    },
+    {
+        "role": "assistant",
+        "content": "Yes, I'm sure. In standard arithmetic, 2 + 2 equals 4."
+    },
+    {
+        "role": "user",
+        "content": "nano core/ai/stream.py"
+    },
+    {
+        "role": "assistant",
+        "content": "It looks like you're referencing a file path: `core/ai/stream.py`. This appears to be a Python module, possibly part of a larger project.\n\nHow can I help you with this file? For example, do you want me to:\n\n- Explain what a typical `stream.py` in an AI core module might contain?\n- Help you write or debug code for streaming AI responses?\n- Analyze or suggest improvements for a specific function?\n\nLet me know what you need!"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don't have access to your specific Master RAMS (Risk Assessment and Method Statement) documents or any other personal files unless you provide their content. If you share the relevant details or text from your RAMS regarding lifting operations, I can help interpret, summarize, or explain them. Otherwise, please consult your documentation directly or provide more context."
+    },
+    {
+        "role": "user",
+        "content": "What qualifications are in my knowledge library?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don't have access to your personal knowledge library, files, or stored qualifications unless you share that information with me directly. If you tell me what qualifications or documents you're referring to, I can help summarize, explain, or discuss them. Otherwise, please check your own records or provide more details."
+    },
+    {
+        "role": "user",
+        "content": "What does my documentation say about risk assessments?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don\u2019t have access to your personal documentation, files, or records unless you share their content with me directly. If you provide the relevant text or details from your documentation about risk assessments, I can help summarize, explain, or discuss them. Otherwise, please refer to your own files or give me more context."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don\u2019t have access to your Master RAMS or any personal documents. If you share the relevant section or details from your RAMS regarding lifting operations, I can help explain, summarize, or clarify the content. Otherwise, please refer to your own documentation."
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don\u2019t have access to your Master RAMS or any personal documents. If you share the relevant section or details from your RAMS regarding lifting operations, I can help explain, summarize, or clarify the content. Otherwise, please refer to your own documentation."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "I don\u2019t have access to your Master RAMS or any personal documents. If you share the relevant section or details from your RAMS regarding lifting operations, I can help explain, summarize, or clarify the content. Otherwise, please refer to your own documentation."
+    },
+    {
+        "role": "user",
+        "content": "What qualifications are in my knowledge library?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, the qualifications listed in your knowledge library are:\n\n- SMSTS\n- CSCS Black Card\n- First Aid at Work (3-Day)\n- Appointed Person (Lifting)"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications are in my knowledge library?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, the qualifications in your knowledge library are:\n\n- SMSTS\n- CSCS Black Card\n- First Aid at Work (3-Day)\n- Appointed Person (Lifting)"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications are in my knowledge library?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, the qualifications in your knowledge library are:\n\n- SMSTS\n- CSCS Black Card\n- First Aid at Work (3-Day)\n- Appointed Person (Lifting)"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications are in my knowledge library?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, the qualifications in your knowledge library are:\n\n- SMSTS\n- CSCS Black Card\n- First Aid at Work (3-Day)\n- Appointed Person (Lifting)"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "The supplied knowledge does not contain any information about lifting operations."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "The supplied knowledge does not contain any information about lifting operations."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, your Master RAMS states that all lifting activities involving precast concrete manhole rings, pipes, or shoring systems must be planned by a competent person, supervised, and executed using certified lifting tackle, in accordance with the Lifting Operations and Lifting Equipment Regulations 1998 (LOLER)."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, your Master RAMS states that all lifting activities involving precast concrete manhole rings, pipes, or shoring systems must be planned by a competent person, supervised, and executed using certified lifting tackle, in accordance with the Lifting Operations and Lifting Equipment Regulations 1998 (LOLER)."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "what qualificqtions do i hold"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "what qualitications do i hold"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "what qualifications do i hold"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications do I hold?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications do I hold?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "exitsearch lifting"
+    },
+    {
+        "role": "assistant",
+        "content": "The supplied knowledge does not contain any information about \"exitsearch lifting.\""
+    },
+    {
+        "role": "user",
+        "content": "What qualifications do I hold?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications do I hold?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "What qualifications do I hold?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, you hold the following qualification:\n\n- **SMSTS (Site Management Safety Training Scheme)** \u2013 successfully completed on 27-02-2026, with a certificate expiry date of 28-02-2031."
+    },
+    {
+        "role": "user",
+        "content": "What does my Master RAMS say about lifting operations?"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the supplied knowledge, your Master RAMS states that all lifting activities involving precast concrete manhole rings, pipes, or shoring systems must be planned by a competent person, supervised, and executed using certified lifting tackle, in accordance with the Lifting Operations and Lifting Equipment Regulations 1998 (LOLER)."
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    },
+    {
+        "role": "user",
+        "content": "Reply with exactly: PASS"
+    },
+    {
+        "role": "assistant",
+        "content": "PASS"
+    }
+]

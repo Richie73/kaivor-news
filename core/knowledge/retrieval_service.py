@@ -2,25 +2,35 @@
 Kaivor Retrieval Service
 """
 
-from core.knowledge.retriever import KnowledgeRetriever
+from core.knowledge.context_builder import (
+    KnowledgeContextBuilder,
+)
 
 
 class RetrievalService:
-    """Central knowledge retrieval service."""
+    """Provides AI-ready knowledge context."""
 
     def __init__(self):
-        self.retriever = KnowledgeRetriever()
+        self.builder = KnowledgeContextBuilder()
 
-    def knowledge(
+    def context(
         self,
         query,
         directory="knowledge",
         limit=5,
     ):
-        """Retrieve knowledge passages."""
+        """Return AI-ready context."""
 
-        return self.retriever.retrieve(
-            query=query,
-            directory=directory,
-            limit=limit,
-        )
+        try:
+
+            context = self.builder.build(
+                query=query,
+                directory=directory,
+                limit=limit,
+            )
+
+            return context.strip()
+
+        except Exception:
+
+            return ""
