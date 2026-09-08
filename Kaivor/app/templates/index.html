@@ -3,32 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaivor News</title>
+    <title>Kaivor News Aggregator</title>
     <style>
-        body { background-color: #0b0b0b; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        header { padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; }
+        body { background-color: #0b0b0b; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding-top: 70px; }
+        header { position: fixed; top: 0; left: 0; right: 0; background: #0b0b0b; z-index: 1000; padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; }
         .container { padding: 16px; max-width: 600px; margin: 0 auto; }
         .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
+        .card img { width: 100%; height: auto; border-radius: 8px; margin-bottom: 12px; object-fit: cover; image-rendering: -webkit-optimize-contrast; }
         .card h3 { font-size: 16px; margin: 0; line-height: 1.4; }
         .card h3 a { color: #f3f4f6; text-decoration: none; }
         .source-tag { font-size: 11px; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
+        .input-form { display: flex; gap: 8px; padding: 12px 16px; background: #141414; border-bottom: 1px solid #222; }
+        .input-form input { flex: 1; background: #1f2937; border: 1px solid #374151; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+        .input-form button { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .feed-manager { background: #121214; padding: 12px 16px; border-bottom: 1px solid #222; font-size: 13px; }
+        .feed-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .feed-chip { background: #1f2937; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .feed-chip a { color: #ef4444; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
+    <header>KAIVOR</header>
+    
+    <form class="input-form" method="POST" action="{{ url_for('index') }}">
+        <input type="text" name="url" placeholder="Paste news site or RSS URL to add source..." required>
+        <button type="submit">Add Feed</button>
+    </form>
 
-    <header>KAIVOR NEWS</header>
+    <div class="feed-manager">
+        <strong>Active Sources:</strong>
+        <div class="feed-list">
+            {% for feed in feeds %}
+                <span class="feed-chip">
+                    {{ feed.name }}
+                    <form action="{{ url_for('delete_feed', feed_id=feed.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0; font-size:12px;">&times;</button>
+                    </form>
+                </span>
+            {% endfor %}
+        </div>
+    </div>
 
     <div class="container">
-        {% for cat, articles in news_grouped.items() %}
-            <h2 style="font-size: 14px; color: #9ca3af; text-transform: uppercase; margin-top: 24px; border-bottom: 1px solid #222; padding-bottom: 6px;">{{ cat }}</h2>
-            {% for art in articles %}
-            <div class="card">
-                <span class="source-tag">{{ cat }}</span>
-                <h3><a href="{{ art.link }}" target="_blank">{{ art.title }}</a></h3>
-            </div>
+        {% for source, articles in news_grouped.items() %}
+            <h2 style="font-size: 18px; border-bottom: 1px solid #333; padding-bottom: 6px; margin-top: 24px;">{{ source }}</h2>
+            {% for item in articles %}
+                <div class="card">
+                    <span class="source-tag">{{ source }}</span>
+                    {% if item.img %}
+                        <img src="{{ item.img }}" alt="News image">
+                    {% endif %}
+                    <h3><a href="{{ item.link }}" target="_blank">{{ item.title }}</a></h3>
+                </div>
             {% endfor %}
         {% endfor %}
     </div>
-
 </body>
 </html>
+

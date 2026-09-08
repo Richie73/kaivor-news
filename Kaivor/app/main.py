@@ -1,45 +1,56 @@
 import os
 import requests
 import feedparser
-from flask import Flask, render_template, request, redirect, jsonify
+import urllib.parse
+from bs4 import BeautifulSoup
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-import google.generativeai as genai
 
 app = Flask(__name__)
-
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///news.db')
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kaivor.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,
-    "pool_recycle": 300,
-}
 db = SQLAlchemy(app)
-
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
 class Feed(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    url = db.Column(db.String(500))
+    name = db.Column(db.String(100), nullable=False)
+    url = db.Column(db.String(300), unique=True, nullable=False)
 
 class Saved(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(500))
-    link = db.Column(db.String(500))
-    source = db.Column(db.String(100))
+    title = db.Column(db.String(200), nullable=False)
+    link = db.Column(db.String(300), nullable=False)
 
-with app.app_context():
+def discover_rss(url):
     try:
-        db.create_all()
+        if not url.startswith('http'):
+            url = 'https://' + url
+        res = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        if res.status_code != 200:
+            return url
+        soup = BeautifulSoup(res.text, 'html.parser')
+        rss_link = soup.find('link', type='application/rss+xml') or soup.find('link', type='application/atom+xml')
+        if rss_link and rss_link.get('href'):
+            href = rss_link['href']
+            return urllib.parse.urljoin(url, href)
     except:
         pass
+    return url
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        input_url = request.form.get('url')
+        if input_url:
+            actual_feed_url = discover_rss(input_url)
+            parsed = feedparser.parse(actual_feed_url)
+            feed_name = parsed.feed.title if hasattr(parsed, 'feed') and hasattr(parsed.feed, 'title') else input_url
+            if not Feed.query.filter_by(url=actual_feed_url).first():
+                new_feed = Feed(name=feed_name, url=actual_feed_url)
+                db.session.add(new_feed)
+                db.session.commit()
+        return redirect(url_for('index'))
+
     try:
         feeds = Feed.query.all()
     except:
@@ -52,21 +63,8 @@ def index():
 
     news_grouped = {}
     
-    g_key = os.environ.get('GUARDIAN_API_KEY')
-    if g_key:
-        try:
-            g_url = f"https://content.guardianapis.com/search?api-key={g_key}&show-fields=thumbnail&page-size=10"
-            res = requests.get(g_url).json()
-            news_grouped['World Trending'] = [{
-                'title': r['webTitle'], 
-                'link': r['webUrl'],
-                'img': r.get('fields', {}).get('thumbnail', '')
-            } for r in res['response']['results']]
-        except: pass
-
-    # Robust Markets Feed with forced [$] currency symbols
     try:
-        market_parsed = feedparser.parse("https://www.cnbc.com/id/10000664/device/rss/rss.html")
+        market_parsed = feedparser.parse("https://feeds.finance.yahoo.com/rss/2.0/headline?s=^IXIC,AAPL,MSFT")
         items = []
         for e in market_parsed.entries[:6]:
             t = e.title if hasattr(e, 'title') else "Market Update"
@@ -89,48 +87,25 @@ def index():
             
     return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
 
-@app.route('/summarize', methods=['POST'])
-def summarize():
-    title = request.json.get('title')
-    try:
-        prompt = f"In one short, punchy sentence, explain the importance of this news: {title}"
-        response = ai_model.generate_content(prompt)
-        return jsonify({"summary": response.text})
-    except:
-        return jsonify({"summary": "Briefing unavailable."})
-
-@app.route('/add', methods=['POST'])
-def add_feed():
-    name, url = request.form.get('name'), request.form.get('url')
-    if name and url:
-        try:
-            db.session.add(Feed(name=name, url=url))
-            db.session.commit()
-        except:
-            db.session.rollback()
-    return redirect('/')
-
-@app.route('/save', methods=['POST'])
-def save_article():
-    data = request.json
-    try:
-        db.session.add(Saved(title=data['title'], link=data['link'], source=data['source']))
-        db.session.commit()
-        return jsonify({"status": "success"})
-    except:
-        db.session.rollback()
-        return jsonify({"status": "error"}), 500
-
-@app.route('/delete_feed/<int:id>')
-def delete_feed(id):
-    try:
-        f = Feed.query.get(id)
-        if f:
-            db.session.delete(f)
-            db.session.commit()
-    except:
-        db.session.rollback()
-    return redirect('/')
+@app.route('/delete/<int:feed_id>', methods=['POST'])
+def delete_feed(feed_id):
+    feed = Feed.query.get_or_404(feed_id)
+    db.session.delete(feed)
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    with app.app_context():
+        db.create_all()
+        if Feed.query.count() == 0:
+            default_feeds = [
+                Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
+                Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
+                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
+                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
+                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
+            ]
+            db.session.add_all(default_feeds)
+            db.session.commit()
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
