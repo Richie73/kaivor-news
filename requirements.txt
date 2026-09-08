@@ -6,3 +6,4 @@ requests
 lxml
 pypdf
 python-docx
+flask_sqlalchemy
