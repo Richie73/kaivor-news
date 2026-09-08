@@ -67,10 +67,13 @@ def index():
         market_parsed = feedparser.parse("https://feeds.finance.yahoo.com/rss/2.0/headline?s=^IXIC,AAPL,MSFT")
         items = []
         for e in market_parsed.entries[:6]:
-            t = e.title if hasattr(e, 'title') else "Market Update"
+            t = getattr(e, 'title', 'Market Update')
+            if not isinstance(t, str):
+                t = str(t)
             if not t.startswith("[$]"):
                 t = f"[$] {t}"
-            items.append({'title': t, 'link': e.link, 'img': None})
+            link = getattr(e, 'link', '#')
+            items.append({'title': t, 'link': link, 'img': None})
         news_grouped['Markets'] = items
     except: 
         news_grouped['Markets'] = [{'title': '[$] Market data temporarily unavailable', 'link': '#', 'img': None}]
@@ -78,14 +81,27 @@ def index():
     for feed in feeds:
         try:
             parsed = feedparser.parse(feed.url)
-            news_grouped[feed.name] = [{
-                'title': f"[$] {e.title}" if not e.title.startswith("[$]") else e.title,
-                'link': e.link,
-                'img': None
-            } for e in parsed.entries[:6]]
-        except: continue
+            articles = []
+            for e in parsed.entries[:6]:
+                title = getattr(e, 'title', 'Untitled')
+                if not isinstance(title, str):
+                    title = str(title)
+                if not title.startswith("[$]"):
+                    title = f"[$] {title}"
+                link = getattr(e, 'link', '#')
+                articles.append({'title': title, 'link': link, 'img': None})
+            news_grouped[feed.name] = articles
+        except: 
+            continue
             
     return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
+
+@app.route('/delete/<int:feed_id>', methods=['POST'])
+def delete_feed(feed_id):
+    feed = Feed.query.get_or_404(feed_id)
+    db.session.delete(feed)
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     with app.app_context():
@@ -94,7 +110,9 @@ if __name__ == '__main__':
             default_feeds = [
                 Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
                 Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
-                Feed(name="Hacker News", url="https://news.ycombinator.com/rss")
+                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
+                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
+                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
             ]
             db.session.add_all(default_feeds)
             db.session.commit()
