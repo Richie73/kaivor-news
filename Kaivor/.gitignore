@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test & coverage
+.coverage
+.pytest_cache/
+htmlcov/
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Local configuration
+.env
+
+# Generated project files
+project_tree.txt
+source_tree.txt
+
+# Runtime data
+*.sqlite
+*.db
+
+# Backups
+backups/
+
+# OS files
+.DS_Store
+Thumbs.db
+config/secrets.py

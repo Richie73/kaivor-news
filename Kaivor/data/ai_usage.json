@@ -1,0 +1,1290 @@
+[
+    {
+        "timestamp": "2026-07-03T22:03:37.700946",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 5,
+        "response_length": 12
+    },
+    {
+        "timestamp": "2026-07-03T22:10:46.366545",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 40,
+        "response_length": 20
+    },
+    {
+        "timestamp": "2026-07-03T22:14:23.123526",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 43,
+        "response_length": 23
+    },
+    {
+        "timestamp": "2026-07-03T22:24:59.638368",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 38,
+        "response_length": 18
+    },
+    {
+        "timestamp": "2026-07-03T22:36:56.203873",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T07:43:08.583010",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T07:43:56.401757",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 31,
+        "response_length": 11
+    },
+    {
+        "timestamp": "2026-07-04T08:22:43.459417",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T08:29:09.820385",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 20,
+        "response_length": 898
+    },
+    {
+        "timestamp": "2026-07-04T08:29:11.768604",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 0,
+        "response_length": 142
+    },
+    {
+        "timestamp": "2026-07-04T08:31:11.328698",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 18,
+        "response_length": 1686
+    },
+    {
+        "timestamp": "2026-07-04T15:41:05.683048",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 28
+    },
+    {
+        "timestamp": "2026-07-04T21:38:11.324025",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 11,
+        "response_length": 182
+    },
+    {
+        "timestamp": "2026-07-04T21:38:46.431467",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-04T21:42:07.955994",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 28,
+        "response_length": 175
+    },
+    {
+        "timestamp": "2026-07-04T21:42:33.155722",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 28,
+        "response_length": 30
+    },
+    {
+        "timestamp": "2026-07-04T21:43:01.514272",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T07:31:29.976021",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 17,
+        "response_length": 51
+    },
+    {
+        "timestamp": "2026-07-05T07:31:45.114181",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 16,
+        "response_length": 20
+    },
+    {
+        "timestamp": "2026-07-05T07:32:03.332214",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 16,
+        "response_length": 66
+    },
+    {
+        "timestamp": "2026-07-05T07:32:54.823567",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T07:49:51.726794",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 12,
+        "response_length": 133
+    },
+    {
+        "timestamp": "2026-07-05T07:53:32.465068",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T08:07:37.969522",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T13:02:28.180012",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T13:48:43.207172",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T13:52:08.636816",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T20:38:44.483796",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T20:42:33.957363",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T20:45:43.361442",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T20:48:34.884116",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 33,
+        "response_length": 13
+    },
+    {
+        "timestamp": "2026-07-05T20:48:59.445589",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T20:52:26.373534",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:05:04.580359",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:07:56.967365",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:14:09.495143",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:16:54.574717",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:19:18.634950",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:23:13.003843",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:30:27.936634",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:34:31.974588",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:37:31.059116",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:39:29.023957",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:45:58.200561",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-05T21:50:27.881648",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T06:27:23.434746",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T06:52:27.035744",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T07:14:24.390446",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T07:17:52.053185",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T07:19:57.628097",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T07:23:29.279646",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T08:06:59.153133",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T08:26:08.671033",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 33,
+        "response_length": 13
+    },
+    {
+        "timestamp": "2026-07-06T08:26:53.296892",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T09:04:39.982780",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T09:14:32.213296",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T09:20:05.308241",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T09:29:20.200390",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T11:38:27.357276",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-06T14:27:35.858200",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T06:58:56.490616",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T07:00:03.844475",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T07:00:43.667115",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 5,
+        "response_length": 34
+    },
+    {
+        "timestamp": "2026-07-07T07:01:01.319651",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 15,
+        "response_length": 70
+    },
+    {
+        "timestamp": "2026-07-07T07:01:16.236999",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 6,
+        "response_length": 53
+    },
+    {
+        "timestamp": "2026-07-07T07:01:29.901148",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 47,
+        "response_length": 534
+    },
+    {
+        "timestamp": "2026-07-07T07:05:09.754623",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 5,
+        "response_length": 46
+    },
+    {
+        "timestamp": "2026-07-07T07:05:18.569170",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 11,
+        "response_length": 15
+    },
+    {
+        "timestamp": "2026-07-07T07:05:34.299862",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 13,
+        "response_length": 54
+    },
+    {
+        "timestamp": "2026-07-07T07:10:22.002048",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 22,
+        "response_length": 425
+    },
+    {
+        "timestamp": "2026-07-07T07:12:59.888820",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T07:58:47.806471",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T08:10:56.086203",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T11:15:02.286776",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T11:20:39.497068",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T11:30:36.355729",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T11:37:06.968492",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T12:54:45.630488",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T13:39:30.155418",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T13:47:44.341985",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T13:49:44.529575",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T13:52:06.299573",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T13:55:38.689376",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:35:59.924481",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:38:34.272747",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:42:11.970440",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:49:26.670349",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:51:27.709599",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:54:29.099435",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:56:22.936901",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T14:59:27.687700",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T15:15:05.376221",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T15:20:43.933348",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T16:23:54.250342",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T16:51:40.229154",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:30:16.954097",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:32:45.632248",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:38:06.654070",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:41:02.393133",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:42:45.400243",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-07T21:46:25.154508",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T06:48:09.230132",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T07:42:51.728185",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T07:44:24.441639",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T07:46:02.821065",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T07:49:01.066809",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T08:08:56.949636",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T09:22:17.628623",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T09:32:15.704650",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T09:40:39.772917",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T09:45:13.136619",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T10:07:18.398092",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T10:12:51.608502",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T10:33:24.459422",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T10:41:53.686458",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:11:09.120333",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:17:56.272146",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:18:14.904726",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:22:12.792422",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:22:36.333897",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:27:08.638443",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:28:48.779328",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T11:30:02.300600",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 375
+    },
+    {
+        "timestamp": "2026-07-08T11:30:46.759802",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 322
+    },
+    {
+        "timestamp": "2026-07-08T11:31:12.708820",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 325
+    },
+    {
+        "timestamp": "2026-07-08T12:12:20.614167",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T12:27:00.298246",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 262
+    },
+    {
+        "timestamp": "2026-07-08T12:47:19.619454",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 262
+    },
+    {
+        "timestamp": "2026-07-08T12:52:38.961378",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T12:55:03.876168",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T12:55:27.897197",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 262
+    },
+    {
+        "timestamp": "2026-07-08T12:55:37.257721",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 173
+    },
+    {
+        "timestamp": "2026-07-08T13:08:01.724085",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:08:50.001715",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 166
+    },
+    {
+        "timestamp": "2026-07-08T13:13:25.414516",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:13:49.340210",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 166
+    },
+    {
+        "timestamp": "2026-07-08T13:16:17.377739",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:16:44.591198",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 48,
+        "response_length": 166
+    },
+    {
+        "timestamp": "2026-07-08T13:19:41.568675",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:20:04.480630",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 81
+    },
+    {
+        "timestamp": "2026-07-08T13:24:57.768669",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:25:37.574178",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 81
+    },
+    {
+        "timestamp": "2026-07-08T13:28:21.539491",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:30:02.810864",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T13:30:29.554082",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 338
+    },
+    {
+        "timestamp": "2026-07-08T13:37:02.649459",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T14:23:00.882672",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T14:31:14.834697",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T14:40:46.889253",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T14:41:14.742720",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 338
+    },
+    {
+        "timestamp": "2026-07-08T14:48:06.663975",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T15:09:46.421224",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T15:51:03.223855",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:20:59.780862",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:27:35.472116",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:42:40.772144",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:43:29.797941",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 29,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-08T16:44:12.425466",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 29,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-08T16:47:29.422504",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:48:37.913104",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 29,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-08T16:55:23.405937",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T16:57:11.887734",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-08T20:40:36.286594",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T07:06:24.280205",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T07:07:07.183741",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 30,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-09T07:10:12.439895",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T16:31:38.544420",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T16:41:19.805199",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T16:48:05.043471",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-09T17:22:43.250358",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T08:24:08.883032",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T08:24:32.239819",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 30,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-10T08:25:39.094892",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 18,
+        "response_length": 83
+    },
+    {
+        "timestamp": "2026-07-10T08:26:51.668148",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 30,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-10T08:43:04.784826",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T08:43:32.077995",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 30,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-10T09:41:17.174337",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T09:41:45.078379",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 30,
+        "response_length": 210
+    },
+    {
+        "timestamp": "2026-07-10T09:42:06.533920",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 54,
+        "response_length": 338
+    },
+    {
+        "timestamp": "2026-07-10T09:44:59.431633",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T10:12:29.029673",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T11:26:29.961042",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T12:31:10.969585",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    },
+    {
+        "timestamp": "2026-07-10T12:44:01.867541",
+        "provider": "DeepSeek",
+        "model": "deepseek-chat",
+        "prompt_length": 24,
+        "response_length": 4
+    }
+]

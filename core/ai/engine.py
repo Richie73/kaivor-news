@@ -13,9 +13,6 @@ from core.ai.tasks import AITasks
 from core.ai.usage import UsageLogger
 from core.config import Config
 
-from core.knowledge.context_prompt import KnowledgePrompt
-from core.knowledge.rag_service import RAGService
-
 
 class AIEngine:
     """Central AI execution engine."""
@@ -27,8 +24,6 @@ class AIEngine:
         self.prompt_builder = PromptBuilder()
         self.conversation = ConversationManager()
         self.config = Config()
-
-        self.rag = RAGService()
 
     def ask(self, task: str, prompt: str):
 
@@ -51,16 +46,9 @@ class AIEngine:
         if self.config.get("conversation_memory", True):
             history = self.conversation.history()
 
-        rag = self.rag.context(prompt)
-
-        knowledge_prompt = KnowledgePrompt.build(
-            prompt,
-            rag["context"],
-        )
-
         messages = self.prompt_builder.build(
             task=task,
-            user=knowledge_prompt,
+            user=prompt,
             history=history,
         )
 
@@ -76,7 +64,7 @@ class AIEngine:
                 request_history.append(message)
 
         request = AIRequest(
-            user=knowledge_prompt,
+            user=prompt,
             system=system,
             history=request_history[:-1],
             temperature=self.config.get("temperature", 0.2),
@@ -91,8 +79,6 @@ class AIEngine:
             "retry_attempts",
             2,
         )
-
-        provider = None
 
         for provider in providers:
 
@@ -126,7 +112,9 @@ class AIEngine:
                 break
 
         if response is None:
-            raise RuntimeError("All providers failed.")
+            raise RuntimeError(
+                "All providers failed."
+            )
 
         if self.config.get("conversation_memory", True):
             self.conversation.add_user(prompt)
@@ -141,7 +129,5 @@ class AIEngine:
             prompt=prompt,
             response=response,
         )
-
-        self.last_sources = rag["sources"]
 
         return response

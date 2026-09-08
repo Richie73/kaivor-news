@@ -1,3 +1,0 @@
-"""
-Kaivor Developer Mode
-"""
