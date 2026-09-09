@@ -7,3 +7,4 @@ requests
 lxml
 pypdf
 python-docx
+yfinance
