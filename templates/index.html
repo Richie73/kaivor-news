@@ -25,7 +25,7 @@
                 {% for item in articles %}
                 <div class="bg-[#111] rounded-3xl overflow-hidden border border-white/5">
                     {% if item.img %}
-                    <img src="{{ item.img }}" class="w-full h-40 object-cover opacity-80">
+                    <img src="{{ item.image }}" class="w-full h-40 object-cover opacity-80">
                     {% endif %}
                     <div class="p-5">
                         <a href="{{ item.link }}" class="text-[17px] font-bold leading-tight block mb-3">{{ item.title }}</a>
