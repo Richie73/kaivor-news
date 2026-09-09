@@ -5,14 +5,12 @@ import re
 
 app = Flask(__name__)
 
-# Sample storage for feeds
 feeds = [
     {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml"},
     {"name": "Hacker News", "url": "https://news.ycombinator.com/rss"}
 ]
 
 def extract_image(entry):
-    # Try finding image in media content or enclosures
     if 'media_content' in entry:
         for media in entry.media_content:
             if 'url' in media:
@@ -21,7 +19,6 @@ def extract_image(entry):
         if 'url' in entry.media_thumbnail[0]:
             return entry.media_thumbnail[0]['url']
             
-    # Fallback: parse image from summary/description HTML
     summary = entry.get("summary", "") or entry.get("description", "")
     match = re.search(r'src="([^"]+)"', summary)
     if match:
@@ -31,25 +28,30 @@ def extract_image(entry):
 
 @app.route('/')
 def index():
-    # Fetch market data (S&P 500, Bitcoin, Gold)
+    # Market data including indices, crypto, commodities, and currencies
     market_data = {}
     try:
-        tickers = {"SP500": "^GSPC", "Bitcoin": "BTC-USD", "Gold": "GC=F"}
+        tickers = {
+            "S&P 500": "^GSPC", 
+            "GBP/USD": "GBPUSD=X", 
+            "EUR/USD": "EURUSD=X",
+            "Bitcoin": "BTC-USD", 
+            "Gold": "GC=F"
+        }
         for name, symbol in tickers.items():
             t = yf.Ticker(symbol)
             todays_data = t.history(period="1d")
             if not todays_data.empty:
                 price = todays_data['Close'].iloc[-1]
-                market_data[name] = round(price, 2)
+                market_data[name] = round(price, 4) if "USD" in name or "/" in name else round(price, 2)
     except Exception as e:
         print("Market data error:", e)
 
-    # Fetch news articles with images
     news_grouped = {}
     for feed_info in feeds:
         parsed = feedparser.parse(feed_info['url'])
         articles = []
-        for entry in parsed.entries[:5]: # Top 5 per feed
+        for entry in parsed.entries[:5]:
             articles.append({
                 "title": entry.get("title", "No Title"),
                 "link": entry.get("link", "#"),
