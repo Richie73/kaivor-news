@@ -5,36 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kaivor News</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Auto-refresh page every 5 minutes for real-time updates -->
     <meta http-equiv="refresh" content="300">
+    <style>
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: max-content;
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+    </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen pb-20">
     <div class="max-w-md mx-auto p-4">
         <!-- App Title -->
         <h1 class="text-3xl font-bold text-blue-500 mb-4">Kaivor</h1>
 
-        <!-- Scrollable Market Ticker Bar -->
+        <!-- Auto-Scrolling Market Ticker Bar -->
         {% if market_data %}
-        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-6 flex overflow-x-auto gap-6 text-sm scrollbar-none">
-            {% for name, price in market_data.items() %}
-            <div class="text-center flex-shrink-0">
-                <span class="block text-gray-400 text-xs">{{ name }}</span>
-                <span class="font-semibold text-green-400">{{ price }}</span>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl mb-6 overflow-hidden relative py-3">
+            <div class="animate-marquee flex gap-8 items-center px-4">
+                <!-- Render items twice to create seamless loop effect -->
+                {% for _ in range(2) %}
+                    {% for name, price in market_data.items() %}
+                    <div class="text-center flex-shrink-0 flex items-center gap-2">
+                        <span class="text-gray-400 text-xs">{{ name }}</span>
+                        <span class="font-semibold text-green-400 text-sm">
+                            {% if "Gold" in name or "S&P" in name or "NASDAQ" in name or "FTSE" in name or "Oil" in name or "Bitcoin" in name or "Ethereum" in name %}${% endif %}{{ price }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
         {% endif %}
 
-        <!-- News Feeds -->
+        <!-- News Feeds with Guaranteed Photos -->
         {% for feed_name, articles in news_grouped.items() %}
         <div class="mb-6">
             <h2 class="text-xs font-bold tracking-wider text-gray-400 uppercase mb-3">{{ feed_name }}</h2>
             <div class="space-y-4">
                 {% for item in articles %}
                 <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-lg flex gap-4 items-center">
-                    {% if item.image %}
                     <img src="{{ item.image }}" class="w-24 h-24 object-cover rounded-xl flex-shrink-0">
-                    {% endif %}
                     <div class="flex-1 min-w-0">
                         <a href="{{ item.link }}" target="_blank" class="block font-semibold text-white hover:text-blue-400 text-sm line-clamp-2 mb-2">
                             {{ item.title }}
