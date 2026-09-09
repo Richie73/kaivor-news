@@ -24,11 +24,11 @@ def extract_image(entry):
     if match:
         return match.group(1)
         
-    return None
+    # Fallback image so every article has a crisp thumbnail
+    return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
 @app.route('/')
 def index():
-    # Comprehensive financial markets tracking
     market_data = {}
     try:
         tickers = {
