@@ -28,15 +28,19 @@ def extract_image(entry):
 
 @app.route('/')
 def index():
-    # Market data including indices, crypto, commodities, and currencies
+    # Comprehensive financial markets tracking
     market_data = {}
     try:
         tickers = {
             "S&P 500": "^GSPC", 
-            "GBP/USD": "GBPUSD=X", 
-            "EUR/USD": "EURUSD=X",
+            "NASDAQ": "^IXIC",
+            "FTSE 100": "^FTSE", 
             "Bitcoin": "BTC-USD", 
-            "Gold": "GC=F"
+            "Ethereum": "ETH-USD", 
+            "Gold": "GC=F",
+            "Oil": "CL=F",
+            "GBP/USD": "GBPUSD=X", 
+            "EUR/USD": "EURUSD=X"
         }
         for name, symbol in tickers.items():
             t = yf.Ticker(symbol)
