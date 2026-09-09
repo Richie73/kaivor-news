@@ -45,7 +45,14 @@
                         <option value="">-- Choose Feed --</option>
                         <option value="https://www.theguardian.com/world/rss">The Guardian (World)</option>
                         <option value="https://feeds.bbci.co.uk/news/rss.xml">BBC News (World)</option>
+                        <option value="https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best">Reuters World (World)</option>
                         <option value="https://techcrunch.com/feed/">TechCrunch (Tech)</option>
+                        <option value="https://www.technologyreview.com/feed/">MIT Tech Review (AI)</option>
+                        <option value="https://feeds.bbci.co.uk/sport/rss.xml">BBC Sport (Sport)</option>
+                        <option value="https://pitchfork.com/feed/feed-news/rss">Pitchfork (Music)</option>
+                        <option value="https://www.androidpolice.com/feed/">Android Police (Android)</option>
+                        <option value="https://www.cnbc.com/id/10001147/device/rss/rss.html">CNBC Business (Business)</option>
+                        <option value="https://www.theguardian.com/crosswords/rss">Guardian Crosswords (Puzzles)</option>
                     </select>
                 </div>
                 <div>
@@ -58,6 +65,7 @@
                         <option value="Music">Music</option>
                         <option value="Android">Android</option>
                         <option value="Business">Business</option>
+                        <option value="Puzzles">Puzzles</option>
                     </select>
                 </div>
                 <div class="flex gap-2 pt-1">
@@ -75,9 +83,7 @@
                     {% for name, price in market_data.items() %}
                     <div class="text-center flex-shrink-0 flex items-center gap-2">
                         <span class="text-gray-400 text-xs">{{ name }}</span>
-                        <span class="font-semibold text-green-400 text-sm">
-                            {% if "Gold" in name or "S&P" in name or "NASDAQ" in name or "FTSE" in name or "Oil" in name or "Bitcoin" in name or "Ethereum" in name %}${% endif %}{{ price }}
-                        </span>
+                        <span class="font-semibold text-green-400 text-sm">${{ price }}</span>
                     </div>
                     {% endfor %}
                 {% endfor %}
@@ -95,6 +101,7 @@
             <button @click="activeTab = 'Music'" :class="activeTab === 'Music' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Music</button>
             <button @click="activeTab = 'Android'" :class="activeTab === 'Android' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Android</button>
             <button @click="activeTab = 'Business'" :class="activeTab === 'Business' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Business</button>
+            <button @click="activeTab = 'Puzzles'" :class="activeTab === 'Puzzles' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Puzzles</button>
         </div>
 
         <!-- News Sections by Category -->
