@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ activeTab: 'All' }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kaivor News</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <meta http-equiv="refresh" content="300">
     <style>
         @keyframes marquee {
@@ -19,6 +20,9 @@
         .animate-marquee:hover {
             animation-play-state: paused;
         }
+        /* Hide scrollbars for clean tab navigation */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen pb-20">
@@ -26,11 +30,10 @@
         <!-- App Title -->
         <h1 class="text-3xl font-bold text-blue-500 mb-4">Kaivor</h1>
 
-        <!-- Auto-Scrolling Market Ticker Bar -->
+        <!-- Scrolling Market Ticker Bar -->
         {% if market_data %}
-        <div class="bg-gray-900 border border-gray-800 rounded-xl mb-6 overflow-hidden relative py-3">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl mb-4 overflow-hidden relative py-3">
             <div class="animate-marquee flex gap-8 items-center px-4">
-                <!-- Render items twice to create seamless loop effect -->
                 {% for _ in range(2) %}
                     {% for name, price in market_data.items() %}
                     <div class="text-center flex-shrink-0 flex items-center gap-2">
@@ -45,26 +48,40 @@
         </div>
         {% endif %}
 
-        <!-- News Feeds with Guaranteed Photos -->
-        {% for feed_name, articles in news_grouped.items() %}
-        <div class="mb-6">
-            <h2 class="text-xs font-bold tracking-wider text-gray-400 uppercase mb-3">{{ feed_name }}</h2>
-            <div class="space-y-4">
-                {% for item in articles %}
-                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-lg flex gap-4 items-center">
-                    <img src="{{ item.image }}" class="w-24 h-24 object-cover rounded-xl flex-shrink-0">
-                    <div class="flex-1 min-w-0">
-                        <a href="{{ item.link }}" target="_blank" class="block font-semibold text-white hover:text-blue-400 text-sm line-clamp-2 mb-2">
-                            {{ item.title }}
-                        </a>
-                        <div class="flex gap-2">
-                            <span class="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Brief Me</span>
-                            <span class="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Save</span>
+        <!-- Google News Style Category Tabs -->
+        <div class="flex overflow-x-auto no-scrollbar gap-2 mb-6 border-b border-gray-800 pb-3">
+            <button @click="activeTab = 'All'" :class="activeTab === 'All' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">All</button>
+            <button @click="activeTab = 'World'" :class="activeTab === 'World' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">World</button>
+            <button @click="activeTab = 'Tech'" :class="activeTab === 'Tech' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Tech</button>
+            <button @click="activeTab = 'Business'" :class="activeTab === 'Business' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Business</button>
+        </div>
+
+        <!-- News Sections by Category -->
+        {% for category, sources in news_by_category.items() %}
+        <div x-show="activeTab === 'All' || activeTab === '{{ category }}'" class="mb-6">
+            <h2 class="text-sm font-bold tracking-wider text-blue-400 uppercase mb-3 border-l-4 border-blue-500 pl-2">{{ category }}</h2>
+            
+            {% for source_name, articles in sources.items() %}
+            <div class="mb-4">
+                <h3 class="text-xs font-semibold text-gray-400 mb-2">{{ source_name }}</h3>
+                <div class="space-y-3">
+                    {% for item in articles %}
+                    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 shadow-lg flex gap-3 items-center">
+                        <img src="{{ item.image }}" class="w-20 h-20 object-cover rounded-xl flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <a href="{{ item.link }}" target="_blank" class="block font-semibold text-white hover:text-blue-400 text-xs line-clamp-2 mb-2">
+                                {{ item.title }}
+                            </a>
+                            <div class="flex gap-2">
+                                <span class="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Brief Me</span>
+                                <span class="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Save</span>
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
         {% endfor %}
     </div>
