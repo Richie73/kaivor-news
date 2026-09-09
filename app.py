@@ -5,10 +5,15 @@ import re
 
 app = Flask(__name__)
 
-feeds = [
-    {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml"},
-    {"name": "Hacker News", "url": "https://news.ycombinator.com/rss"}
-]
+# Categorized news sources
+categories = {
+    "All": [
+        {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
+        {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
+        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
+        {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"}
+    ]
+}
 
 def extract_image(entry):
     if 'media_content' in entry:
@@ -24,7 +29,6 @@ def extract_image(entry):
     if match:
         return match.group(1)
         
-    # Fallback image so every article has a crisp thumbnail
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
 @app.route('/')
@@ -51,19 +55,33 @@ def index():
     except Exception as e:
         print("Market data error:", e)
 
-    news_grouped = {}
-    for feed_info in feeds:
-        parsed = feedparser.parse(feed_info['url'])
+    # Group articles by category and source name
+    categorized_news = {"World": [], "Tech": [], "Business": []}
+    
+    all_sources = [
+        {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "cat": "World"},
+        {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "cat": "Tech"},
+        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "cat": "Tech"},
+        {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "cat": "Business"}
+    ]
+
+    news_by_category = {}
+    for source in all_sources:
+        parsed = feedparser.parse(source['url'])
         articles = []
-        for entry in parsed.entries[:5]:
+        for entry in parsed.entries[:4]:
             articles.append({
                 "title": entry.get("title", "No Title"),
                 "link": entry.get("link", "#"),
                 "image": extract_image(entry)
             })
-        news_grouped[feed_info['name']] = articles
+        
+        cat = source['cat']
+        if cat not in news_by_category:
+            news_by_category[cat] = {}
+        news_by_category[cat][source['name']] = articles
 
-    return render_template('index.html', news_grouped=news_grouped, market_data=market_data, feeds=feeds)
+    return render_template('index.html', news_by_category=news_by_category, market_data=market_data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
