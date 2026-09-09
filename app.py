@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import yfinance as yf
 import feedparser
+import re
 
 app = Flask(__name__)
 
@@ -9,6 +10,24 @@ feeds = [
     {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml"},
     {"name": "Hacker News", "url": "https://news.ycombinator.com/rss"}
 ]
+
+def extract_image(entry):
+    # Try finding image in media content or enclosures
+    if 'media_content' in entry:
+        for media in entry.media_content:
+            if 'url' in media:
+                return media['url']
+    if 'media_thumbnail' in entry:
+        if 'url' in entry.media_thumbnail[0]:
+            return entry.media_thumbnail[0]['url']
+            
+    # Fallback: parse image from summary/description HTML
+    summary = entry.get("summary", "") or entry.get("description", "")
+    match = re.search(r'src="([^"]+)"', summary)
+    if match:
+        return match.group(1)
+        
+    return None
 
 @app.route('/')
 def index():
@@ -25,7 +44,7 @@ def index():
     except Exception as e:
         print("Market data error:", e)
 
-    # Fetch news articles
+    # Fetch news articles with images
     news_grouped = {}
     for feed_info in feeds:
         parsed = feedparser.parse(feed_info['url'])
@@ -33,7 +52,8 @@ def index():
         for entry in parsed.entries[:5]: # Top 5 per feed
             articles.append({
                 "title": entry.get("title", "No Title"),
-                "link": entry.get("link", "#")
+                "link": entry.get("link", "#"),
+                "image": extract_image(entry)
             })
         news_grouped[feed_info['name']] = articles
 
