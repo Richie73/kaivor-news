@@ -7,13 +7,16 @@ app = Flask(__name__)
 sources = [
     {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
     {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "category": "World"},
+    {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
     {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
     {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/", "category": "AI"},
     {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "category": "Sport"},
     {"name": "Pitchfork", "url": "https://pitchfork.com/feed/feed-news/rss", "category": "Music"},
     {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
-    {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"}
+    {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
+    {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"},
+    {"name": "New York Times Games", "url": "https://www.nytimes.com/spotlight/games", "category": "Puzzles"}
 ]
 
 def extract_image(entry):
@@ -80,4 +83,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-            
+    
