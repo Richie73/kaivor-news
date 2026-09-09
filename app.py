@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for
 import yfinance as yf
 import feedparser
 import re
-from feed_seeker import find_feed_url
 
 app = Flask(__name__)
 
@@ -38,35 +37,17 @@ def extract_image(entry):
 def index():
     if request.method == 'POST':
         preset_url = request.form.get('preset_url')
-        custom_input = request.form.get('custom_input')
         feed_category = request.form.get('feed_category', 'Tech')
         
-        target_url = ""
-        feed_name = ""
-        
         if preset_url:
-            target_url = preset_url
+            feed_name = "Preset Feed"
             for s in sources:
                 if s['url'] == preset_url:
                     feed_name = s['name']
-            if not feed_name:
-                feed_name = "Preset Feed"
-        elif custom_input:
-            search_target = custom_input.strip()
-            if not search_target.startswith("http"):
-                search_target = "https://" + search_target
             
-            discovered = find_feed_url(search_target)
-            if discovered:
-                target_url = discovered
-                feed_name = search_target.replace("https://", "").replace("http://", "").split("/")[0].capitalize()
-            else:
-                target_url = search_target
-                feed_name = "Custom Feed"
+            if not any(s['url'] == preset_url for s in sources):
+                sources.append({"name": feed_name, "url": preset_url, "category": feed_category})
                 
-        if target_url and not any(s['url'] == target_url for s in sources):
-            sources.append({"name": feed_name, "url": target_url, "category": feed_category})
-            
         return redirect(url_for('index'))
 
     market_data = {}
