@@ -13,9 +13,9 @@
 
         <!-- Market Data Ticker Bar -->
         {% if market_data %}
-        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-6 flex justify-between text-sm">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-6 flex overflow-x-auto gap-6 text-sm scrollbar-none">
             {% for name, price in market_data.items() %}
-            <div class="text-center">
+            <div class="text-center flex-shrink-0">
                 <span class="block text-gray-400 text-xs">{{ name }}</span>
                 <span class="font-semibold text-green-400">{{ price }}</span>
             </div>
@@ -31,7 +31,9 @@
                 {% for item in articles %}
                 <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-lg">
                     {% if item.image %}
-                    <img src="{{ item.image }}" class="w-full h-40 object-cover opacity-90">
+                    <div class="w-full h-48 bg-gray-950 flex items-center justify-center overflow-hidden">
+                        <img src="{{ item.image }}" class="w-full h-full object-cover">
+                    </div>
                     {% endif %}
                     <div class="p-4">
                         <a href="{{ item.link }}" target="_blank" class="block font-semibold text-white hover:text-blue-400 mb-3">
