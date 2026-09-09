@@ -5,16 +5,30 @@ import re
 app = Flask(__name__)
 
 sources = [
+    # World
     {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
     {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "category": "World"},
     {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
+    # Tech
     {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
+    {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "category": "Tech"},
+    {"name": "Wired", "url": "https://www.wired.com/feed/rss", "category": "Tech"},
+    # AI
     {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/", "category": "AI"},
+    # Sport
     {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "category": "Sport"},
+    {"name": "ESPN", "url": "https://www.espn.com/espn/rss/news", "category": "Sport"},
+    # Music
     {"name": "Pitchfork", "url": "https://pitchfork.com/feed/feed-news/rss", "category": "Music"},
+    {"name": "Billboard", "url": "https://www.billboard.com/feed/", "category": "Music"},
+    # Android
     {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
+    {"name": "9to5Google", "url": "https://9to5google.com/feed/", "category": "Android"},
+    # Business
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
+    {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"},
+    # Puzzles
     {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"},
     {"name": "New York Times Games", "url": "https://www.nytimes.com/spotlight/games", "category": "Puzzles"}
 ]
