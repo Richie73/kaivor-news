@@ -5,15 +5,17 @@ import re
 
 app = Flask(__name__)
 
-# Categorized news sources
-categories = {
-    "All": [
-        {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
-        {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
-        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
-        {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"}
-    ]
-}
+# Default categorized news sources
+sources = [
+    {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
+    {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
+    {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
+    {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/", "category": "AI"},
+    {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "category": "Sport"},
+    {"name": "Pitchfork", "url": "https://pitchfork.com/feed/feed-news/rss", "category": "Music"},
+    {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
+    {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"}
+]
 
 def extract_image(entry):
     if 'media_content' in entry:
@@ -31,8 +33,16 @@ def extract_image(entry):
         
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        feed_name = request.form.get('feed_name', 'Custom Feed')
+        feed_url = request.form.get('feed_url')
+        feed_category = request.form.get('feed_category', 'Tech')
+        if feed_url:
+            sources.append({"name": feed_name, "url": feed_url, "category": feed_category})
+        return redirect(url_for('index'))
+
     market_data = {}
     try:
         tickers = {
@@ -55,18 +65,8 @@ def index():
     except Exception as e:
         print("Market data error:", e)
 
-    # Group articles by category and source name
-    categorized_news = {"World": [], "Tech": [], "Business": []}
-    
-    all_sources = [
-        {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "cat": "World"},
-        {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "cat": "Tech"},
-        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "cat": "Tech"},
-        {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "cat": "Business"}
-    ]
-
     news_by_category = {}
-    for source in all_sources:
+    for source in sources:
         parsed = feedparser.parse(source['url'])
         articles = []
         for entry in parsed.entries[:4]:
@@ -76,7 +76,7 @@ def index():
                 "image": extract_image(entry)
             })
         
-        cat = source['cat']
+        cat = source['category']
         if cat not in news_by_category:
             news_by_category[cat] = {}
         news_by_category[cat][source['name']] = articles
