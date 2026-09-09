@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for
-import yfinance as yf
 import feedparser
 import re
 
@@ -50,47 +49,20 @@ def index():
                 
         return redirect(url_for('index'))
 
-    # Fallback market data defaults in case Yahoo blocks cloud requests
     market_data = {
         "S&P 500": 5850.00,
         "NASDAQ": 18300.00,
         "FTSE 100": 8250.00,
         "Bitcoin": 92500.00,
-        "Ethereum": 3400.00,
-        "Gold": 2700.50,
-        "Oil": 72.50,
-        "GBP/USD": 1.2850,
-        "EUR/USD": 1.0820
+        "Gold": 2700.50
     }
-    
-    tickers = {
-        "S&P 500": "^GSPC", 
-        "NASDAQ": "^IXIC",
-        "FTSE 100": "^FTSE", 
-        "Bitcoin": "BTC-USD", 
-        "Ethereum": "ETH-USD", 
-        "Gold": "GC=F",
-        "Oil": "CL=F",
-        "GBP/USD": "GBPUSD=X", 
-        "EUR/USD": "EURUSD=X"
-    }
-    
-    for name, symbol in tickers.items():
-        try:
-            t = yf.Ticker(symbol)
-            todays_data = t.history(period="1d")
-            if not todays_data.empty:
-                price = todays_data['Close'].iloc[-1]
-                market_data[name] = round(price, 4) if "USD" in name or "/" in name else round(price, 2)
-        except Exception as e:
-            print(f"Using fallback for {name}:", e)
 
     news_by_category = {}
     for source in sources:
         try:
             parsed = feedparser.parse(source['url'])
             articles = []
-            for entry in parsed.entries[:4]:
+            for entry in parsed.entries[:3]:
                 articles.append({
                     "title": entry.get("title", "No Title"),
                     "link": entry.get("link", "#"),
@@ -102,10 +74,10 @@ def index():
                 news_by_category[cat] = {}
             news_by_category[cat][source['name']] = articles
         except Exception as e:
-            print(f"Error parsing feed {source['name']}:", e)
+            print(f"Feed error: {e}")
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
+            
