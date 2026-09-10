@@ -1,189 +1,98 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ 
-    activeTab: 'All', 
-    showAddModal: false, 
-    showBriefModal: false, 
-    briefText: '', 
-    briefTitle: '', 
-    loadingBrief: false,
-    fetchBrief(title, link) {
-        this.showBriefModal = true;
-        this.loadingBrief = true;
-        this.briefTitle = title;
-        fetch('/brief', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title: title, link: link})
-        })
-        .then(res => res.json())
-        .then(data => { 
-            this.briefText = data.summary; 
-            this.loadingBrief = false; 
-        });
-    }
-}">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kaivor News</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <meta http-equiv="refresh" content="300">
-    <style>
-        @keyframes marquee {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-            display: flex;
-            width: max-content;
-            animation: marquee 25s linear infinite;
-        }
-        .animate-marquee:hover {
-            animation-play-state: paused;
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        [x-cloak] { display: none !important; }
-    </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen pb-20">
-    <div class="max-w-md mx-auto p-4">
-        <!-- Brand Logo Header -->
-        <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-2">
-                <div class="bg-blue-600 text-white font-extrabold text-sm px-2.5 py-1 rounded-lg tracking-wider shadow-md shadow-blue-900/50">KV</div>
-                <h1 class="text-2xl font-black tracking-tight text-white">Kaivor <span class="text-blue-500 font-semibold text-lg">News</span></h1>
-            </div>
-            <button @click="showAddModal = !showAddModal" class="bg-blue-600 hover:bg-blue-500 text-xs px-3 py-1.5 rounded-lg font-semibold transition">
-                + Add Feed
-            </button>
-        </div>
-
-        <!-- Feed Import Modal Form -->
-        <div x-show="showAddModal" x-cloak class="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-6 shadow-xl">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Add Preset Feed</h2>
-            <form method="POST" class="space-y-3">
-                <div>
-                    <label class="block text-[10px] text-gray-400 mb-1">Select Preset Feed</label>
-                    <select name="preset_url" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-                        <option value="">-- Choose Feed --</option>
-                        {% for s in sources %}
-                        <option value="{{ s.url }}">{{ s.name }} ({{ s.category }})</option>
-                        {% endfor %}
-                    </select>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <!-- Header & Markets -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Kaivor News</h1>
+            <div class="flex flex-wrap gap-3 text-sm text-slate-300">
+                {% for item, val in market_data.items() %}
+                <div class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                    <span class="font-semibold text-slate-100">{{ item }}:</span> {{ val }}
                 </div>
-                <div>
-                    <label class="block text-[10px] text-gray-400 mb-1">Category</label>
-                    <select name="feed_category" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-                        <option value="UK">UK</option>
-                        <option value="World">World</option>
-                        <option value="Tech">Tech</option>
-                        <option value="AI">AI</option>
-                        <option value="Sport">Sport</option>
-                        <option value="Music">Music</option>
-                        <option value="Android">Android</option>
-                        <option value="Business">Business</option>
-                        <option value="Puzzles">Puzzles</option>
-                    </select>
-                </div>
-                <div class="flex gap-2 pt-1">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-xs py-2 rounded-xl font-semibold">Import Feed</button>
-                    <button type="button" @click="showAddModal = false" class="bg-gray-800 hover:bg-gray-700 text-xs px-4 py-2 rounded-xl text-gray-300">Cancel</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Scrolling Market Ticker Bar -->
-        {% if market_data %}
-        <div class="bg-gray-900 border border-gray-800 rounded-xl mb-4 overflow-hidden relative py-3">
-            <div class="animate-marquee flex gap-8 items-center px-4">
-                {% for _ in range(2) %}
-                    {% for name, price in market_data.items() %}
-                    <div class="text-center flex-shrink-0 flex items-center gap-2">
-                        <span class="text-gray-400 text-xs">{{ name }}</span>
-                        <span class="font-semibold text-green-400 text-sm">${{ price }}</span>
-                    </div>
-                    {% endfor %}
                 {% endfor %}
             </div>
         </div>
-        {% endif %}
+    </header>
 
-        <!-- Category Navigation Tabs -->
-        <div class="flex overflow-x-auto no-scrollbar gap-2 mb-6 border-b border-gray-800 pb-3">
-            <button @click="activeTab = 'All'" :class="activeTab === 'All' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">All</button>
-            <button @click="activeTab = 'UK'" :class="activeTab === 'UK' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">UK</button>
-            <button @click="activeTab = 'World'" :class="activeTab === 'World' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">World</button>
-            <button @click="activeTab = 'Tech'" :class="activeTab === 'Tech' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Tech</button>
-            <button @click="activeTab = 'AI'" :class="activeTab === 'AI' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">AI</button>
-            <button @click="activeTab = 'Sport'" :class="activeTab === 'Sport' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Sport</button>
-            <button @click="activeTab = 'Music'" :class="activeTab === 'Music' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Music</button>
-            <button @click="activeTab = 'Android'" :class="activeTab === 'Android' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Android</button>
-            <button @click="activeTab = 'Business'" :class="activeTab === 'Business' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Business</button>
-            <button @click="activeTab = 'Puzzles'" :class="activeTab === 'Puzzles' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-400'" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">Puzzles</button>
-        </div>
-
-        <!-- News Sections by Category -->
+    <!-- Main Dashboard Content -->
+    <main class="max-w-7xl mx-auto p-4 space-y-8">
         {% for category, sources_dict in news_by_category.items() %}
-        <div x-show="activeTab === 'All' || activeTab === '{{ category }}'" class="mb-6">
-            <h2 class="text-sm font-bold tracking-wider text-blue-400 uppercase mb-3 border-l-4 border-blue-500 pl-2">{{ category }}</h2>
-            
-            {% for source_name, articles in sources_dict.items() %}
-            <div class="mb-4">
-                <h3 class="text-xs font-semibold text-gray-400 mb-2">{{ source_name }}</h3>
-                <div class="space-y-3">
-                    {% for item in articles %}
-                    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 shadow-lg flex gap-3 items-center">
-                        <img src="{{ item.image }}" class="w-20 h-20 object-cover rounded-xl flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <a href="{{ item.link }}" target="_blank" class="block font-semibold text-white hover:text-blue-400 text-xs line-clamp-2 mb-2">
-                                {{ item.title }}
-                            </a>
-                            <div class="flex gap-2">
-                                <button @click="fetchBrief({{ item.title | tojson }}, {{ item.link | tojson }})" 
-                                    class="text-[10px] bg-gray-800 text-gray-300 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded-lg transition">
-                                    Brief Me
-                                </button>
-                                <span class="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Save</span>
-                            </div>
-                        </div>
+        <section class="space-y-4">
+            <h2 class="text-xl font-bold text-emerald-500 border-b border-slate-800 pb-2">{{ category }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for source_name, articles in sources_dict.items() %}
+                <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">{{ source_name }}</h3>
+                        <ul class="space-y-4">
+                            {% for article in articles %}
+                            <li class="border-b border-slate-800 pb-3 last:border-b-0 last:pb-0">
+                                <div class="flex gap-3 items-start">
+                                    {% if article.image %}
+                                    <img src="{{ article.image }}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 bg-slate-800">
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{{ article.link }}" target="_blank" class="text-sm font-medium hover:text-emerald-400 transition line-clamp-2 block">{{ article.title }}</a>
+                                        <div class="flex gap-2 mt-2">
+                                            <button onclick="getBrief(this, '{{ article.title | e }}')" class="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-2 py-1 rounded transition">AI Brief</button>
+                                            <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 px-2 py-1 rounded transition">Save</button>
+                                        </div>
+                                        <p class="ai-summary text-xs text-slate-400 mt-2 hidden bg-slate-950 p-2 rounded border border-slate-800"></p>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        </section>
         {% endfor %}
-    </div>
+    </main>
 
-    <!-- DeepSeek Brief Me Modal -->
-    <div x-show="showBriefModal" x-cloak class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 max-w-sm w-full shadow-2xl relative">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">AI News Brief</h3>
-            <h4 class="text-xs font-semibold text-white mb-3" x-text="briefTitle"></h4>
-            
-            <div class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs text-gray-300 min-h-[80px] mb-4 flex items-center justify-center">
-                <span x-show="loadingBrief" class="text-gray-500 animate-pulse">Consulting DeepSeek...</span>
-                <p x-show="!loadingBrief" x-text="briefText" class="leading-relaxed"></p>
-            </div>
-
-            <button @click="showBriefModal = false" class="w-full bg-blue-600 hover:bg-blue-500 text-xs py-2 rounded-xl font-semibold transition">Close</button>
-        </div>
-    </div>
-
-    <!-- PWA Service Worker Registration -->
+    <!-- Client-side Functionality & PWA Registration -->
     <script>
+        async function getBrief(btn, title) {
+            const summaryBox = btn.closest('div').querySelector('.ai-summary');
+            summaryBox.textContent = "Generating summary...";
+            summaryBox.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/brief', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title })
+                });
+                const data = await response.json();
+                summaryBox.textContent = data.summary;
+            } catch (err) {
+                summaryBox.textContent = "Could not load summary.";
+            }
+        }
+
+        function saveArticle(title, link) {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            if (!saved.some(a => a.link === link)) {
+                saved.push({ title, link });
+                localStorage.setItem('saved_articles', JSON.stringify(saved));
+                alert("Article saved locally!");
+            } else {
+                alert("Article is already saved.");
+            }
+        }
+
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('Service Worker registered! Scope:', reg.scope))
-                    .catch(err => console.log('Service Worker registration failed:', err));
-            });
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
         }
     </script>
 </body>
