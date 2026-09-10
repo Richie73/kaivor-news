@@ -7,21 +7,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 app = Flask(__name__)
 
 sources = [
+    # UK News
+    {"name": "BBC UK News", "url": "http://feeds.bbci.co.uk/news/uk/rss.xml", "category": "UK"},
+    {"name": "The Guardian UK", "url": "https://www.theguardian.com/uk-news/rss", "category": "UK"},
+    {"name": "Sky News UK", "url": "https://news.sky.com/feeds/rss/uk.xml", "category": "UK"},
+    {"name": "The Telegraph", "url": "https://www.telegraph.co.uk/news/rss.xml", "category": "UK"},
     # World
     {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "World"},
     {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "category": "World"},
     {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
     {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "World"},
     {"name": "CNN World", "url": "http://rss.cnn.com/rss/edition_world.rss", "category": "World"},
-    {"name": "NPR World", "url": "https://feeds.npr.org/1004/rss.xml", "category": "World"},
     # Tech
     {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "Tech"},
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
     {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "category": "Tech"},
     {"name": "Wired", "url": "https://www.wired.com/feed/rss", "category": "Tech"},
     {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "category": "Tech"},
-    {"name": "Engadget", "url": "https://www.engadget.com/rss.xml", "category": "Tech"},
-    {"name": "Mashable", "url": "https://mashable.com/feed", "category": "Tech"},
     # AI
     {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/", "category": "AI"},
     {"name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/", "category": "AI"},
@@ -36,16 +38,12 @@ sources = [
     {"name": "NME", "url": "https://www.nme.com/feed", "category": "Music"},
     {"name": "Louder", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
     {"name": "Blabbermouth", "url": "https://www.blabbermouth.net/feed", "category": "Music"},
-    {"name": "Metal Hammer", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
-    {"name": "Classic Rock", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
     # Android
     {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
     {"name": "9to5Google", "url": "https://9to5google.com/feed/", "category": "Android"},
-    {"name": "Android Central", "url": "https://www.androidcentral.com/rss.xml", "category": "Android"},
     # Business
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
     {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"},
-    {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "Business"},
 ]
 
 def extract_image(entry):
@@ -65,7 +63,6 @@ def extract_image(entry):
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
 def fetch_single_source(source):
-    """Fetches a single feed safely with a strict 2-second timeout."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(source['url'], headers=headers, timeout=2.0)
@@ -111,7 +108,6 @@ def index():
 
     news_by_category = {}
     
-    # Fetch all feeds concurrently using threads (max 3 seconds total wait time for all sources)
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(fetch_single_source, source) for source in sources]
         for future in as_completed(futures):
@@ -122,7 +118,6 @@ def index():
                     news_by_category[cat] = {}
                 news_by_category[cat][name] = articles
 
-    # Direct play links for puzzles & games
     news_by_category["Puzzles"] = {
         "Newspaper Crosswords & Daily Games": [
             {
@@ -149,16 +144,6 @@ def index():
                 "title": "Los Angeles Times Daily Crossword",
                 "link": "https://www.latimes.com/games/crossword",
                 "image": "https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=300&q=80"
-            },
-            {
-                "title": "USA Today Crossword & Puzzles",
-                "link": "https://puzzles.usatoday.com/",
-                "image": "https://images.unsplash.com/photo-1584697964190-7953c424a733?auto=format&fit=crop&w=300&q=80"
-            },
-            {
-                "title": "Classic Sudoku Daily Grids",
-                "link": "https://nine.websudoku.com/",
-                "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=300&q=80"
             }
         ]
     }
