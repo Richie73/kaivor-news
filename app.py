@@ -63,9 +63,10 @@ def extract_image(entry):
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
 def fetch_single_source(source):
+    """Fetches a single feed with a strict 1-second timeout to prevent any hanging."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(source['url'], headers=headers, timeout=2.0)
+        response = requests.get(source['url'], headers=headers, timeout=1.0)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
             articles = []
@@ -77,8 +78,8 @@ def fetch_single_source(source):
                 })
             if articles:
                 return source['category'], source['name'], articles
-    except Exception as e:
-        print(f"Skipping {source['name']}: {e}")
+    except Exception:
+        pass
     return None
 
 @app.route('/', methods=['GET', 'POST'])
@@ -108,15 +109,19 @@ def index():
 
     news_by_category = {}
     
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    # Run requests concurrently with a strict timeout boundary
+    with ThreadPoolExecutor(max_workers=15) as executor:
         futures = [executor.submit(fetch_single_source, source) for source in sources]
         for future in as_completed(futures):
-            result = future.result()
-            if result:
-                cat, name, articles = result
-                if cat not in news_by_category:
-                    news_by_category[cat] = {}
-                news_by_category[cat][name] = articles
+            try:
+                result = future.result(timeout=1.5)
+                if result:
+                    cat, name, articles = result
+                    if cat not in news_by_category:
+                        news_by_category[cat] = {}
+                    news_by_category[cat][name] = articles
+            except Exception:
+                pass
 
     news_by_category["Puzzles"] = {
         "Newspaper Crosswords & Daily Games": [
@@ -152,4 +157,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
