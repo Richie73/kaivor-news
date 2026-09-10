@@ -33,6 +33,10 @@ sources = [
     {"name": "Billboard", "url": "https://www.billboard.com/feed/", "category": "Music"},
     {"name": "Rolling Stone", "url": "https://www.rollingstone.com/music/music-news/feed/", "category": "Music"},
     {"name": "NME", "url": "https://www.nme.com/feed", "category": "Music"},
+    {"name": "Louder", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
+    {"name": "Blabbermouth", "url": "https://www.blabbermouth.net/feed", "category": "Music"},
+    {"name": "Metal Hammer", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
+    {"name": "Classic Rock", "url": "https://www.loudersound.com/feeds.xml", "category": "Music"},
     # Android
     {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
     {"name": "9to5Google", "url": "https://9to5google.com/feed/", "category": "Android"},
@@ -41,8 +45,6 @@ sources = [
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
     {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"},
     {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "Business"},
-    # Puzzles & Games
-    {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"}
 ]
 
 def extract_image(entry):
@@ -159,4 +161,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
