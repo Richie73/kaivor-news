@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 import feedparser
 import requests
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -63,16 +64,25 @@ def extract_image(entry):
         
     return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=300&q=80"
 
-def safe_parse_feed(url):
-    """Robust, unbreakable fetcher with a strict 2.5-second timeout."""
+def fetch_single_source(source):
+    """Fetches a single feed safely with a strict 2-second timeout."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=2.5)
+        response = requests.get(source['url'], headers=headers, timeout=2.0)
         if response.status_code == 200:
-            return feedparser.parse(response.text)
+            parsed = feedparser.parse(response.text)
+            articles = []
+            for entry in parsed.entries[:3]:
+                articles.append({
+                    "title": entry.get("title", "No Title"),
+                    "link": entry.get("link", "#"),
+                    "image": extract_image(entry)
+                })
+            if articles:
+                return source['category'], source['name'], articles
     except Exception as e:
-        print(f"Skipping unresponsive feed {url}: {e}")
-    return feedparser.FeedParserDict(entries=[])
+        print(f"Skipping {source['name']}: {e}")
+    return None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -100,21 +110,17 @@ def index():
     }
 
     news_by_category = {}
-    for source in sources:
-        parsed = safe_parse_feed(source['url'])
-        articles = []
-        for entry in parsed.entries[:3]:
-            articles.append({
-                "title": entry.get("title", "No Title"),
-                "link": entry.get("link", "#"),
-                "image": extract_image(entry)
-            })
-        
-        if articles:
-            cat = source['category']
-            if cat not in news_by_category:
-                news_by_category[cat] = {}
-            news_by_category[cat][source['name']] = articles
+    
+    # Fetch all feeds concurrently using threads (max 3 seconds total wait time for all sources)
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_single_source, source) for source in sources]
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                cat, name, articles = result
+                if cat not in news_by_category:
+                    news_by_category[cat] = {}
+                news_by_category[cat][name] = articles
 
     # Direct play links for puzzles & games
     news_by_category["Puzzles"] = {
@@ -161,3 +167,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+    
