@@ -27,10 +27,7 @@ sources = [
     {"name": "9to5Google", "url": "https://9to5google.com/feed/", "category": "Android"},
     # Business
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
-    {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"},
-    # Puzzles & Games
-    {"name": "Wordle & Gaming Guides", "url": "https://www.rockpapershotgun.com/feed/guides", "category": "Puzzles"},
-    {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"}
+    {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"}
 ]
 
 def extract_image(entry):
@@ -92,6 +89,27 @@ def index():
             news_by_category[cat][source['name']] = articles
         except Exception as e:
             print(f"Feed error: {e}")
+
+    # Inject direct, pure puzzle play links (No guides or walkthrough articles)
+    news_by_category["Puzzles"] = {
+        "Daily Play Hub": [
+            {
+                "title": "Play Wordle - Daily Word Puzzle",
+                "link": "https://www.nytimes.com/games/wordle/index.html",
+                "image": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Play NYT Mini Crossword",
+                "link": "https://www.nytimes.com/crosswords/game/mini",
+                "image": "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Play NYT Connections - Group Words by Common Threads",
+                "link": "https://www.nytimes.com/games/connections",
+                "image": "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=300&q=80"
+            }
+        ]
+    }
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data)
 
