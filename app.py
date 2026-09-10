@@ -85,7 +85,11 @@ def fetch_single_source(source):
     except Exception:
         pass
     return None
-
+    
+@app.route('/health')
+def health_check():
+    return "OK", 200
+    
 @app.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
