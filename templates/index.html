@@ -175,5 +175,16 @@
             <button @click="showBriefModal = false" class="w-full bg-blue-600 hover:bg-blue-500 text-xs py-2 rounded-xl font-semibold transition">Close</button>
         </div>
     </div>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('Service Worker registered! Scope:', reg.scope))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>
