@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
-# Set your DeepSeek API key here or configure it securely in your Render Environment Variables
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "your-deepseek-api-key-here")
 
 sources = [
@@ -66,7 +65,6 @@ def extract_image(entry):
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
 
 def fetch_single_source(source):
-    """Fetches a single feed with a strict 1-second timeout to prevent any hanging."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(source['url'], headers=headers, timeout=1.0)
@@ -165,46 +163,40 @@ def index():
                 if result:
                     cat, name, articles = result
                     if cat not in news_by_category:
-                        news_by_category[cat] = []
-                    news_by_category[cat].append({
-                        "name": name, 
-                        "articles": articles
-                    })
+                        news_by_category[cat] = {}
+                    news_by_category[cat][name] = articles
             except Exception:
                 pass
 
-    news_by_category['Fun / Puzzles'] = [
-        {
-            "name": "Newspaper Crosswords & Daily Games",
-            "articles": [
-                {
-                    "title": "Wordle - Daily Word Puzzle (New York Times)",
-                    "link": "https://www.nytimes.com/games/wordle/index.html",
-                    "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60"
-                },
-                {
-                    "title": "The Mini Crossword - New York Times",
-                    "link": "https://www.nytimes.com/crosswords/game/mini",
-                    "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
-                },
-                {
-                    "title": "Connections - New York Times Nerd Grouping",
-                    "link": "https://www.nytimes.com/games/connections",
-                    "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
-                },
-                {
-                    "title": "Spelling Bee - New York Times Letter Puzzle",
-                    "link": "https://www.nytimes.com/puzzles/spelling-bee",
-                    "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
-                },
-                {
-                    "title": "The Los Angeles Times Daily Crossword",
-                    "link": "https://www.latimes.com/games/crossword",
-                    "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
-                }
-            ]
-        }
-    ]
+    news_by_category['Fun / Puzzles'] = {
+        "Newspaper Crosswords & Daily Games": [
+            {
+                "title": "Wordle - Daily Word Puzzle (New York Times)",
+                "link": "https://www.nytimes.com/games/wordle/index.html",
+                "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "The Mini Crossword - New York Times",
+                "link": "https://www.nytimes.com/crosswords/game/mini",
+                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "Connections - New York Times Nerd Grouping",
+                "link": "https://www.nytimes.com/games/connections",
+                "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "Spelling Bee - New York Times Letter Puzzle",
+                "link": "https://www.nytimes.com/puzzles/spelling-bee",
+                "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "The Los Angeles Times Daily Crossword",
+                "link": "https://www.latimes.com/games/crossword",
+                "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
+            }
+        ]
+    }
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
