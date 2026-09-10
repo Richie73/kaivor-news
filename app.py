@@ -90,23 +90,53 @@ def index():
         except Exception as e:
             print(f"Feed error: {e}")
 
-    # Inject direct, pure puzzle play links (No guides or walkthrough articles)
+    # Comprehensive collection of newspaper crosswords and popular puzzles
     news_by_category["Puzzles"] = {
-        "Daily Play Hub": [
+        "Newspaper Crosswords & Daily Games": [
             {
-                "title": "Play Wordle - Daily Word Puzzle",
+                "title": "Wordle - Daily Word Puzzle (New York Times)",
                 "link": "https://www.nytimes.com/games/wordle/index.html",
                 "image": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&w=300&q=80"
             },
             {
-                "title": "Play NYT Mini Crossword",
+                "title": "The Mini Crossword - New York Times",
                 "link": "https://www.nytimes.com/crosswords/game/mini",
                 "image": "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&w=300&q=80"
             },
             {
-                "title": "Play NYT Connections - Group Words by Common Threads",
+                "title": "Connections - New York Times Word Grouping",
                 "link": "https://www.nytimes.com/games/connections",
                 "image": "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Spelling Bee - New York Times Letter Puzzle",
+                "link": "https://www.nytimes.com/puzzles/spelling-bee",
+                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "The Guardian Crosswords Hub (Quick & Cryptic)",
+                "link": "https://www.theguardian.com/crosswords",
+                "image": "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Los Angeles Times Daily Crossword",
+                "link": "https://www.latimes.com/games/crossword",
+                "image": "https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "USA Today Crossword & Puzzles",
+                "link": "https://puzzles.usatoday.com/",
+                "image": "https://images.unsplash.com/photo-1584697964190-7953c424a733?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Washington Post Puzzles & Games Hub",
+                "link": "https://www.washingtonpost.com/games/",
+                "image": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80"
+            },
+            {
+                "title": "Classic Sudoku Daily Grids",
+                "link": "https://nine.websudoku.com/",
+                "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=300&q=80"
             }
         ]
     }
@@ -115,4 +145,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
