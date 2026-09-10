@@ -29,9 +29,8 @@ sources = [
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
     {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "Business"},
     # Puzzles & Games
-    {"name": "Wordle Hints & News", "url": "https://www.rockpapershotgun.com/tag/wordle/rss", "category": "Puzzles"},
-    {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"},
-    {"name": "New York Times Games", "url": "https://www.nytimes.com/spotlight/games", "category": "Puzzles"}
+    {"name": "Wordle & Daily Games", "url": "https://www.rockpapershotgun.com/feed/tag/wordle", "category": "Puzzles"},
+    {"name": "Guardian Crosswords", "url": "https://www.theguardian.com/crosswords/rss", "category": "Puzzles"}
 ]
 
 def extract_image(entry):
