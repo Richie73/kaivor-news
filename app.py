@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
-
 import feedparser
 import requests
 import re
@@ -9,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 app = Flask(__name__)
 
 # Set your DeepSeek API key (or configure it securely in your Render Environment Variables)
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-a4c7cb47c96e46a58c4787116202d031")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "your_deepseek_api_key_here")
 
 sources = [
     # UK News
@@ -94,7 +93,7 @@ def serve_manifest():
 @app.route('/sw.js')
 def serve_sw():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
-    
+
 @app.route('/brief', methods=['POST'])
 def brief_article():
     data = request.get_json()
