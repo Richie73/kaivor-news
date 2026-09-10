@@ -1,5 +1,27 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ activeTab: 'All', showAddModal: false, showBriefModal: false, briefText: '', briefTitle: '', loadingBrief: false }">
+<html lang="en" x-data="{ 
+    activeTab: 'All', 
+    showAddModal: false, 
+    showBriefModal: false, 
+    briefText: '', 
+    briefTitle: '', 
+    loadingBrief: false,
+    fetchBrief(title, link) {
+        this.showBriefModal = true;
+        this.loadingBrief = true;
+        this.briefTitle = title;
+        fetch('/brief', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: title, link: link})
+        })
+        .then(res => res.json())
+        .then(data => { 
+            this.briefText = data.summary; 
+            this.loadingBrief = false; 
+        });
+    }
+}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +49,7 @@
 </head>
 <body class="bg-gray-950 text-white min-h-screen pb-20">
     <div class="max-w-md mx-auto p-4">
-        <!-- New Brand Logo Header -->
+        <!-- Brand Logo Header -->
         <div class="flex justify-between items-center mb-4">
             <div class="flex items-center gap-2">
                 <div class="bg-blue-600 text-white font-extrabold text-sm px-2.5 py-1 rounded-lg tracking-wider shadow-md shadow-blue-900/50">KV</div>
@@ -119,14 +141,7 @@
                                 {{ item.title }}
                             </a>
                             <div class="flex gap-2">
-                                <button @click="showBriefModal = true; loadingBrief = true; briefTitle = {{ item.title | tojson }}; 
-                                    fetch('/brief', {
-                                        method: 'POST',
-                                        headers: {'Content-Type': 'application/json'},
-                                        body: JSON.stringify({title: {{ item.title | tojson }}, link: {{ item.link | tojson }}})
-                                    })
-                                    .then(res => res.json())
-                                    .then(data => { briefText = data.summary; loadingBrief = false; })" 
+                                <button @click="fetchBrief({{ item.title | tojson }}, {{ item.link | tojson }})" 
                                     class="text-[10px] bg-gray-800 text-gray-300 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded-lg transition">
                                     Brief Me
                                 </button>
