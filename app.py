@@ -87,6 +87,14 @@ def fetch_single_source(source):
         pass
     return None
 
+@app.route('/manifest.json')
+def serve_manifest():
+    return send_from_directory('static', 'manifest.json', mimetype='application/json')
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    
 @app.route('/brief', methods=['POST'])
 def brief_article():
     data = request.get_json()
