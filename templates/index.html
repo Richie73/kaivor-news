@@ -9,62 +9,108 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <!-- Header & Markets -->
+    <!-- Header & Finance Tickers -->
     <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Kaivor News</h1>
-            <div class="flex flex-wrap gap-3 text-sm text-slate-300">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <h1 class="text-xl font-bold tracking-tight text-emerald-400">Kaivor News</h1>
+                <button onclick="toggleSavedModal()" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium md:hidden">Saved (<span id="saved-count">0</span>)</button>
+            </div>
+            <!-- Finance Tracker Bar -->
+            <div class="flex flex-wrap gap-2 text-xs text-slate-300 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
                 {% for item, val in market_data.items() %}
-                <div class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                    <span class="font-semibold text-slate-100">{{ item }}:</span> {{ val }}
+                <div class="bg-slate-950 px-2.5 py-1 rounded border border-slate-800 shrink-0">
+                    <span class="text-slate-400">{{ item }}:</span> <span class="font-medium text-slate-200">{{ val }}</span>
                 </div>
                 {% endfor %}
             </div>
+            <button onclick="toggleSavedModal()" class="hidden md:block text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium hover:bg-slate-700 transition">Saved Articles (<span id="saved-count-desktop">0</span>)</button>
         </div>
     </header>
 
-    <!-- Main Dashboard Content -->
-    <main class="max-w-7xl mx-auto p-4 space-y-8">
-        {% for category, sources_dict in news_by_category.items() %}
-        <section class="space-y-4">
-            <h2 class="text-xl font-bold text-emerald-500 border-b border-slate-800 pb-2">{{ category }}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {% for source_name, articles in sources_dict.items() %}
-                <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">{{ source_name }}</h3>
-                        <ul class="space-y-4">
-                            {% for article in articles %}
-                            <li class="border-b border-slate-800 pb-3 last:border-b-0 last:pb-0">
-                                <div class="flex gap-3 items-start">
-                                    {% if article.image %}
-                                    <img src="{{ article.image }}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 bg-slate-800">
-                                    {% endif %}
-                                    <div class="flex-1 min-w-0">
-                                        <a href="{{ article.link }}" target="_blank" class="text-sm font-medium hover:text-emerald-400 transition line-clamp-2 block">{{ article.title }}</a>
-                                        <div class="flex gap-2 mt-2">
-                                            <button onclick="getBrief(this, '{{ article.title | e }}')" class="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-2 py-1 rounded transition">AI Brief</button>
-                                            <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 px-2 py-1 rounded transition">Save</button>
-                                        </div>
-                                        <p class="ai-summary text-xs text-slate-400 mt-2 hidden bg-slate-950 p-2 rounded border border-slate-800"></p>
-                                    </div>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+    <!-- Main Workspace -->
+    <main class="max-w-5xl mx-auto p-4 space-y-6">
+        
+        <!-- Import RSS Feed Form -->
+        <section class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Add Custom RSS Feed</h2>
+            <form method="POST" class="flex flex-col sm:flex-row gap-2">
+                <input type="text" name="preset_url" placeholder="Paste RSS feed URL here..." required class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-sm flex-1 text-slate-100 focus:outline-none focus:border-emerald-500">
+                <select name="feed_category" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+                    <option value="Tech">Tech</option>
+                    <option value="World">World</option>
+                    <option value="UK">UK</option>
+                    <option value="Business">Business</option>
+                    <option value="Sport">Sport</option>
+                    <option value="Music">Music</option>
+                    <option value="Android">Android</option>
+                    <option value="AI">AI</option>
+                </select>
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shrink-0">Import Feed</button>
+            </form>
         </section>
-        {% endfor %}
+
+        <!-- News Categories with Individual Headers -->
+        <div class="space-y-8">
+            {% for category, sources_dict in news_by_category.items() %}
+            <section class="space-y-3">
+                <div class="border-b border-slate-800 pb-2 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-emerald-400 tracking-wide">{{ category }}</h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for source_name, articles in sources_dict.items() %}
+                    <div class="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
+                        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">{{ source_name }}</h3>
+                        <div class="divide-y divide-slate-800/60">
+                            {% for article in articles %}
+                            <div class="py-3 first:pt-0 last:pb-0 flex gap-3 items-start">
+                                {% if article.image %}
+                                <img src="{{ article.image }}" alt="" class="w-14 h-14 object-cover rounded-lg shrink-0 bg-slate-950">
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ article.link }}" target="_blank" class="text-sm font-medium text-slate-100 hover:text-emerald-400 transition line-clamp-2 block">{{ article.title }}</a>
+                                    <div class="flex items-center gap-3 mt-2">
+                                        <button onclick="getBrief(this, '{{ article.title | e }}')" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium bg-emerald-950/40 border border-emerald-900/50 px-2 py-0.5 rounded transition">AI Brief</button>
+                                        <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-xs text-slate-400 hover:text-slate-200 transition">Save</button>
+                                    </div>
+                                    <p class="ai-summary text-xs text-slate-300 mt-2 hidden bg-slate-950 p-2.5 rounded-lg border border-slate-800"></p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
     </main>
 
-    <!-- Client-side Functionality & PWA Registration -->
+    <!-- Saved Articles Drawer/Modal -->
+    <div id="saved-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-xl p-5 space-y-4 max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-emerald-400">Saved Articles</h3>
+                <button onclick="toggleSavedModal()" class="text-slate-400 hover:text-slate-100 text-sm">✕ Close</button>
+            </div>
+            <div id="saved-list" class="space-y-3 overflow-y-auto flex-1 divide-y divide-slate-800/50">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Client-side Logic -->
     <script>
+        function updateCounts() {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            document.getElementById('saved-count').textContent = saved.length;
+            document.getElementById('saved-count-desktop').textContent = saved.length;
+        }
+
         async function getBrief(btn, title) {
             const summaryBox = btn.closest('div').querySelector('.ai-summary');
-            summaryBox.textContent = "Generating summary...";
+            summaryBox.textContent = "Generating summary via DeepSeek...";
             summaryBox.classList.remove('hidden');
             
             try {
@@ -85,11 +131,45 @@
             if (!saved.some(a => a.link === link)) {
                 saved.push({ title, link });
                 localStorage.setItem('saved_articles', JSON.stringify(saved));
-                alert("Article saved locally!");
+                updateCounts();
+                alert("Article saved successfully!");
             } else {
                 alert("Article is already saved.");
             }
         }
+
+        function toggleSavedModal() {
+            const modal = document.getElementById('saved-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                renderSavedList();
+            }
+        }
+
+        function renderSavedList() {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            const listEl = document.getElementById('saved-list');
+            if (saved.length === 0) {
+                listEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">No saved articles yet.</p>';
+                return;
+            }
+            listEl.innerHTML = saved.map((item, index) => `
+                <div class="pt-3 first:pt-0 flex justify-between items-start gap-3">
+                    <a href="${item.link}" target="_blank" class="text-xs font-medium text-slate-200 hover:text-emerald-400 line-clamp-2">${item.title}</a>
+                    <button onclick="removeSaved(${index})" class="text-xs text-red-400 hover:text-red-300 shrink-0">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeSaved(index) {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            saved.splice(index, 1);
+            localStorage.setItem('saved_articles', JSON.stringify(saved));
+            updateCounts();
+            renderSavedList();
+        }
+
+        updateCounts();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
