@@ -155,18 +155,24 @@ def index():
         "Gold": 2700.50
     }
 
-    news_by_category = {}
-    
-    with ThreadPoolExecutor(max_workers=15) as executor:
-        futures = [executor.submit(fetch_single_source, source) for source in sources]
+        with ThreadPoolExecutor(max_workers=15) as executor:
+        futures = {executor.submit(fetch_single_source, source): source for source in sources}
         for future in as_completed(futures):
             try:
-                result = future.result(timeout=1.5)
+                # Use a strict individual timeout per thread future
+                result = future.result(timeout=2.0)
                 if result:
                     cat, name, articles = result
                     if cat not in news_by_category:
-                        news_by_category[cat] = {}
-                    news_by_category[cat][name] = articles
+                        news_by_category[cat] = []
+                    news_by_category[cat].append({
+                        "name": name, 
+                        "articles": articles
+                    })
+            except Exception:
+                # Silently drop any feed that times out or errors, keeping the app fast
+                pass
+
             except Exception:
                 pass
 
