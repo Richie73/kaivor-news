@@ -43,40 +43,9 @@
                     <label class="block text-[10px] text-gray-400 mb-1">Select Preset Feed</label>
                     <select name="preset_url" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
                         <option value="">-- Choose Feed --</option>
-                        <optgroup label="World">
-                            <option value="http://feeds.bbci.co.uk/news/rss.xml">BBC News</option>
-                            <option value="https://www.theguardian.com/world/rss">The Guardian</option>
-                            <option value="https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best">Reuters World</option>
-                        </optgroup>
-                        <optgroup label="Tech">
-                            <option value="https://news.ycombinator.com/rss">Hacker News</option>
-                            <option value="https://techcrunch.com/feed/">TechCrunch</option>
-                            <option value="https://www.theverge.com/rss/index.xml">The Verge</option>
-                            <option value="https://www.wired.com/feed/rss">Wired</option>
-                        </optgroup>
-                        <optgroup label="AI">
-                            <option value="https://www.technologyreview.com/feed/">MIT Tech Review</option>
-                        </optgroup>
-                        <optgroup label="Sport">
-                            <option value="https://feeds.bbci.co.uk/sport/rss.xml">BBC Sport</option>
-                            <option value="https://www.espn.com/espn/rss/news">ESPN</option>
-                        </optgroup>
-                        <optgroup label="Music">
-                            <option value="https://pitchfork.com/feed/feed-news/rss">Pitchfork</option>
-                            <option value="https://www.billboard.com/feed/">Billboard</option>
-                        </optgroup>
-                        <optgroup label="Android">
-                            <option value="https://www.androidpolice.com/feed/">Android Police</option>
-                            <option value="https://9to5google.com/feed/">9to5Google</option>
-                        </optgroup>
-                        <optgroup label="Business">
-                            <option value="https://www.cnbc.com/id/10001147/device/rss/rss.html">CNBC Business</option>
-                            <option value="https://www.ft.com/?format=rss">Financial Times</option>
-                        </optgroup>
-                        <optgroup label="Puzzles">
-                            <option value="https://www.rockpapershotgun.com/feed/tag/wordle">Wordle Guides & News</option>
-                            <option value="https://www.theguardian.com/crosswords/rss">Guardian Crosswords</option>
-                        </optgroup>
+                        {% for s in sources %}
+                        <option value="{{ s.url }}">{{ s.name }} ({{ s.category }})</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div>
