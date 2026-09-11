@@ -3,7 +3,7 @@ import feedparser
 import requests
 import re
 import os
-from concurrent.futures import ThreadPoolExecutor, as_connected
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -144,7 +144,7 @@ def index():
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_connected(futures):
+        for future in as_completed(futures):
             try:
                 result = future.result(timeout=2.0)
                 if result:
