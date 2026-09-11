@@ -8,25 +8,45 @@
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: max-content;
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <!-- Header & Finance Ticker -->
-    <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50 shadow-md">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="flex items-center justify-between w-full md:w-auto">
-                <h1 class="text-xl font-bold tracking-tight text-emerald-400">Kaivor News</h1>
-                <button onclick="toggleSavedModal()" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium md:hidden">Saved (<span id="saved-count">0</span>)</button>
-            </div>
-            <!-- Finance Ticker Bar -->
-            <div class="flex flex-wrap gap-2 text-xs text-slate-300 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+    <!-- Header & Scrolling Finance Ticker -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight text-emerald-400 shrink-0">Kaivor News</h1>
+            <button onclick="toggleSavedModal()" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium hover:bg-slate-700 transition shrink-0">Saved (<span id="saved-count">0</span>)</button>
+        </div>
+        <!-- Infinite Scrolling Ticker Bar -->
+        <div class="bg-slate-950 border-t border-slate-800 overflow-hidden py-2 relative">
+            <div class="animate-marquee flex gap-6 text-xs text-slate-300">
                 {% for item, val in market_data.items() %}
-                <div class="bg-slate-950 px-2.5 py-1 rounded border border-slate-800 shrink-0 flex items-center gap-1.5">
+                <div class="bg-slate-900 px-3 py-1 rounded border border-slate-800 shrink-0 flex items-center gap-2">
                     <span class="text-slate-400 font-medium">{{ item }}:</span> 
-                    <span class="font-semibold text-slate-200">{{ val }}</span>
+                    <span class="font-semibold text-emerald-400">{{ val }}</span>
+                </div>
+                {% endfor %}
+                <!-- Duplicate items to create a seamless infinite loop effect -->
+                {% for item, val in market_data.items() %}
+                <div class="bg-slate-900 px-3 py-1 rounded border border-slate-800 shrink-0 flex items-center gap-2">
+                    <span class="text-slate-400 font-medium">{{ item }}:</span> 
+                    <span class="font-semibold text-emerald-400">{{ val }}</span>
                 </div>
                 {% endfor %}
             </div>
-            <button onclick="toggleSavedModal()" class="hidden md:block text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium hover:bg-slate-700 transition">Saved Articles (<span id="saved-count-desktop">0</span>)</button>
         </div>
     </header>
 
@@ -57,12 +77,12 @@
             {% for category, sources_dict in news_by_category.items() %}
             <section class="space-y-4">
                 <!-- Category Heading -->
-                <div class="border-b border-emerald-500/30 pb-2 flex items-center justify-between">
+                <div class="border-b border-emerald-500/30 pb-2">
                     <h2 class="text-xl font-extrabold text-emerald-400 tracking-wide uppercase">{{ category }}</h2>
                 </div>
                 
                 <!-- Grid of Sources within Category -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {% for source_name, articles in sources_dict.items() %}
                     <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
                         <div>
@@ -102,18 +122,15 @@
                 <h3 class="font-bold text-emerald-400">Saved Articles</h3>
                 <button onclick="toggleSavedModal()" class="text-slate-400 hover:text-slate-100 text-sm font-medium">✕ Close</button>
             </div>
-            <div id="saved-list" class="space-y-3 overflow-y-auto flex-1 divide-y divide-slate-800/50">
-                <!-- Dynamically populated -->
-            </div>
+            <div id="saved-list" class="space-y-3 overflow-y-auto flex-1 divide-y divide-slate-800/50"></div>
         </div>
     </div>
 
-    <!-- Client-side Logic & PWA Registration -->
+    <!-- Client-side Logic -->
     <script>
         function updateCounts() {
             let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
             document.getElementById('saved-count').textContent = saved.length;
-            document.getElementById('saved-count-desktop').textContent = saved.length;
         }
 
         async function getBrief(btn, title) {
@@ -184,5 +201,4 @@
         }
     </script>
 </body>
-                    </html>
-                    
+</html>
