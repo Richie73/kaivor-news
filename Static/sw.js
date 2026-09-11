@@ -1,12 +1,18 @@
-self.addEventListener('install', (event) => {
-    self.skipWaiting();
+self.addEventListener('install', (e) => {
+    e.waitUntil(
+        caches.open('kaivor-news-v1').then((cache) => {
+            return cache.addAll([
+                '/',
+                '/manifest.json'
+            ]);
+        })
+    );
 });
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
-});
-
-// Pass-through fetch to prevent hanging on live data
-self.addEventListener('fetch', (event) => {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+self.addEventListener('fetch', (e) => {
+    e.respondWith(
+        caches.match(e.request).then((cachedResponse) => {
+            return cachedResponse || fetch(e.request);
+        })
+    );
 });
