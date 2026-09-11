@@ -82,8 +82,8 @@ def extract_image(entry):
 
 def fetch_single_source(source):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(source['url'], headers=headers, timeout=2.0)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(source['url'], headers=headers, timeout=1.5)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
             articles = []
@@ -171,11 +171,11 @@ def index():
 
     news_by_category = {}
 
-    with ThreadPoolExecutor(max_workers=15) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
         for future in as_connected(futures):
             try:
-                result = future.result(timeout=2.5)
+                result = future.result(timeout=1.5)
                 if result:
                     cat, name, articles = result
                     if cat not in news_by_category:
@@ -204,7 +204,6 @@ def index():
             {
                 "title": "Spelling Bee - New York Times Letter Puzzle",
                 "link": "https://www.nytimes.com/puzzles/spelling-bee",
-                "image": "https://www.nytimes.com/puzzles/spelling-bee",
                 "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
             },
             {
