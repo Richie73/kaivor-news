@@ -178,7 +178,17 @@ def index():
                 pass
 
     news_by_category['Fun / Puzzles'] = {
-        "Newspaper Crosswords & Daily Games": [
+        "UK Crosswords & Daily Games": [
+            {
+                "title": "The Guardian Daily Crossword",
+                "link": "https://www.theguardian.com/crosswords",
+                "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "The Guardian Quick Crossword",
+                "link": "https://www.theguardian.com/crosswords/series/quick",
+                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
+            },
             {
                 "title": "Wordle - Daily Word Puzzle (New York Times)",
                 "link": "https://www.nytimes.com/games/wordle/index.html",
@@ -193,16 +203,6 @@ def index():
                 "title": "Connections - New York Times Nerd Grouping",
                 "link": "https://www.nytimes.com/games/connections",
                 "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "Spelling Bee - New York Times Letter Puzzle",
-                "link": "https://www.nytimes.com/puzzles/spelling-bee",
-                "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "The Los Angeles Times Daily Crossword",
-                "link": "https://www.latimes.com/games/crossword",
-                "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
             }
         ]
     }
@@ -212,3 +212,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+    
