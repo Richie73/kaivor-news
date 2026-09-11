@@ -49,25 +49,46 @@ sources = [
 ]
 
 def extract_image(entry):
+    # Check media_content
     if "media_content" in entry:
         for media in entry.media_content:
-            if 'url' in media:
+            if isinstance(media, dict) and 'url' in media:
                 return media['url']
+            elif hasattr(media, 'get'):
+                url = media.get('url')
+                if url:
+                    return url
+    
+    # Check media_thumbnail
     if "media_thumbnail" in entry:
-        if isinstance(entry.media_thumbnail, list) and len(entry.media_thumbnail) > 0:
-            return entry.media_thumbnail[0].get('url')
-        elif isinstance(entry.media_thumbnail, dict):
-            return entry.media_thumbnail.get('url')
-    summary = entry.get("summary", "") or entry.get("description", "")
-    match = re.search(r'src="(https?://[^"]+)"', summary)
+        thumbs = entry.media_thumbnail
+        if isinstance(thumbs, list) and len(thumbs) > 0:
+            if isinstance(thumbs[0], dict) and 'url' in thumbs[0]:
+                return thumbs[0]['url']
+            elif hasattr(thumbs[0], 'get'):
+                return thumbs[0].get('url')
+        elif isinstance(thumbs, dict) and 'url' in thumbs:
+            return thumbs.get('url')
+
+    # Check enclosures
+    if "enclosures" in entry:
+        for enc in entry.enclosures:
+            if enc.get("type", "").startswith("image/"):
+                return enc.get("href")
+
+    # Check summary/description for img src
+    content_blob = entry.get("summary", "") or entry.get("description", "") or entry.get("content", [{"value": ""}][0].get("value", ""))
+    match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', content_blob, re.IGNORECASE)
     if match:
         return match.group(1)
+        
+    # Reliable default placeholder image
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
 
 def fetch_single_source(source):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(source['url'], headers=headers, timeout=1.0)
+        response = requests.get(source['url'], headers=headers, timeout=2.0)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
             articles = []
@@ -146,20 +167,20 @@ def index():
         return redirect(url_for('index'))
 
     market_data = {
-        "S&P 500": "5840.00",
-        "NASDAQ": "18350.00",
-        "FTSE 100": "8240.00",
-        "Bitcoin": "92500.00",
-        "Gold": "2700.50"
+        "S&P 500": "5,840.00",
+        "NASDAQ": "18,350.00",
+        "FTSE 100": "8,240.00",
+        "Bitcoin": "$92,500",
+        "Gold": "$2,700.50"
     }
 
     news_by_category = {}
 
     with ThreadPoolExecutor(max_workers=15) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_completed(futures):
+        for future in as_connected(futures):
             try:
-                result = future.result(timeout=2.0)
+                result = future.result(timeout=2.5)
                 if result:
                     cat, name, articles = result
                     if cat not in news_by_category:
@@ -202,3 +223,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+    
