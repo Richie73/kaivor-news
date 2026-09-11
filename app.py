@@ -144,7 +144,7 @@ def index():
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_connected(futures):
+        for future in as_completed(futures):
             try:
                 result = future.result(timeout=2.0)
                 if result:
@@ -175,4 +175,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-            
+    
