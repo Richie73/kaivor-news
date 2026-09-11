@@ -173,7 +173,7 @@ def index():
 
     with ThreadPoolExecutor(max_workers=15) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_completed(futures):
+        for future in as_connected(futures):
             try:
                 result = future.result(timeout=2.5)
                 if result:
@@ -204,6 +204,7 @@ def index():
             {
                 "title": "Spelling Bee - New York Times Letter Puzzle",
                 "link": "https://www.nytimes.com/puzzles/spelling-bee",
+                "image": "https://www.nytimes.com/puzzles/spelling-bee",
                 "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
             },
             {
@@ -217,5 +218,6 @@ def index():
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-        
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+    
