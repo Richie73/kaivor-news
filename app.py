@@ -10,13 +10,35 @@ app = Flask(__name__)
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "your-deepseek-api-key-here")
 
 sources = [
+    # UK News
+    {"name": "BBC News UK", "url": "https://feeds.bbci.co.uk/news/uk/rss.xml", "category": "UK"},
+    {"name": "The Guardian UK", "url": "https://www.theguardian.com/uk-news/rss", "category": "UK"},
+    {"name": "Sky News UK", "url": "https://news.sky.com/feeds/rss/uk.xml", "category": "UK"},
+    {"name": "The Telegraph", "url": "https://www.telegraph.co.uk/news-and-current-affairs/rss.xml", "category": "UK"},
+    # World
     {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "World"},
     {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "category": "World"},
+    {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
+    {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "World"},
+    # Tech
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
     {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "category": "Tech"},
+    {"name": "Wired", "url": "https://www.wired.com/feed/rss", "category": "Tech"},
+    # AI
+    {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/", "category": "AI"},
+    {"name": "VentureBeat", "url": "https://venturebeat.com/category/ai/feed/", "category": "AI"},
+    # Sport
     {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "category": "Sport"},
+    {"name": "ESPN", "url": "https://www.espn.com/espn/rss/news", "category": "Sport"},
+    # Music
     {"name": "Billboard", "url": "https://www.billboard.com/feed/", "category": "Music"},
-    {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"}
+    {"name": "Rolling Stone", "url": "https://www.rollingstone.com/music/music-news/feed/", "category": "Music"},
+    # Android
+    {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "category": "Android"},
+    {"name": "9to5Google", "url": "https://9to5google.com/feed/", "category": "Android"},
+    # Business
+    {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
+    {"name": "Financial Times", "url": "https://www.ft.com/rss", "category": "Business"}
 ]
 
 def extract_image(entry):
@@ -142,7 +164,7 @@ def index():
 
     news_by_category = {}
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
         for future in as_completed(futures):
             try:
@@ -166,6 +188,21 @@ def index():
                 "title": "The Mini Crossword - New York Times",
                 "link": "https://www.nytimes.com/crosswords/game/mini",
                 "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "Connections - New York Times Nerd Grouping",
+                "link": "https://www.nytimes.com/games/connections",
+                "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "Spelling Bee - New York Times Letter Puzzle",
+                "link": "https://www.nytimes.com/puzzles/spelling-bee",
+                "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&auto=format&fit=crop&q=60"
+            },
+            {
+                "title": "The Los Angeles Times Daily Crossword",
+                "link": "https://www.latimes.com/games/crossword",
+                "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
             }
         ]
     }
@@ -175,4 +212,3 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
