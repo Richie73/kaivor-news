@@ -3,7 +3,7 @@ import feedparser
 import requests
 import re
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_connected
 
 app = Flask(__name__)
 
@@ -49,7 +49,6 @@ sources = [
 ]
 
 def extract_image(entry):
-    # Check media_content
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -59,7 +58,6 @@ def extract_image(entry):
                 if url:
                     return url
     
-    # Check media_thumbnail
     if "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -70,19 +68,16 @@ def extract_image(entry):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             return thumbs.get('url')
 
-    # Check enclosures
     if "enclosures" in entry:
         for enc in entry.enclosures:
             if enc.get("type", "").startswith("image/"):
                 return enc.get("href")
 
-    # Check summary/description for img src
     content_blob = entry.get("summary", "") or entry.get("description", "") or entry.get("content", [{"value": ""}][0].get("value", ""))
     match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', content_blob, re.IGNORECASE)
     if match:
         return match.group(1)
         
-    # Reliable default placeholder image
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
 
 def fetch_single_source(source):
@@ -110,11 +105,11 @@ def health_check():
 
 @app.route('/manifest.json')
 def serve_manifest():
-    return send_from_directory('static', 'manifest.json', mimetype='application/json')
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json', mimetype='application/json')
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'sw.js', mimetype='application/javascript')
 
 @app.route('/brief', methods=['POST'])
 def brief():
@@ -178,7 +173,7 @@ def index():
 
     with ThreadPoolExecutor(max_workers=15) as executor:
         futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_connected(futures):
+        for future in as_completed(futures):
             try:
                 result = future.result(timeout=2.5)
                 if result:
@@ -223,4 +218,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
+        
