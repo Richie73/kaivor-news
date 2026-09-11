@@ -24,14 +24,28 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <!-- Header & Scrolling Finance Ticker -->
+    <!-- Header with Custom Logo & Ticker -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight text-emerald-400 shrink-0">Kaivor News</h1>
+            <div class="flex items-center gap-3">
+                <img src="/static/logo.png" alt="Kaivor News Logo" class="w-10 h-10 object-contain rounded-lg border border-slate-700 bg-slate-950">
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white leading-tight">Kaivor News</h1>
+                    <p class="text-[10px] text-emerald-400 font-medium uppercase tracking-widest">Global Intelligence</p>
+                </div>
+            </div>
             <button onclick="toggleSavedModal()" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 font-medium hover:bg-slate-700 transition shrink-0">Saved (<span id="saved-count">0</span>)</button>
         </div>
-        <!-- Infinite Scrolling Ticker Bar -->
-        <div class="bg-slate-950 border-t border-slate-800 overflow-hidden py-2 relative">
+        
+        <!-- Google News Style Category Navigation Bar -->
+        <nav class="bg-slate-900/90 border-t border-slate-800 px-4 py-2 overflow-x-auto flex gap-2 no-scrollbar">
+            {% for category in news_by_category.keys() %}
+            <a href="#cat-{{ loop.index }}" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-950 text-slate-300 hover:text-white hover:bg-emerald-600/30 border border-slate-800 transition shrink-0">{{ category }}</a>
+            {% endfor %}
+        </nav>
+
+        <!-- Infinite Scrolling Finance Ticker -->
+        <div class="bg-slate-950 border-t border-slate-800 overflow-hidden py-1.5 relative">
             <div class="animate-marquee flex gap-6 text-xs text-slate-300">
                 {% for item, val in market_data.items() %}
                 <div class="bg-slate-900 px-3 py-1 rounded border border-slate-800 shrink-0 flex items-center gap-2">
@@ -39,7 +53,6 @@
                     <span class="font-semibold text-emerald-400">{{ val }}</span>
                 </div>
                 {% endfor %}
-                <!-- Duplicate items to create a seamless infinite loop effect -->
                 {% for item, val in market_data.items() %}
                 <div class="bg-slate-900 px-3 py-1 rounded border border-slate-800 shrink-0 flex items-center gap-2">
                     <span class="text-slate-400 font-medium">{{ item }}:</span> 
@@ -51,7 +64,7 @@
     </header>
 
     <!-- Main Workspace -->
-    <main class="max-w-6xl mx-auto p-4 space-y-8">
+    <main class="max-w-6xl mx-auto p-4 space-y-10">
         
         <!-- Import RSS Feed Form -->
         <section class="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-lg">
@@ -72,13 +85,14 @@
             </form>
         </section>
 
-        <!-- Categories & News Feeds with Structured Headings -->
-        <div class="space-y-10">
+        <!-- Google News Style Topic Sections -->
+        <div class="space-y-12">
             {% for category, sources_dict in news_by_category.items() %}
-            <section class="space-y-4">
-                <!-- Category Heading -->
-                <div class="border-b border-emerald-500/30 pb-2">
-                    <h2 class="text-xl font-extrabold text-emerald-400 tracking-wide uppercase">{{ category }}</h2>
+            <section id="cat-{{ loop.index }}" class="space-y-4 scroll-mt-32">
+                <!-- Google News Header Style -->
+                <div class="border-l-4 border-emerald-500 pl-3 py-1 flex items-center justify-between bg-slate-900/40 rounded-r-lg">
+                    <h2 class="text-lg font-bold text-white tracking-wide uppercase">{{ category }}</h2>
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-widest bg-slate-900 px-2 py-1 rounded border border-slate-800">Top Stories</span>
                 </div>
                 
                 <!-- Grid of Sources within Category -->
@@ -86,14 +100,15 @@
                     {% for source_name, articles in sources_dict.items() %}
                     <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-lg flex flex-col justify-between">
                         <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pb-1 border-b border-slate-800">{{ source_name }}</h3>
+                            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 pb-1 border-b border-slate-800 flex justify-between items-center">
+                                <span>{{ source_name }}</span>
+                                <span class="text-[10px] text-slate-500 font-normal">Live RSS</span>
+                            </h3>
                             <ul class="space-y-4">
                                 {% for article in articles %}
                                 <li class="border-b border-slate-800/60 pb-3 last:border-b-0 last:pb-0">
                                     <div class="flex gap-3 items-start">
-                                        {% if article.image %}
                                         <img src="{{ article.image }}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 bg-slate-950 border border-slate-800">
-                                        {% endif %}
                                         <div class="flex-1 min-w-0">
                                             <a href="{{ article.link }}" target="_blank" class="text-sm font-medium text-slate-100 hover:text-emerald-400 transition line-clamp-2 block">{{ article.title }}</a>
                                             <div class="flex items-center gap-2 mt-2">
@@ -115,7 +130,7 @@
         </div>
     </main>
 
-    <!-- Saved Articles Drawer / Modal -->
+    <!-- Saved Articles Modal -->
     <div id="saved-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-xl p-5 space-y-4 max-h-[80vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
