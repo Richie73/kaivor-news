@@ -3,6 +3,8 @@ import feedparser
 import requests
 import re
 import os
+import time
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
@@ -40,6 +42,12 @@ sources = [
     {"name": "CNBC Business", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "category": "Business"},
     {"name": "Financial Times", "url": "https://www.ft.com/rss", "category": "Business"}
 ]
+
+cache = {
+    "news": {},
+    "last_updated": 0
+}
+cache_lock = threading.Lock()
 
 def extract_image(entry):
     if "media_content" in entry:
@@ -92,6 +100,42 @@ def fetch_single_source(source):
         pass
     return None
 
+def refresh_feed_cache():
+    news_by_category = {}
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(fetch_single_source, source): source for source in sources}
+        for future in as_completed(futures):
+            try:
+                result = future.result(timeout=2.0)
+                if result:
+                    cat, name, articles = result
+                    if cat not in news_by_category:
+                        news_by_category[cat] = {}
+                    news_by_category[cat][name] = articles
+            except Exception:
+                pass
+
+    news_by_category['Fun / Puzzles'] = {
+        "UK Crosswords & Daily Games": [
+            {"title": "The Guardian Daily Crossword", "link": "https://www.theguardian.com/crosswords", "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"},
+            {"title": "The Guardian Quick Crossword", "link": "https://www.theguardian.com/crosswords/series/quick", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"},
+            {"title": "Wordle - Daily Word Puzzle (New York Times)", "link": "https://www.nytimes.com/games/wordle/index.html", "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60"},
+            {"title": "The Mini Crossword - New York Times", "link": "https://www.nytimes.com/crosswords/game/mini", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"},
+            {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"}
+        ]
+    }
+
+    with cache_lock:
+        cache["news"] = news_by_category
+        cache["last_updated"] = time.time()
+
+def background_worker():
+    while True:
+        refresh_feed_cache()
+        time.sleep(900) # Refresh every 15 minutes
+
+threading.Thread(target=background_worker, daemon=True).start()
+
 @app.route('/health')
 def health_check():
     return "OK", 200
@@ -108,7 +152,6 @@ def serve_sw():
 def brief():
     data = request.get_json()
     article_title = data.get('title', '')
-    
     if not article_title:
         return jsonify({"summary": "No article title provided."})
     
@@ -116,7 +159,6 @@ def brief():
         "Content-Type": "application/json",
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
     }
-    
     payload = {
         "model": "deepseek-chat",
         "messages": [
@@ -125,7 +167,6 @@ def brief():
         ],
         "stream": False
     }
-    
     try:
         response = requests.post("https://api.deepseek.com/chat/completions", json=payload, headers=headers, timeout=5)
         if response.status_code == 200:
@@ -134,7 +175,6 @@ def brief():
             return jsonify({"summary": summary})
     except Exception as e:
         print(f"DeepSeek API error: {e}")
-        
     return jsonify({"summary": "Could not generate summary at this time."})
 
 @app.route('/', methods=['GET', 'POST'])
@@ -142,16 +182,14 @@ def index():
     if request.method == 'POST':
         preset_url = request.form.get('preset_url')
         feed_category = request.form.get('feed_category', 'Tech')
-        
         if preset_url:
             feed_name = "Custom Feed"
             for s in sources:
                 if s['url'] == preset_url:
                     feed_name = s['name']
-            
             if not any(s['url'] == preset_url for s in sources):
                 sources.append({"name": feed_name, "url": preset_url, "category": feed_category})
-                
+            refresh_feed_cache() # immediate refresh for custom addition
         return redirect(url_for('index'))
 
     market_data = {
@@ -162,50 +200,13 @@ def index():
         "Gold": "$2,700.50"
     }
 
-    news_by_category = {}
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(fetch_single_source, source): source for source in sources}
-        for future in as_completed(futures):
-            try:
-                result = future.result(timeout=2.0)
-                if result:
-                    cat, name, articles = result
-                    if cat not in news_by_category:
-                        news_by_category[cat] = {}
-                    news_by_category[cat][name] = articles
-            except Exception:
-                pass
-
-    news_by_category['Fun / Puzzles'] = {
-        "UK Crosswords & Daily Games": [
-            {
-                "title": "The Guardian Daily Crossword",
-                "link": "https://www.theguardian.com/crosswords",
-                "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "The Guardian Quick Crossword",
-                "link": "https://www.theguardian.com/crosswords/series/quick",
-                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "Wordle - Daily Word Puzzle (New York Times)",
-                "link": "https://www.nytimes.com/games/wordle/index.html",
-                "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "The Mini Crossword - New York Times",
-                "link": "https://www.nytimes.com/crosswords/game/mini",
-                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"
-            },
-            {
-                "title": "Connections - New York Times Nerd Grouping",
-                "link": "https://www.nytimes.com/games/connections",
-                "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
-            }
-        ]
-    }
+    with cache_lock:
+        news_by_category = cache["news"]
+        
+    if not news_by_category:
+        refresh_feed_cache()
+        with cache_lock:
+            news_by_category = cache["news"]
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
