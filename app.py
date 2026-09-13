@@ -46,6 +46,13 @@ sources = [
 
 cache = {
     "news": {},
+    "market": {
+        "GBP/USD": "1.28",
+        "EUR/USD": "1.08",
+        "USD/JPY": "155.20",
+        "S&P 500": "5,840.00",
+        "Bitcoin": "$92,500"
+    },
     "last_updated": 0
 }
 cache_lock = threading.Lock()
@@ -85,7 +92,7 @@ def extract_image(entry):
 def fetch_single_source(source):
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(source['url'], headers=headers, timeout=2.5)
+        response = requests.get(source['url'], headers=headers, timeout=3.0)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
             articles = []
@@ -102,6 +109,8 @@ def fetch_single_source(source):
     return None
 
 def fetch_guardian_api():
+    if not GUARDIAN_API_KEY or GUARDIAN_API_KEY == "your-guardian-api-key-here":
+        return None
     try:
         url = f"https://content.guardianapis.com/search?section=uk-news&show-fields=thumbnail,headline&api-key={GUARDIAN_API_KEY}"
         response = requests.get(url, timeout=3.0)
@@ -117,20 +126,44 @@ def fetch_guardian_api():
                     "image": fields.get("thumbnail", "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
                 })
             if articles:
-                return "UK", "Guardian API", articles
+                return "UK", "The Guardian API", articles
     except Exception:
         pass
     return None
+
+def fetch_market_data():
+    market = {
+        "GBP/USD": "1.28",
+        "EUR/USD": "1.08",
+        "USD/JPY": "155.20",
+        "S&P 500": "5,840.00",
+        "Bitcoin": "$92,500"
+    }
+    try:
+        # Fetching free public exchange rates
+        res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3.0)
+        if res.status_code == 200:
+            rates = res.json().get("rates", {})
+            if "GBP" in rates:
+                market["GBP/USD"] = f"{round(1 / rates['GBP'], 4)}"
+            if "EUR" in rates:
+                market["EUR/USD"] = f"{round(1 / rates['EUR'], 4)}"
+            if "JPY" in rates:
+                market["USD/JPY"] = f"{round(rates['JPY'], 2)}"
+    except Exception:
+        pass
+    return market
 
 def refresh_feed_cache():
     news_by_category = {}
     with ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(fetch_single_source, source) for source in sources]
-        futures.append(executor.submit(fetch_guardian_api))
+        if GUARDIAN_API_KEY and GUARDIAN_API_KEY != "your-guardian-api-key-here":
+            futures.append(executor.submit(fetch_guardian_api))
         
         for future in as_completed(futures):
             try:
-                result = future.result(timeout=3.0)
+                result = future.result(timeout=3.5)
                 if result:
                     cat, name, articles = result
                     if cat not in news_by_category:
@@ -149,14 +182,20 @@ def refresh_feed_cache():
         ]
     }
 
+    updated_market = fetch_market_data()
+
     with cache_lock:
         cache["news"] = news_by_category
+        cache["market"] = updated_market
         cache["last_updated"] = time.time()
+
+# Force an immediate initial cache load right when the app boots up so it's never empty
+refresh_feed_cache()
 
 def background_worker():
     while True:
-        refresh_feed_cache()
         time.sleep(900)
+        refresh_feed_cache()
 
 threading.Thread(target=background_worker, daemon=True).start()
 
@@ -221,21 +260,9 @@ def index():
             refresh_feed_cache()
         return redirect(url_for('index'))
 
-    market_data = {
-        "S&P 500": "5,840.00",
-        "NASDAQ": "18,350.00",
-        "FTSE 100": "8,240.00",
-        "Bitcoin": "$92,500",
-        "Gold": "$2,700.50"
-    }
-
     with cache_lock:
         news_by_category = cache["news"]
-        
-    if not news_by_category:
-        refresh_feed_cache()
-        with cache_lock:
-            news_by_category = cache["news"]
+        market_data = cache["market"]
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
