@@ -128,7 +128,7 @@
                                             </div>
                                             <a href="{{ article.link }}" target="_blank" class="text-xs font-medium text-slate-200 hover:text-emerald-400 transition line-clamp-2 leading-snug block">{{ article.title }}</a>
                                             <div class="flex items-center gap-2 mt-2 flex-wrap">
-                                                <select onchange="getBrief(this, '{{ article.title | e }}')" class="text-[10px] bg-slate-900 text-emerald-400 border border-slate-800 rounded px-1.5 py-0.5 focus:outline-none">
+                                                <select onchange="getBrief(this)" data-title="{{ article.title | e }}" class="text-[10px] bg-slate-900 text-emerald-400 border border-slate-800 rounded px-1.5 py-0.5 focus:outline-none">
                                                     <option value="sentence">AI Brief (1-Sentence)</option>
                                                     <option value="bullets">AI Brief (Bullets)</option>
                                                     <option value="eli5">AI Brief (ELI5)</option>
@@ -168,8 +168,9 @@
             document.getElementById('saved-count').textContent = saved.length;
         }
 
-        async function getBrief(selectEl, title) {
+        async function getBrief(selectEl) {
             const style = selectEl.value;
+            const title = selectEl.getAttribute('data-title');
             const container = selectEl.closest('div').parentElement;
             const summaryBox = container.querySelector('.ai-summary');
             
@@ -248,5 +249,4 @@
         }
     </script>
 </body>
-    </html>
-    
+</html>
