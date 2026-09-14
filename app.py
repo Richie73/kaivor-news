@@ -20,7 +20,8 @@ sources = [
     # World
     {"name": "BBC News World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "World"},
     {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
-    {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "World"},
+    {"name": "CNN World", "url": "http://rss.cnn.com/rss/edition_world.rss", "category": "World"},
+    {"name": "NPR World", "url": "https://feeds.npr.org/1004/rss.xml", "category": "World"},
     # Tech
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "Tech"},
     {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "category": "Tech"},
@@ -100,7 +101,6 @@ CATEGORY_FALLBACK_POOLS = {
 def extract_image(entry, category="Tech", title="", base_url=""):
     raw_url = None
 
-    # 1. Check media_content
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -112,7 +112,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                     raw_url = url
                     break
     
-    # 2. Check media_thumbnail
     if not raw_url and "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -123,7 +122,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             raw_url = thumbs.get('url')
 
-    # 3. Check enclosures or links
     if not raw_url:
         for key in ["enclosures", "links"]:
             if key in entry:
@@ -135,7 +133,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                 if raw_url:
                     break
 
-    # 4. Search description or content HTML blobs
     if not raw_url:
         for field in ["content", "summary", "description", "subtitle"]:
             if field in entry:
@@ -147,7 +144,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                     raw_url = match.group(1)
                     break
 
-    # Resolve relative URLs if found
     if raw_url:
         if raw_url.startswith("//"):
             raw_url = "https:" + raw_url
@@ -156,7 +152,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
             raw_url = f"{parsed_base.scheme}://{parsed_base.netloc}{raw_url}"
         return raw_url
 
-    # Fallback to a pseudo-random image from the category pool based on title hash
     pool = CATEGORY_FALLBACK_POOLS.get(category, [
         "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
     ])
@@ -342,4 +337,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-        
+                
