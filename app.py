@@ -44,7 +44,12 @@ sources = [
 
 cache = {
     "news": {},
-    "market": {},
+    "market": {
+        "GBP/USD": "Loading...",
+        "EUR/USD": "Loading...",
+        "USD/JPY": "Loading...",
+        "Bitcoin": "Loading..."
+    },
     "last_updated": 0
 }
 cache_lock = threading.Lock()
@@ -118,6 +123,39 @@ def fetch_single_source(source):
         pass
     return None
 
+def fetch_live_market_data():
+    market = {
+        "GBP/USD": "1.28",
+        "EUR/USD": "1.08",
+        "USD/JPY": "155.20",
+        "Bitcoin": "$92,500"
+    }
+    try:
+        # Fetch live fiat currency rates
+        res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3.0)
+        if res.status_code == 200:
+            rates = res.json().get("rates", {})
+            if "GBP" in rates:
+                market["GBP/USD"] = f"{round(1 / rates['GBP'], 4)}"
+            if "EUR" in rates:
+                market["EUR/USD"] = f"{round(1 / rates['EUR'], 4)}"
+            if "JPY" in rates:
+                market["USD/JPY"] = f"{round(rates['JPY'], 2)}"
+    except Exception:
+        pass
+
+    try:
+        # Fetch live Bitcoin price from CoinGecko
+        btc_res = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=3.0)
+        if btc_res.status_code == 200:
+            btc_price = btc_res.json().get("bitcoin", {}).get("usd")
+            if btc_price:
+                market["Bitcoin"] = f"${int(btc_price):,}"
+    except Exception:
+        pass
+
+    return market
+
 def refresh_feed_cache():
     news_by_category = {}
     with ThreadPoolExecutor(max_workers=20) as executor:
@@ -142,8 +180,11 @@ def refresh_feed_cache():
         ]
     }
 
+    live_market = fetch_live_market_data()
+
     with cache_lock:
         cache["news"] = news_by_category
+        cache["market"] = live_market
         cache["last_updated"] = time.time()
 
 refresh_feed_cache()
@@ -216,20 +257,13 @@ def index():
             refresh_feed_cache()
         return redirect(url_for('index'))
 
-    market_data = {
-        "GBP/USD": "1.28",
-        "EUR/USD": "1.08",
-        "USD/JPY": "155.20",
-        "S&P 500": "5,840.00",
-        "Bitcoin": "$92,500"
-    }
-
     with cache_lock:
         news_by_category = cache["news"]
+        market_data = cache["market"]
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-                    
+        
