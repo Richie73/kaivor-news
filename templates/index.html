@@ -125,6 +125,7 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <span class="text-[9px] font-mono text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-900/30">{{ article.time }}</span>
+                                                <span class="text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800 reading-time" data-title="{{ article.title | e }}">calc...</span>
                                             </div>
                                             <a href="{{ article.link }}" target="_blank" class="text-xs font-medium text-slate-200 hover:text-emerald-400 transition line-clamp-2 leading-snug block">{{ article.title }}</a>
                                             <div class="flex items-center gap-2 mt-2 flex-wrap">
@@ -167,6 +168,15 @@
         function updateCounts() {
             let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
             document.getElementById('saved-count').textContent = saved.length;
+        }
+
+        function calculateReadingTimes() {
+            document.querySelectorAll('.reading-time').forEach(el => {
+                const title = el.getAttribute('data-title');
+                const words = title ? title.split(/\s+/).length : 5;
+                const minutes = Math.max(1, Math.ceil((words + 15) / 100));
+                el.textContent = `${minutes} min read`;
+            });
         }
 
         async function getBrief(selectEl) {
@@ -260,10 +270,12 @@
         }
 
         updateCounts();
+        calculateReadingTimes();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
         }
     </script>
 </body>
-</html>
+    </html>
+    
