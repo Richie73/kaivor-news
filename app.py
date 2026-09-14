@@ -65,6 +65,7 @@ CATEGORY_FALLBACKS = {
 }
 
 def extract_image(entry, category="Tech"):
+    # 1. Check media_content
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -73,7 +74,8 @@ def extract_image(entry, category="Tech"):
                 url = media.get('url')
                 if url:
                     return url
-    
+
+    # 2. Check media_thumbnail
     if "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -84,27 +86,29 @@ def extract_image(entry, category="Tech"):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             return thumbs.get('url')
 
-    if "enclosures" in entry:
-        for enc in entry.enclosures:
-            if enc.get("type", "").startswith("image/"):
-                return enc.get("href")
-
-    if "links" in entry:
-        for link in entry.links:
-            if link.get("type", "").startswith("image/") or "enclosure" in link.get("rel", ""):
-                href = link.get("href")
-                if href:
+    # 3. Check enclosures or links for image types/urls
+    for key in ["enclosures", "links"]:
+        if key in entry:
+            for item in entry[key]:
+                href = item.get("href") or item.get("url")
+                if href and (any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or item.get("type", "").startswith("image/")):
                     return href
 
-    for field in ["content", "summary", "description", "subtitle"]:
+    # 4. Deep search all string fields (summary, description, content, etc.) for any image URL or HTML img tag
+    for field in ["content", "summary", "description", "subtitle", "title"]:
         if field in entry:
-            content_blob = entry.get(field, "")
-            if isinstance(content_blob, list):
-                content_blob = "".join([str(c.get("value", "")) for c in content_blob])
-            match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(content_blob), re.IGNORECASE)
+            val = entry.get(field, "")
+            if isinstance(val, list):
+                val = "".join([str(c.get("value", "")) for c in val])
+            # Search for HTML img src
+            match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(val), re.IGNORECASE)
             if match:
                 return match.group(1)
-        
+            # Search for raw image URL ending in extension inside text
+            url_match = re.search(r'(https?://[^\s<>"]+?\.(?:jpg|jpeg|png|webp))', str(val), re.IGNORECASE)
+            if url_match:
+                return url_match.group(1)
+
     return CATEGORY_FALLBACKS.get(category, "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
 
 def parse_entry_time(entry):
@@ -285,4 +289,3 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
