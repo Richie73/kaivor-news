@@ -53,7 +53,20 @@ cache = {
 }
 cache_lock = threading.Lock()
 
-def extract_image(entry):
+# Curated contextual fallback images per category to replace generic placeholders
+CATEGORY_FALLBACKS = {
+    "UK": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=60",
+    "World": "https://images.unsplash.com/photo-1521295121783-8a321d5d1ad2?w=600&auto=format&fit=crop&q=60",
+    "Tech": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=60",
+    "AI": "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=60",
+    "Sport": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&auto=format&fit=crop&q=60",
+    "Music": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
+    "Android": "https://images.unsplash.com/photo-1607252650355-f7fd0460ccdb?w=600&auto=format&fit=crop&q=60",
+    "Business": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=60"
+}
+
+def extract_image(entry, category="Tech"):
+    # 1. Check media_content elements
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -63,6 +76,7 @@ def extract_image(entry):
                 if url:
                     return url
     
+    # 2. Check media_thumbnail elements
     if "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -73,17 +87,24 @@ def extract_image(entry):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             return thumbs.get('url')
 
+    # 3. Check enclosures for image types
     if "enclosures" in entry:
         for enc in entry.enclosures:
             if enc.get("type", "").startswith("image/"):
                 return enc.get("href")
 
-    content_blob = entry.get("summary", "") or entry.get("description", "") or ""
-    match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', content_blob, re.IGNORECASE)
-    if match:
-        return match.group(1)
+    # 4. Search description or summary blobs for image tags
+    for field in ["content", "summary", "description"]:
+        if field in entry:
+            content_blob = entry.get(field, "")
+            if isinstance(content_blob, list):
+                content_blob = "".join([str(c.get("value", "")) for c in content_blob])
+            match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(content_blob), re.IGNORECASE)
+                if match:
+                    return match.group(1)
         
-    return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
+    # 5. Return context-aware fallback image instead of a static generic photo
+    return CATEGORY_FALLBACKS.get(category, "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
 
 def parse_entry_time(entry):
     time_struct = entry.get("published_parsed") or entry.get("updated_parsed")
@@ -113,7 +134,7 @@ def fetch_single_source(source):
                 articles.append({
                     "title": entry.get("title", "No Title"),
                     "link": entry.get("link", "#"),
-                    "image": extract_image(entry),
+                    "image": extract_image(entry, source['category']),
                     "time": time_str
                 })
             if articles:
