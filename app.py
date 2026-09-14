@@ -5,22 +5,20 @@ import re
 import os
 import time
 import threading
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
-GUARDIAN_API_KEY = os.getenv("GUARDIAN_API_KEY", "ebe42fe3-9ae1-497c-b2f5-c8de5bd6d28f")
 
 sources = [
     # UK News
     {"name": "BBC News UK", "url": "https://feeds.bbci.co.uk/news/uk/rss.xml", "category": "UK"},
-    {"name": "The Guardian UK", "url": "https://www.theguardian.com/uk-news/rss", "category": "UK"},
     {"name": "Sky News UK", "url": "https://news.sky.com/feeds/rss/uk.xml", "category": "UK"},
     {"name": "The Telegraph", "url": "https://www.telegraph.co.uk/news-and-current-affairs/rss.xml", "category": "UK"},
     # World
-    {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "World"},
-    {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "category": "World"},
+    {"name": "BBC News World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "World"},
     {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
     {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "World"},
     # Tech
@@ -46,13 +44,7 @@ sources = [
 
 cache = {
     "news": {},
-    "market": {
-        "GBP/USD": "1.28",
-        "EUR/USD": "1.08",
-        "USD/JPY": "155.20",
-        "S&P 500": "5,840.00",
-        "Bitcoin": "$92,500"
-    },
+    "market": {},
     "last_updated": 0
 }
 cache_lock = threading.Lock()
@@ -89,18 +81,38 @@ def extract_image(entry):
         
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
 
+def parse_entry_time(entry):
+    time_struct = entry.get("published_parsed") or entry.get("updated_parsed")
+    if time_struct:
+        return time.mktime(time_struct)
+    return time.time()
+
 def fetch_single_source(source):
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(source['url'], headers=headers, timeout=3.0)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
+            
+            # Sort entries strictly by newest publication timestamp
+            sorted_entries = sorted(parsed.entries, key=parse_entry_time, reverse=True)
+            
             articles = []
-            for entry in parsed.entries[:3]:
+            for entry in sorted_entries[:4]: # Grab top 4 freshest articles per source
+                pub_time = parse_entry_time(entry)
+                time_ago = int((time.time() - pub_time) / 60) # minutes ago
+                if time_ago < 60:
+                    time_str = f"{max(time_ago, 1)}m ago"
+                elif time_ago < 1440:
+                    time_str = f"{int(time_ago / 60)}h ago"
+                else:
+                    time_str = f"{int(time_ago / 1440)}d ago"
+
                 articles.append({
                     "title": entry.get("title", "No Title"),
                     "link": entry.get("link", "#"),
-                    "image": extract_image(entry)
+                    "image": extract_image(entry),
+                    "time": time_str
                 })
             if articles:
                 return source['category'], source['name'], articles
@@ -108,58 +120,10 @@ def fetch_single_source(source):
         pass
     return None
 
-def fetch_guardian_api():
-    if not GUARDIAN_API_KEY or GUARDIAN_API_KEY == "your-guardian-api-key-here":
-        return None
-    try:
-        url = f"https://content.guardianapis.com/search?section=uk-news&show-fields=thumbnail,headline&api-key={GUARDIAN_API_KEY}"
-        response = requests.get(url, timeout=3.0)
-        if response.status_code == 200:
-            data = response.json()
-            articles = []
-            results = data.get("response", {}).get("results", [])
-            for item in results[:3]:
-                fields = item.get("fields", {})
-                articles.append({
-                    "title": item.get("webTitle", "No Title"),
-                    "link": item.get("webUrl", "#"),
-                    "image": fields.get("thumbnail", "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
-                })
-            if articles:
-                return "UK", "The Guardian API", articles
-    except Exception:
-        pass
-    return None
-
-def fetch_market_data():
-    market = {
-        "GBP/USD": "1.28",
-        "EUR/USD": "1.08",
-        "USD/JPY": "155.20",
-        "S&P 500": "5,840.00",
-        "Bitcoin": "$92,500"
-    }
-    try:
-        # Fetching free public exchange rates
-        res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3.0)
-        if res.status_code == 200:
-            rates = res.json().get("rates", {})
-            if "GBP" in rates:
-                market["GBP/USD"] = f"{round(1 / rates['GBP'], 4)}"
-            if "EUR" in rates:
-                market["EUR/USD"] = f"{round(1 / rates['EUR'], 4)}"
-            if "JPY" in rates:
-                market["USD/JPY"] = f"{round(rates['JPY'], 2)}"
-    except Exception:
-        pass
-    return market
-
 def refresh_feed_cache():
     news_by_category = {}
     with ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(fetch_single_source, source) for source in sources]
-        if GUARDIAN_API_KEY and GUARDIAN_API_KEY != "your-guardian-api-key-here":
-            futures.append(executor.submit(fetch_guardian_api))
         
         for future in as_completed(futures):
             try:
@@ -173,28 +137,22 @@ def refresh_feed_cache():
                 pass
 
     news_by_category['Fun / Puzzles'] = {
-        "UK Crosswords & Daily Games": [
-            {"title": "The Guardian Daily Crossword", "link": "https://www.theguardian.com/crosswords", "image": "https://images.unsplash.com/photo-1516962214119-7fd2adb58e78?w=600&auto=format&fit=crop&q=60"},
-            {"title": "The Guardian Quick Crossword", "link": "https://www.theguardian.com/crosswords/series/quick", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"},
-            {"title": "Wordle - Daily Word Puzzle (New York Times)", "link": "https://www.nytimes.com/games/wordle/index.html", "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60"},
-            {"title": "The Mini Crossword - New York Times", "link": "https://www.nytimes.com/crosswords/game/mini", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60"},
-            {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"}
+        "Daily Games & Puzzles": [
+            {"title": "Wordle - Daily Word Puzzle (New York Times)", "link": "https://www.nytimes.com/games/wordle/index.html", "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60", "time": "Live"},
+            {"title": "The Mini Crossword - New York Times", "link": "https://www.nytimes.com/crosswords/game/mini", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60", "time": "Live"},
+            {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60", "time": "Live"}
         ]
     }
 
-    updated_market = fetch_market_data()
-
     with cache_lock:
         cache["news"] = news_by_category
-        cache["market"] = updated_market
         cache["last_updated"] = time.time()
 
-# Force an immediate initial cache load right when the app boots up so it's never empty
 refresh_feed_cache()
 
 def background_worker():
     while True:
-        time.sleep(900)
+        time.sleep(600) # Refresh every 10 minutes to keep headlines dynamic
         refresh_feed_cache()
 
 threading.Thread(target=background_worker, daemon=True).start()
@@ -260,13 +218,20 @@ def index():
             refresh_feed_cache()
         return redirect(url_for('index'))
 
+    market_data = {
+        "GBP/USD": "1.28",
+        "EUR/USD": "1.08",
+        "USD/JPY": "155.20",
+        "S&P 500": "5,840.00",
+        "Bitcoin": "$92,500"
+    }
+
     with cache_lock:
         news_by_category = cache["news"]
-        market_data = cache["market"]
 
     return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
+            
