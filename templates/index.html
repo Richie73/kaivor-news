@@ -134,6 +134,7 @@
                                                     <option value="eli5">AI Brief (ELI5)</option>
                                                 </select>
                                                 <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-[10px] bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 px-2 py-0.5 rounded transition">Save</button>
+                                                <button onclick="shareArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-[10px] bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 px-2 py-0.5 rounded transition">Share</button>
                                             </div>
                                             <p class="ai-summary text-[11px] text-slate-300 mt-2 hidden bg-[#07090e] p-2.5 rounded border border-slate-800 leading-relaxed whitespace-pre-line"></p>
                                         </div>
@@ -208,6 +209,22 @@
                 alert("Saved to drawer.");
             } else {
                 alert("Already saved.");
+            }
+        }
+
+        async function shareArticle(title, link) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: title,
+                        url: link
+                    });
+                } catch (err) {
+                    // User cancelled or share failed silently
+                }
+            } else {
+                navigator.clipboard.writeText(link);
+                alert("Link copied to clipboard!");
             }
         }
 
