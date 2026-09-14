@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
 
 sources = [
     # UK News
@@ -289,9 +289,9 @@ def brief():
         return jsonify({"summary": "No article title provided."})
     
     system_prompts = {
-        "sentence": "You are a sharp, concise news summarizer. Provide a punchy 1-sentence summary.",
-        "bullets": "Provide 2-3 ultra-short bullet points capturing the core essence of this news headline.",
-        "eli5": "Explain this news headline simply as if explaining it to a curious 5-year-old."
+        "sentence": "Provide a single, punchy, direct sentence summarizing this news headline.",
+        "bullets": "Provide exactly two short bullet points capturing the core facts.",
+        "eli5": "Explain this headline simply to a beginner in one clear sentence."
     }
     
     system_prompt = system_prompts.get(style, system_prompts["sentence"])
@@ -309,21 +309,18 @@ def brief():
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Topic: {article_title}"}
         ],
+        "temperature": 0.3,
+        "max_tokens": 150,
         "stream": False
     }
     
     try:
         response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
-        print(f"OpenRouter response status: {response.status_code}")
-        print(f"OpenRouter response body: {response.text}")
-        
         if response.status_code == 200:
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                summary = result["choices"][0]["message"]["content"]
+                summary = result["choices"][0]["message"]["content"].strip()
                 return jsonify({"summary": summary})
-            else:
-                return jsonify({"summary": "Invalid response structure from AI model."})
     except Exception as e:
         print(f"OpenRouter API exception: {e}")
         
