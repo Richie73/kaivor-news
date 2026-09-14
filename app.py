@@ -15,8 +15,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "sk-or-v1-9e733be82aba44b5c
 sources = [
     # UK News
     {"name": "BBC News UK", "url": "https://feeds.bbci.co.uk/news/uk/rss.xml", "category": "UK"},
+    {"name": "The Guardian", "url": "https://www.theguardian.com/uk-news/rss", "category": "UK"},
     {"name": "Sky News UK", "url": "https://news.sky.com/feeds/rss/uk.xml", "category": "UK"},
-    {"name": "The Telegraph", "url": "https://www.telegraph.co.uk/news-and-current-affairs/rss.xml", "category": "UK"},
     # World
     {"name": "BBC News World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "World"},
     {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best", "category": "World"},
@@ -93,14 +93,12 @@ def fetch_single_source(source):
         response = requests.get(source['url'], headers=headers, timeout=3.0)
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
-            
-            # Sort entries strictly by newest publication timestamp
             sorted_entries = sorted(parsed.entries, key=parse_entry_time, reverse=True)
             
             articles = []
-            for entry in sorted_entries[:4]: # Grab top 4 freshest articles per source
+            for entry in sorted_entries[:4]:
                 pub_time = parse_entry_time(entry)
-                time_ago = int((time.time() - pub_time) / 60) # minutes ago
+                time_ago = int((time.time() - pub_time) / 60)
                 if time_ago < 60:
                     time_str = f"{max(time_ago, 1)}m ago"
                 elif time_ago < 1440:
@@ -152,7 +150,7 @@ refresh_feed_cache()
 
 def background_worker():
     while True:
-        time.sleep(600) # Refresh every 10 minutes to keep headlines dynamic
+        time.sleep(600)
         refresh_feed_cache()
 
 threading.Thread(target=background_worker, daemon=True).start()
@@ -234,4 +232,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-            
+                    
