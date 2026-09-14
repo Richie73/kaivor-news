@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 sources = [
     # UK News
@@ -46,10 +46,10 @@ sources = [
 cache = {
     "news": {},
     "market": {
-        "GBP/USD": "Loading...",
-        "EUR/USD": "Loading...",
-        "USD/JPY": "Loading...",
-        "Bitcoin": "Loading..."
+        "GBP/USD": "1.28",
+        "EUR/USD": "1.08",
+        "USD/JPY": "155.20",
+        "Bitcoin": "$92,500"
     },
     "last_updated": 0
 }
@@ -100,7 +100,6 @@ CATEGORY_FALLBACK_POOLS = {
 
 def extract_image(entry, category="Tech", title="", base_url=""):
     raw_url = None
-
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -111,7 +110,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                 if url:
                     raw_url = url
                     break
-    
     if not raw_url and "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -121,7 +119,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                 raw_url = thumbs[0].get('url')
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             raw_url = thumbs.get('url')
-
     if not raw_url:
         for key in ["enclosures", "links"]:
             if key in entry:
@@ -132,7 +129,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                         break
                 if raw_url:
                     break
-
     if not raw_url:
         for field in ["content", "summary", "description", "subtitle"]:
             if field in entry:
@@ -143,7 +139,6 @@ def extract_image(entry, category="Tech", title="", base_url=""):
                 if match:
                     raw_url = match.group(1)
                     break
-
     if raw_url:
         if raw_url.startswith("//"):
             raw_url = "https:" + raw_url
@@ -152,9 +147,7 @@ def extract_image(entry, category="Tech", title="", base_url=""):
             raw_url = f"{parsed_base.scheme}://{parsed_base.netloc}{raw_url}"
         return raw_url
 
-    pool = CATEGORY_FALLBACK_POOLS.get(category, [
-        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
-    ])
+    pool = CATEGORY_FALLBACK_POOLS.get(category, ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"])
     idx = abs(hash(title)) % len(pool)
     return pool[idx]
 
@@ -171,7 +164,6 @@ def fetch_single_source(source):
         if response.status_code == 200:
             parsed = feedparser.parse(response.text)
             sorted_entries = sorted(parsed.entries, key=parse_entry_time, reverse=True)
-            
             articles = []
             for entry in sorted_entries[:4]:
                 pub_time = parse_entry_time(entry)
@@ -197,41 +189,29 @@ def fetch_single_source(source):
     return None
 
 def fetch_live_market_data():
-    market = {
-        "GBP/USD": "1.28",
-        "EUR/USD": "1.08",
-        "USD/JPY": "155.20",
-        "Bitcoin": "$92,500"
-    }
+    market = {"GBP/USD": "1.28", "EUR/USD": "1.08", "USD/JPY": "155.20", "Bitcoin": "$92,500"}
     try:
         res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3.0)
         if res.status_code == 200:
             rates = res.json().get("rates", {})
-            if "GBP" in rates:
-                market["GBP/USD"] = f"{round(1 / rates['GBP'], 4)}"
-            if "EUR" in rates:
-                market["EUR/USD"] = f"{round(1 / rates['EUR'], 4)}"
-            if "JPY" in rates:
-                market["USD/JPY"] = f"{round(rates['JPY'], 2)}"
+            if "GBP" in rates: market["GBP/USD"] = f"{round(1 / rates['GBP'], 4)}"
+            if "EUR" in rates: market["EUR/USD"] = f"{round(1 / rates['EUR'], 4)}"
+            if "JPY" in rates: market["USD/JPY"] = f"{round(rates['JPY'], 2)}"
     except Exception:
         pass
-
     try:
         btc_res = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=3.0)
         if btc_res.status_code == 200:
             btc_price = btc_res.json().get("bitcoin", {}).get("usd")
-            if btc_price:
-                market["Bitcoin"] = f"${int(btc_price):,}"
+            if btc_price: market["Bitcoin"] = f"${int(btc_price):,}"
     except Exception:
         pass
-
     return market
 
 def refresh_feed_cache():
     news_by_category = {}
     with ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(fetch_single_source, source) for source in sources]
-        
         for future in as_completed(futures):
             try:
                 result = future.result(timeout=3.5)
@@ -250,9 +230,7 @@ def refresh_feed_cache():
             {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60", "time": "Live"}
         ]
     }
-
     live_market = fetch_live_market_data()
-
     with cache_lock:
         cache["news"] = news_by_category
         cache["market"] = live_market
@@ -288,6 +266,9 @@ def brief():
     if not article_title:
         return jsonify({"summary": "No article title provided."})
     
+    if not OPENROUTER_API_KEY:
+        return jsonify({"summary": "Error: OPENROUTER_API_KEY is missing on server environment."})
+    
     system_prompts = {
         "sentence": "Provide a single, punchy, direct sentence summarizing this news headline.",
         "bullets": "Provide exactly two short bullet points capturing the core facts.",
@@ -298,7 +279,7 @@ def brief():
     
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY.strip()}",
         "HTTP-Referer": "https://kaivor-news.onrender.com",
         "X-Title": "Kaivor News"
     }
@@ -321,6 +302,8 @@ def brief():
             if "choices" in result and len(result["choices"]) > 0:
                 summary = result["choices"][0]["message"]["content"].strip()
                 return jsonify({"summary": summary})
+        else:
+            return jsonify({"summary": f"API Error [{response.status_code}]: Check Render Environment key."})
     except Exception as e:
         print(f"OpenRouter API exception: {e}")
         
