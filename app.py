@@ -5,6 +5,7 @@ import re
 import os
 import time
 import threading
+from urllib.parse import urlparse, urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
@@ -53,7 +54,6 @@ cache = {
 }
 cache_lock = threading.Lock()
 
-# Diverse pools of fallback images per category to prevent identical repetition
 CATEGORY_FALLBACK_POOLS = {
     "UK": [
         "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=60",
@@ -97,49 +97,69 @@ CATEGORY_FALLBACK_POOLS = {
     ]
 }
 
-def extract_image(entry, category="Tech", title=""):
+def extract_image(entry, category="Tech", title="", base_url=""):
+    raw_url = None
+
+    # 1. Check media_content
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
-                return media['url']
+                raw_url = media['url']
+                break
             elif hasattr(media, 'get'):
                 url = media.get('url')
                 if url:
-                    return url
+                    raw_url = url
+                    break
     
-    if "media_thumbnail" in entry:
+    # 2. Check media_thumbnail
+    if not raw_url and "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
             if isinstance(thumbs[0], dict) and 'url' in thumbs[0]:
-                return thumbs[0]['url']
+                raw_url = thumbs[0]['url']
             elif hasattr(thumbs[0], 'get'):
-                return thumbs[0].get('url')
+                raw_url = thumbs[0].get('url')
         elif isinstance(thumbs, dict) and 'url' in thumbs:
-            return thumbs.get('url')
+            raw_url = thumbs.get('url')
 
-    for key in ["enclosures", "links"]:
-        if key in entry:
-            for item in entry[key]:
-                href = item.get("href") or item.get("url")
-                if href and (any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or item.get("type", "").startswith("image/")):
-                    return href
+    # 3. Check enclosures or links
+    if not raw_url:
+        for key in ["enclosures", "links"]:
+            if key in entry:
+                for item in entry[key]:
+                    href = item.get("href") or item.get("url")
+                    if href and (any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or item.get("type", "").startswith("image/")):
+                        raw_url = href
+                        break
+                if raw_url:
+                    break
 
-    for field in ["content", "summary", "description", "subtitle", "title"]:
-        if field in entry:
-            val = entry.get(field, "")
-            if isinstance(val, list):
-                val = "".join([str(c.get("value", "")) for c in val])
-            match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(val), re.IGNORECASE)
-            if match:
-                return match.group(1)
-            url_match = re.search(r'(https?://[^\s<>"]+?\.(?:jpg|jpeg|png|webp))', str(val), re.IGNORECASE)
-            if url_match:
-                return url_match.group(1)
-        
+    # 4. Search description or content HTML blobs
+    if not raw_url:
+        for field in ["content", "summary", "description", "subtitle"]:
+            if field in entry:
+                val = entry.get(field, "")
+                if isinstance(val, list):
+                    val = "".join([str(c.get("value", "")) for c in val])
+                match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(val), re.IGNORECASE)
+                if match:
+                    raw_url = match.group(1)
+                    break
+
+    # Resolve relative URLs if found
+    if raw_url:
+        if raw_url.startswith("//"):
+            raw_url = "https:" + raw_url
+        elif raw_url.startswith("/"):
+            parsed_base = urlparse(base_url)
+            raw_url = f"{parsed_base.scheme}://{parsed_base.netloc}{raw_url}"
+        return raw_url
+
+    # Fallback to a pseudo-random image from the category pool based on title hash
     pool = CATEGORY_FALLBACK_POOLS.get(category, [
         "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
     ])
-    # Pseudo-randomly pick based on title hash so different articles get different fallbacks
     idx = abs(hash(title)) % len(pool)
     return pool[idx]
 
@@ -172,7 +192,7 @@ def fetch_single_source(source):
                 articles.append({
                     "title": title,
                     "link": entry.get("link", "#"),
-                    "image": extract_image(entry, source['category'], title),
+                    "image": extract_image(entry, source['category'], title, source['url']),
                     "time": time_str
                 })
             if articles:
@@ -322,4 +342,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
+        
