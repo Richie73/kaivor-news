@@ -1,6 +1,5 @@
 const CACHE_NAME = 'kaivor-news-v4';
 const ASSETS_TO_CACHE = [
-  '/',
   '/static/logo.png',
   '/manifest.json'
 ];
