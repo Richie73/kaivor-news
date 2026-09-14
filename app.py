@@ -211,18 +211,21 @@ def fetch_live_market_data():
 
 def refresh_feed_cache():
     news_by_category = {}
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = [executor.submit(fetch_single_source, source) for source in sources]
-        for future in as_completed(futures):
-            try:
-                result = future.result(timeout=3.5)
-                if result:
-                    cat, name, articles = result
-                    if cat not in news_by_category:
-                        news_by_category[cat] = {}
-                    news_by_category[cat][name] = articles
-            except Exception:
-                pass
+    try:
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            futures = [executor.submit(fetch_single_source, source) for source in sources]
+            for future in as_completed(futures):
+                try:
+                    result = future.result(timeout=3.5)
+                    if result:
+                        cat, name, articles = result
+                        if cat not in news_by_category:
+                            news_by_category[cat] = {}
+                        news_by_category[cat][name] = articles
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Feed thread pool error: {e}")
 
     news_by_category['Fun / Puzzles'] = {
         "Daily Games & Puzzles": [
@@ -233,6 +236,7 @@ def refresh_feed_cache():
             {"title": "Chess Daily Puzzle - Master Tactics", "link": "https://www.chess.com/daily-chess-puzzle", "image": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=600&auto=format&fit=crop&q=60", "time": "Live"}
         ]
     }
+    
     live_market = fetch_live_market_data()
     with cache_lock:
         cache["news"] = news_by_category
@@ -336,3 +340,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+                    
