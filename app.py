@@ -53,19 +53,51 @@ cache = {
 }
 cache_lock = threading.Lock()
 
-CATEGORY_FALLBACKS = {
-    "UK": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=60",
-    "World": "https://images.unsplash.com/photo-1521295121783-8a321d5d1ad2?w=600&auto=format&fit=crop&q=60",
-    "Tech": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=60",
-    "AI": "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=60",
-    "Sport": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&auto=format&fit=crop&q=60",
-    "Music": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
-    "Android": "https://images.unsplash.com/photo-1607252650355-f7fd0460ccdb?w=600&auto=format&fit=crop&q=60",
-    "Business": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=60"
+# Diverse pools of fallback images per category to prevent identical repetition
+CATEGORY_FALLBACK_POOLS = {
+    "UK": [
+        "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1520986606214-8b456906c813?w=600&auto=format&fit=crop&q=60"
+    ],
+    "World": [
+        "https://images.unsplash.com/photo-1521295121783-8a321d5d1ad2?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&auto=format&fit=crop&q=60"
+    ],
+    "Tech": [
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=60"
+    ],
+    "AI": [
+        "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60"
+    ],
+    "Sport": [
+        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=60"
+    ],
+    "Music": [
+        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1467646150632-4e0e56e0a5a6?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=60"
+    ],
+    "Android": [
+        "https://images.unsplash.com/photo-1607252650355-f7fd0460ccdb?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1526498460520-4c246339dccb?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=600&auto=format&fit=crop&q=60"
+    ],
+    "Business": [
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1444653389962-8149286c5784?w=600&auto=format&fit=crop&q=60",
+        "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=60"
+    ]
 }
 
-def extract_image(entry, category="Tech"):
-    # 1. Check media_content
+def extract_image(entry, category="Tech", title=""):
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -74,8 +106,7 @@ def extract_image(entry, category="Tech"):
                 url = media.get('url')
                 if url:
                     return url
-
-    # 2. Check media_thumbnail
+    
     if "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -86,7 +117,6 @@ def extract_image(entry, category="Tech"):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             return thumbs.get('url')
 
-    # 3. Check enclosures or links for image types/urls
     for key in ["enclosures", "links"]:
         if key in entry:
             for item in entry[key]:
@@ -94,22 +124,24 @@ def extract_image(entry, category="Tech"):
                 if href and (any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']) or item.get("type", "").startswith("image/")):
                     return href
 
-    # 4. Deep search all string fields (summary, description, content, etc.) for any image URL or HTML img tag
     for field in ["content", "summary", "description", "subtitle", "title"]:
         if field in entry:
             val = entry.get(field, "")
             if isinstance(val, list):
                 val = "".join([str(c.get("value", "")) for c in val])
-            # Search for HTML img src
             match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(val), re.IGNORECASE)
             if match:
                 return match.group(1)
-            # Search for raw image URL ending in extension inside text
             url_match = re.search(r'(https?://[^\s<>"]+?\.(?:jpg|jpeg|png|webp))', str(val), re.IGNORECASE)
             if url_match:
                 return url_match.group(1)
-
-    return CATEGORY_FALLBACKS.get(category, "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
+        
+    pool = CATEGORY_FALLBACK_POOLS.get(category, [
+        "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60"
+    ])
+    # Pseudo-randomly pick based on title hash so different articles get different fallbacks
+    idx = abs(hash(title)) % len(pool)
+    return pool[idx]
 
 def parse_entry_time(entry):
     time_struct = entry.get("published_parsed") or entry.get("updated_parsed")
@@ -136,10 +168,11 @@ def fetch_single_source(source):
                 else:
                     time_str = f"{int(time_ago / 1440)}d ago"
 
+                title = entry.get("title", "No Title")
                 articles.append({
-                    "title": entry.get("title", "No Title"),
+                    "title": title,
                     "link": entry.get("link", "#"),
-                    "image": extract_image(entry, source['category']),
+                    "image": extract_image(entry, source['category'], title),
                     "time": time_str
                 })
             if articles:
@@ -289,3 +322,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+    
