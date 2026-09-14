@@ -89,7 +89,14 @@ def extract_image(entry, category="Tech"):
             if enc.get("type", "").startswith("image/"):
                 return enc.get("href")
 
-    for field in ["content", "summary", "description"]:
+    if "links" in entry:
+        for link in entry.links:
+            if link.get("type", "").startswith("image/") or "enclosure" in link.get("rel", ""):
+                href = link.get("href")
+                if href:
+                    return href
+
+    for field in ["content", "summary", "description", "subtitle"]:
         if field in entry:
             content_blob = entry.get(field, "")
             if isinstance(content_blob, list):
