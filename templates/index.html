@@ -323,6 +323,155 @@
             document.querySelectorAll('.reading-time').forEach(el => {
                 const title = el.getAttribute('data-title') || "";
                 const baseWords = title.split(/\s+/).length;
+                const varianceFactor = (title.charCodeAt(0) || 10) % 3;
+                const minutes = Math.max(2, Math.ceil(baseWords / 4) + varianceFactor);
+                el.textContent = `${minutes} min read`;
+            });
+        }
+
+        async function getBrief(selectEl) {
+            const style = selectEl.value;
+            const title = selectEl.getAttribute('data-title');
+            const container = selectEl.closest('div').parentElement;
+            const summaryBox = container.querySelector('.ai-summary');
+            
+            const cacheKey = `brief_${style}_${title}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                summaryBox.textContent = cached;
+                summaryBox.classList.remove('hidden');
+                return;
+            }
+
+            summaryBox.textContent = "Synthesizing AI brief...";
+            summaryBox.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/brief', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title, style: style })
+                });
+                const data = await response.json();
+                summaryBox.textContent = data.summary;
+                localStorage.setItem(cacheKey, data.summary);
+            } catch (err) {
+                summaryBox.textContent = "Could not generate summary.";
+            }
+        }
+
+        function saveArticle(title, link) {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            if (!saved.some(a => a.link === link)) {
+                saved.push({ title, link });
+                localStorage.setItem('saved_articles', JSON.stringify(saved));
+                updateCounts();
+                alert("Saved to drawer.");
+            } else {
+                alert("Already saved.");
+            }
+        }
+
+        async function shareArticle(title, link) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: title,
+                        url: link
+                    });
+                } catch (err) {
+                    // User cancelled or share failed silently
+                }
+            } else {
+                navigator.clipboard.writeText(link);
+                alert("Link copied to clipboard!");
+            }
+        }
+
+        function toggleSavedModal() {
+            const modal = document.getElementById('saved-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                renderSavedList();
+            }
+        }
+
+        function renderSavedList() {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            const listEl = document.getElementById('saved-list');
+            if (saved.length === 0) {
+                listEl.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-8">No saved articles.</p>';
+                return;
+            }
+            listEl.innerHTML = saved.map((item, index) => `
+                <div class="p-2.5 rounded bg-[#07090e] border border-slate-800/80 flex justify-between items-start gap-2">
+                    <a href="${item.link}" target="_blank" class="text-xs font-medium text-slate-200 hover:text-emerald-400 line-clamp-2">${item.title}</a>
+                    <button onclick="removeSaved(${index})" class="text-[10px] text-red-400 hover:text-red-300 shrink-0">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeSaved(index) {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            saved.splice(index, 1);
+            localStorage.setItem('saved_articles', JSON.stringify(saved));
+            updateCounts();
+            renderSavedList();
+        }
+
+        updateCounts();
+        calculateReadingTimes();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+        }
+    </script>
+</body>
+</html>
+<option value="sentence">AI Brief (1-Sentence)</option>
+                                                    <option value="bullets">AI Brief (Bullets)</option>
+                                                    <option value="eli5">AI Brief (ELI5)</option>
+                                                </select>
+                                                <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-[10px] bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 px-2 py-0.5 rounded transition">Save</button>
+                                                <button onclick="shareArticle('{{ article.title | e }}', '{{ article.link | e }}')" class="text-[10px] bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 px-2 py-0.5 rounded transition">Share</button>
+                                            </div>
+                                            <p class="ai-summary text-[11px] text-slate-300 mt-2 hidden bg-[#07090e] p-2.5 rounded border border-slate-800 leading-relaxed whitespace-pre-line"></p>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- Saved Modal -->
+    <div id="saved-modal" class="fixed inset-0 bg-[#07090e]/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#0b0f17] border border-slate-800 w-full max-w-md rounded-xl p-5 space-y-3 max-h-[80vh] flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-emerald-400 uppercase tracking-wider text-xs">Saved Articles</h3>
+                <button onclick="toggleSavedModal()" class="text-slate-400 hover:text-white text-xs">✕</button>
+            </div>
+            <div id="saved-list" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Client Logic -->
+    <script>
+        function updateCounts() {
+            let saved = JSON.parse(localStorage.getItem('saved_articles') || '[]');
+            document.getElementById('saved-count').textContent = saved.length;
+        }
+
+        function calculateReadingTimes() {
+            document.querySelectorAll('.reading-time').forEach(el => {
+                const title = el.getAttribute('data-title') || "";
+                const baseWords = title.split(/\s+/).length;
                 const varianceFactor = (title.charCodeAt(0) || 10) % 3; // introduces variety (0, 1, or 2 extra min)
                 const minutes = Math.max(2, Math.ceil(baseWords / 4) + varianceFactor);
                 el.textContent = `${minutes} min read`;
