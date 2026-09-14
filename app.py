@@ -313,13 +313,17 @@ def brief():
     }
     
     try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=5)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
+        print(f"OpenRouter response status: {response.status_code}")
+        print(f"OpenRouter response body: {response.text}")
+        
         if response.status_code == 200:
             result = response.json()
-            summary = result["choices"][0]["message"]["content"]
-            return jsonify({"summary": summary})
-        else:
-            print(f"OpenRouter API error status {response.status_code}: {response.text}")
+            if "choices" in result and len(result["choices"]) > 0:
+                summary = result["choices"][0]["message"]["content"]
+                return jsonify({"summary": summary})
+            else:
+                return jsonify({"summary": "Invalid response structure from AI model."})
     except Exception as e:
         print(f"OpenRouter API exception: {e}")
         
@@ -349,4 +353,3 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-                
