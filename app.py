@@ -5,7 +5,6 @@ import re
 import os
 import time
 import threading
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
@@ -131,7 +130,6 @@ def fetch_live_market_data():
         "Bitcoin": "$92,500"
     }
     try:
-        # Fetch live fiat currency rates
         res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=3.0)
         if res.status_code == 200:
             rates = res.json().get("rates", {})
@@ -145,7 +143,6 @@ def fetch_live_market_data():
         pass
 
     try:
-        # Fetch live Bitcoin price from CoinGecko
         btc_res = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=3.0)
         if btc_res.status_code == 200:
             btc_price = btc_res.json().get("bitcoin", {}).get("usd")
@@ -266,4 +263,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-        
+    
