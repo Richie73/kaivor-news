@@ -304,7 +304,7 @@ def brief():
     }
     
     payload = {
-        "model": "deepseek/deepseek-chat",
+        "model": "openai/gpt-4o-mini",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Topic: {article_title}"}
@@ -318,8 +318,10 @@ def brief():
             result = response.json()
             summary = result["choices"][0]["message"]["content"]
             return jsonify({"summary": summary})
+        else:
+            print(f"OpenRouter API error status {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"OpenRouter API error: {e}")
+        print(f"OpenRouter API exception: {e}")
         
     return jsonify({"summary": "Could not generate summary at this time."})
 
@@ -347,4 +349,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
+                
