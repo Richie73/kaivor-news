@@ -53,7 +53,6 @@ cache = {
 }
 cache_lock = threading.Lock()
 
-# Curated contextual fallback images per category to replace generic placeholders
 CATEGORY_FALLBACKS = {
     "UK": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=60",
     "World": "https://images.unsplash.com/photo-1521295121783-8a321d5d1ad2?w=600&auto=format&fit=crop&q=60",
@@ -66,7 +65,6 @@ CATEGORY_FALLBACKS = {
 }
 
 def extract_image(entry, category="Tech"):
-    # 1. Check media_content elements
     if "media_content" in entry:
         for media in entry.media_content:
             if isinstance(media, dict) and 'url' in media:
@@ -76,7 +74,6 @@ def extract_image(entry, category="Tech"):
                 if url:
                     return url
     
-    # 2. Check media_thumbnail elements
     if "media_thumbnail" in entry:
         thumbs = entry.media_thumbnail
         if isinstance(thumbs, list) and len(thumbs) > 0:
@@ -87,23 +84,20 @@ def extract_image(entry, category="Tech"):
         elif isinstance(thumbs, dict) and 'url' in thumbs:
             return thumbs.get('url')
 
-    # 3. Check enclosures for image types
     if "enclosures" in entry:
         for enc in entry.enclosures:
             if enc.get("type", "").startswith("image/"):
                 return enc.get("href")
 
-    # 4. Search description or summary blobs for image tags
     for field in ["content", "summary", "description"]:
         if field in entry:
             content_blob = entry.get(field, "")
             if isinstance(content_blob, list):
                 content_blob = "".join([str(c.get("value", "")) for c in content_blob])
             match = re.search(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', str(content_blob), re.IGNORECASE)
-                if match:
-                    return match.group(1)
+            if match:
+                return match.group(1)
         
-    # 5. Return context-aware fallback image instead of a static generic photo
     return CATEGORY_FALLBACKS.get(category, "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=60")
 
 def parse_entry_time(entry):
