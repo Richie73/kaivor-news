@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
+# Safely loads your API key from Render's environment variables without hardcoding it
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 sources = [
@@ -227,7 +228,9 @@ def refresh_feed_cache():
         "Daily Games & Puzzles": [
             {"title": "Wordle - Daily Word Puzzle (New York Times)", "link": "https://www.nytimes.com/games/wordle/index.html", "image": "https://images.unsplash.com/photo-1529653719697-40f4e9ff761b?w=600&auto=format&fit=crop&q=60", "time": "Live"},
             {"title": "The Mini Crossword - New York Times", "link": "https://www.nytimes.com/crosswords/game/mini", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=600&auto=format&fit=crop&q=60", "time": "Live"},
-            {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60", "time": "Live"}
+            {"title": "Connections - New York Times Nerd Grouping", "link": "https://www.nytimes.com/games/connections", "image": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60", "time": "Live"},
+            {"title": "Sudoku - Daily Web Puzzle Grid", "link": "https://sudoku.com/", "image": "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=600&auto=format&fit=crop&q=60", "time": "Live"},
+            {"title": "Chess Daily Puzzle - Master Tactics", "link": "https://www.chess.com/daily-chess-puzzle", "image": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=600&auto=format&fit=crop&q=60", "time": "Live"}
         ]
     }
     live_market = fetch_live_market_data()
