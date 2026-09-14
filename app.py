@@ -283,8 +283,18 @@ def serve_sw():
 def brief():
     data = request.get_json()
     article_title = data.get('title', '')
+    style = data.get('style', 'sentence')
+    
     if not article_title:
         return jsonify({"summary": "No article title provided."})
+    
+    system_prompts = {
+        "sentence": "You are a sharp, concise news summarizer. Provide a punchy 1-sentence summary.",
+        "bullets": "Provide 2-3 ultra-short bullet points capturing the core essence of this news headline.",
+        "eli5": "Explain this news headline simply as if explaining it to a curious 5-year-old."
+    }
+    
+    system_prompt = system_prompts.get(style, system_prompts["sentence"])
     
     headers = {
         "Content-Type": "application/json",
@@ -296,8 +306,8 @@ def brief():
     payload = {
         "model": "deepseek/deepseek-chat",
         "messages": [
-            {"role": "system", "content": "You are a sharp, concise news summarizer. Provide a 1-sentence summary of this news headline/topic concisely."},
-            {"role": "user", "content": f"Summarize this news headline/topic concisely: {article_title}"}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Topic: {article_title}"}
         ],
         "stream": False
     }
@@ -337,4 +347,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-                
+    
