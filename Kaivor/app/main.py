@@ -3,7 +3,7 @@ import time
 import threading
 import feedparser
 import requests
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -14,8 +14,6 @@ app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "kaivor.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 class SavedArticle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,8 +68,11 @@ def fetch_feed_entries(feed_name, feed_url):
         entries = []
         for entry in parsed.entries[:5]:
             summary = getattr(entry, 'summary', getattr(entry, 'description', ''))
+            title = getattr(entry, 'title', 'No Title')
+            if not isinstance(title, str):
+                title = str(title)
             entries.append({
-                "title": getattr(entry, 'title', 'No Title'),
+                "title": title,
                 "link": getattr(entry, 'link', '#'),
                 "published": getattr(entry, 'published', 'Recent'),
                 "summary": summary,
@@ -85,7 +86,6 @@ def fetch_feed_entries(feed_name, feed_url):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # Handle adding custom feeds
         custom_url = request.form.get('url')
         category = request.form.get('category', 'Tech')
         if custom_url:
@@ -100,7 +100,7 @@ def index():
                 print(f"Error adding custom feed: {e}")
         return redirect(url_for('index'))
 
-    # Load custom feeds from database and append to categories
+    # Load custom feeds from database
     active_categories = {cat: list(sources) for cat, sources in CATEGORY_SOURCES.items()}
     try:
         custom_feeds = CustomFeed.query.all()
@@ -110,24 +110,21 @@ def index():
     except Exception:
         pass
 
-    # Fetch articles grouped by category concurrently
-    news_by_category = {}
+    # Fetch entries and map directly to news_grouped format expected by template
+    news_grouped = {}
     with ThreadPoolExecutor(max_workers=6) as executor:
-        future_to_cat = {}
+        future_to_source = {}
         for cat, sources in active_categories.items():
             for src in sources:
                 future = executor.submit(fetch_feed_entries, src['name'], src['url'])
-                future_to_cat[future] = cat
+                future_to_source[future] = src['name']
         
-        for future in as_completed(future_to_cat):
-            cat = future_to_cat[future]
-            name, entries = future.result()
+        for future in as_completed(future_to_source):
+            name = future_to_source[future]
+            feed_name, entries = future.result()
             if entries:
-                if cat not in news_by_category:
-                    news_by_category[cat] = {}
-                news_by_category[cat][name] = entries
+                news_grouped[feed_name] = entries
 
-    # Market ticker data fallback/mock for live display
     market_data = {
         "USD/JPY": "153.61",
         "Bitcoin": "$92,500",
@@ -141,7 +138,7 @@ def index():
 
     return render_template(
         'index.html',
-        news_by_category=news_by_category,
+        news_grouped=news_grouped,
         market_data=market_data,
         saved_count=saved_count
     )
@@ -165,4 +162,4 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+        
