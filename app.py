@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 app = Flask(__name__, template_folder='app/templates')
 
 
+
 # Safely loads your API key from Render's environment variables without hardcoding it
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
