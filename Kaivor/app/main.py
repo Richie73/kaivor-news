@@ -1,90 +1,131 @@
 import os
-import time
-import threading
-import feedparser
 import requests
-from flask import Flask, render_template, request, redirect, url_for, jsonify
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import feedparser
+import urllib.parse
+from bs4 import BeautifulSoup
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 
-# Explicitly set the template folder using an absolute path relative to this script's location
+# Absolute template path relative to this file
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'))
 
-# Safe fallback global cache initialization
-cache_lock = threading.Lock()
-cache = {
-    "news": {},
-    "market": {}
-}
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "kaivor.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+class Feed(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    url = db.Column(db.String(300), unique=True, nullable=False)
 
-sources = [
-    # UK News
-    {"name": "BBC News UK", "url": "https://feeds.bbci.co.uk/news/rss.xml"},
-    {"name": "The Guardian", "url": "https://www.theguardian.com/uk/rss"},
-    {"name": "Sky News UK", "url": "https://news.sky.com/feed/rss"},
-    # World
-    {"name": "BBC News World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml"},
-    {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best"}
-]
+class Saved(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    link = db.Column(db.String(300), nullable=False)
 
-def fetch_single_feed(source):
+# Automatically initialize database and default feeds on startup
+with app.app_context():
+    db.create_all()
     try:
-        parsed = feedparser.parse(source['url'])
-        entries = []
-        for entry in parsed.entries[:5]:
-            entries.append({
-                "title": getattr(entry, 'title', 'No Title'),
-                "link": getattr(entry, 'link', '#'),
-                "published": getattr(entry, 'published', 'Recent'),
-                "summary": getattr(entry, 'summary', '')
-            })
-        return source['name'], entries
+        if Feed.query.count() == 0:
+            default_feeds = [
+                Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
+                Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
+                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
+                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
+                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
+            ]
+            db.session.add_all(default_feeds)
+            db.session.commit()
     except Exception as e:
-        print(f"Error fetching feed {source['name']}: {e}")
-        return source['name'], []
+        print(f"Database init note: {e}")
 
-def refresh_feed_cache():
-    news_data = {}
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_source = {executor.submit(fetch_single_feed, src): src for src in sources}
-        for future in as_completed(future_to_source):
-            name, entries = future.result()
-            if entries:
-                news_data[name] = entries
-    
-    with cache_lock:
-        cache["news"] = news_data
-        cache["market"] = {"Status": "Live Feed Active"}
+def discover_rss(url):
+    try:
+        if not url.startswith('http'):
+            url = 'https://' + url
+        res = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        if res.status_code != 200:
+            return url
+        soup = BeautifulSoup(res.text, 'html.parser')
+        rss_link = soup.find('link', type='application/rss+xml') or soup.find('link', type='application/atom+xml')
+        if rss_link and rss_link.get('href'):
+            href = rss_link['href']
+            return urllib.parse.urljoin(url, href)
+    except:
+        pass
+    return url
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        preset_url = request.form.get('preset_url')
-        if preset_url:
-            feed_name = "Custom Feed"
-            for s in sources:
-                if s['url'] == preset_url:
-                    feed_name = s['name']
-            if not any(s['url'] == preset_url for s in sources):
-                sources.append({"name": feed_name, "url": preset_url})
-            refresh_feed_cache()
-            return redirect(url_for('index'))
+        input_url = request.form.get('url')
+        if input_url:
+            actual_feed_url = discover_rss(input_url)
+            parsed = feedparser.parse(actual_feed_url)
+            feed_name = parsed.feed.title if hasattr(parsed, 'feed') and hasattr(parsed.feed, 'title') else input_url
+            if not Feed.query.filter_by(url=actual_feed_url).first():
+                new_feed = Feed(name=feed_name, url=actual_feed_url)
+                db.session.add(new_feed)
+                db.session.commit()
+        return redirect(url_for('index'))
 
-    with cache_lock:
-        news_by_category = cache.get("news", {})
-        market_data = cache.get("market", {})
-        sources_list = sources
+    try:
+        feeds = Feed.query.all()
+    except:
+        feeds = []
 
-    return render_template('index.html', news_by_category=news_by_category, market_data=market_data, sources=sources_list)
+    try:
+        saved = Saved.query.order_by(Saved.id.desc()).all()
+    except:
+        saved = []
+
+    news_grouped = {}
+    
+    try:
+        market_parsed = feedparser.parse("https://feeds.finance.yahoo.com/rss/2.0/headline?s=^IXIC,AAPL,MSFT")
+        items = []
+        for e in market_parsed.entries[:6]:
+            t = getattr(e, 'title', 'Market Update')
+            if not isinstance(t, str):
+                t = str(t)
+            if not t.startswith("[$]"):
+                t = f"[$] {t}"
+            link = getattr(e, 'link', '#')
+            items.append({'title': t, 'link': link, 'img': None})
+        news_grouped['Markets'] = items
+    except: 
+        news_grouped['Markets'] = [{'title': '[$] Market data temporarily unavailable', 'link': '#', 'img': None}]
+
+    for feed in feeds:
+        try:
+            parsed = feedparser.parse(feed.url)
+            articles = []
+            for e in parsed.entries[:6]:
+                title = getattr(e, 'title', 'Untitled')
+                if not isinstance(title, str):
+                    title = str(title)
+                if not title.startswith("[$]"):
+                    title = f"[$] {title}"
+                link = getattr(e, 'link', '#')
+                articles.append({'title': title, 'link': link, 'img': None})
+            news_grouped[feed.name] = articles
+        except: 
+            continue
+            
+    return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
 
 @app.route('/health')
 def health():
     return "OK", 200
 
-# Automatically pre-load feeds on startup
-threading.Thread(target=refresh_feed_cache, daemon=True).start()
+@app.route('/delete/<int:feed_id>', methods=['POST'])
+def delete_feed(feed_id):
+    feed = Feed.query.get_or_404(feed_id)
+    db.session.delete(feed)
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
