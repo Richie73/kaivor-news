@@ -6,9 +6,9 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Automatically find templates whether they are in 'templates' or 'app/templates'
-template_dir = 'app/templates' if os.path.exists('app/templates') else 'templates'
-app = Flask(__name__, template_folder=template_dir)
+# Explicitly set the template folder using an absolute path relative to this script's location
+basedir = os.path.abspath(os.path.dirname(__file__))
+app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'))
 
 # Safe fallback global cache initialization
 cache_lock = threading.Lock()
