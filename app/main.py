@@ -21,6 +21,23 @@ class Saved(db.Model):
     title = db.Column(db.String(200), nullable=False)
     link = db.Column(db.String(300), nullable=False)
 
+# Automatically create database tables and default feeds on startup (Runs for Gunicorn too!)
+with app.app_context():
+    db.create_all()
+    try:
+        if Feed.query.count() == 0:
+            default_feeds = [
+                Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
+                Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
+                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
+                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
+                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
+            ]
+            db.session.add_all(default_feeds)
+            db.session.commit()
+    except Exception as e:
+        print(f"Database init note: {e}")
+
 def discover_rss(url):
     try:
         if not url.startswith('http'):
@@ -96,6 +113,10 @@ def index():
             
     return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
 @app.route('/delete/<int:feed_id>', methods=['POST'])
 def delete_feed(feed_id):
     feed = Feed.query.get_or_404(feed_id)
@@ -104,17 +125,5 @@ def delete_feed(feed_id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        if Feed.query.count() == 0:
-            default_feeds = [
-                Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
-                Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
-                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
-                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
-                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
-            ]
-            db.session.add_all(default_feeds)
-            db.session.commit()
     app.run(host='0.0.0.0', port=5000, debug=True)
-
+    
