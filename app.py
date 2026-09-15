@@ -6,13 +6,9 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import os
-from flask import Flask
-
 # Automatically find templates whether they are in 'templates' or 'app/templates'
 template_dir = 'app/templates' if os.path.exists('app/templates') else 'templates'
 app = Flask(__name__, template_folder=template_dir)
-
 
 # Safe fallback global cache initialization to prevent KeyErrors on startup
 cache_lock = threading.Lock()
@@ -93,4 +89,4 @@ threading.Thread(target=refresh_feed_cache, daemon=True).start()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+        
