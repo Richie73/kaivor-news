@@ -32,7 +32,6 @@ def fetch_single_feed(source):
         parsed = feedparser.parse(source['url'])
         entries = []
         for entry in parsed.entries[:5]:
-            entries.endswith if hasattr(entry, 'summary') else None
             entries.append({
                 "title": getattr(entry, 'title', 'No Title'),
                 "link": getattr(entry, 'link', '#'),
@@ -82,6 +81,10 @@ def index():
 def health():
     return "OK", 200
 
+# Automatically spin up background thread to pre-load feeds on startup
+threading.Thread(target=refresh_feed_cache, daemon=True).start()
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    
