@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaivor News</title>
+    <style>
+        :root {
+            --bg-color: #0b131a;
+            --card-bg: #111b22;
+            --accent-green: #00a884;
+            --text-main: #e9edef;
+            --text-muted: #8696a0;
+            --border-color: #222d34;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 16px;
+        }
+        header {
+            text-align: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+        }
+        header p {
+            margin: 4px 0 0;
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        .tickers {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            white-space: nowrap;
+        }
+        .ticker-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            padding-bottom: 4px;
+        }
+        .chip {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .chip.active {
+            background: var(--accent-green);
+            color: #000;
+            font-weight: bold;
+            border-color: var(--accent-green);
+        }
+        .article-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .article-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            color: var(--text-main);
+            text-decoration: none;
+            display: block;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        button {
+            background: #1f2c34;
+            color: var(--accent-green);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: var(--accent-green);
+            color: #000;
+        }
+        .brief-box {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: #080c10;
+            padding: 8px;
+            border-radius: 6px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>KAIVOR NEWS</h1>
+        <p>Global Intelligence</p>
+    </header>
+
+    <div class="tickers">
+        <div class="ticker-card">S&P 500: <span style="color: var(--accent-green);">5,840.00</span></div>
+        <div class="ticker-card">NASDAQ: <span style="color: var(--accent-green);">18,350.00</span></div>
+        <div class="ticker-card">USD/JPY: <span style="color: var(--accent-green);">153.61</span></div>
+        <div class="ticker-card">Bitcoin: <span style="color: var(--accent-green);">$92,500</span></div>
+    </div>
+
+    <div class="categories">
+        {% for cat in categories %}
+            <a href="/?category={{ cat }}" class="chip {% if cat == category %}active{% endif %}">{{ cat }}</a>
+        {% endfor %}
+    </div>
+
+    <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">{{ category }} Top Stories</h3>
+
+    <div>
+        {% for article in articles %}
+            <div class="article-card">
+                <a href="{{ article.link }}" target="_blank" class="article-title">{{ article.title }}</a>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">{{ article.published }}</div>
+                <div class="btn-group">
+                    <button onclick="getBrief(this, '{{ article.title | e }}')">AI Brief</button>
+                    <button>Save</button>
+                </div>
+                <div class="brief-box"></div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function getBrief(btn, title) {
+            const box = btn.closest('.article-card').querySelector('.brief-box');
+            box.style.display = 'block';
+            box.innerText = 'Generating AI brief...';
+            
+            fetch('/api/brief', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title: title})
+            })
+            .then(res => res.json())
+            .then(data => {
+                box.innerText = data.brief;
+            })
+            .catch(err => {
+                box.innerText = 'Failed to generate brief.';
+            });
+        }
+    </script>
+</body>
+</html>
