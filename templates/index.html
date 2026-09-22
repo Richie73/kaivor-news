@@ -5,177 +5,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kaivor News</title>
     <style>
-        :root {
-            --bg-color: #0b131a;
-            --card-bg: #111b22;
-            --accent-green: #00a884;
-            --text-main: #e9edef;
-            --text-muted: #8696a0;
-            --border-color: #222d34;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0;
-            padding: 16px;
-        }
-        header {
-            text-align: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 16px;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 1.4rem;
-            letter-spacing: 1px;
-        }
-        header p {
-            margin: 4px 0 0;
-            font-size: 0.75rem;
-            color: var(--accent-green);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: bold;
-        }
-        .tickers {
-            display: flex;
-            gap: 12px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-            white-space: nowrap;
-        }
-        .ticker-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-        }
-        .categories {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            margin-bottom: 20px;
-            padding-bottom: 4px;
-        }
-        .chip {
-            background: var(--card-bg);
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            padding: 6px 14px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-        .chip.active {
-            background: var(--accent-green);
-            color: #000;
-            font-weight: bold;
-            border-color: var(--accent-green);
-        }
-        .article-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 12px;
-        }
-        .article-title {
-            font-size: 0.95rem;
-            font-weight: bold;
-            margin: 0 0 8px 0;
-            color: var(--text-main);
-            text-decoration: none;
-            display: block;
-        }
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        button {
-            background: #1f2c34;
-            color: var(--accent-green);
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: var(--accent-green);
-            color: #000;
-        }
-        .brief-box {
-            margin-top: 8px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            background: #080c10;
-            padding: 8px;
-            border-radius: 6px;
-            display: none;
-        }
+        body { background: #0b131a; color: #e9edef; font-family: sans-serif; margin: 0; padding: 16px; }
+        header { text-align: center; border-bottom: 1px solid #222d34; padding-bottom: 12px; margin-bottom: 16px; }
+        h1 { margin: 0; font-size: 1.4rem; }
+        .sub { color: #00a884; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        
+        /* Moving Ticker */
+        .ticker-wrap { overflow: hidden; white-space: nowrap; background: #111b22; border: 1px solid #222d34; border-radius: 8px; margin-bottom: 16px; padding: 8px 0; }
+        .ticker-move { display: inline-block; animation: marquee 25s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 24px; font-size: 0.8rem; }
+        @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
+
+        .chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; }
+        .chip { background: #111b22; color: #8696a0; border: 1px solid #222d34; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
+        .chip.active { background: #00a884; color: #000; font-weight: bold; }
+        
+        .card { background: #111b22; border: 1px solid #222d34; border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; gap: 12px; align-items: flex-start; }
+        .card-content { flex: 1; }
+        .thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #1f2c34; }
+        .card a { color: #e9edef; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
+        .meta { font-size: 0.7rem; color: #8696a0; margin-bottom: 8px; display: flex; gap: 10px; }
+        .btn-group { display: flex; gap: 8px; }
+        button { background: #1f2c34; color: #00a884; border: 1px solid #222d34; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
+        button:hover { background: #00a884; color: #000; }
+        .brief { margin-top: 8px; font-size: 0.8rem; color: #8696a0; background: #080c10; padding: 8px; border-radius: 6px; display: none; }
     </style>
 </head>
 <body>
-
     <header>
         <h1>KAIVOR NEWS</h1>
-        <p>Global Intelligence</p>
+        <div class="sub">Global Intelligence</div>
     </header>
 
-    <div class="tickers">
-        <div class="ticker-card">S&P 500: <span style="color: var(--accent-green);">5,840.00</span></div>
-        <div class="ticker-card">NASDAQ: <span style="color: var(--accent-green);">18,350.00</span></div>
-        <div class="ticker-card">USD/JPY: <span style="color: var(--accent-green);">153.61</span></div>
-        <div class="ticker-card">Bitcoin: <span style="color: var(--accent-green);">$92,500</span></div>
+    <div class="ticker-wrap">
+        <div class="ticker-move">
+            <span class="ticker-item">S&P 500: <span style="color:#00a884;">5,840.00 (+0.4%)</span></span>
+            <span class="ticker-item">NASDAQ: <span style="color:#00a884;">18,350.00 (+0.6%)</span></span>
+            <span class="ticker-item">USD/JPY: <span style="color:#00a884;">153.61 (-0.1%)</span></span>
+            <span class="ticker-item">Bitcoin: <span style="color:#00a884;">$92,500 (+2.3%)</span></span>
+            <!-- Duplicate for smooth infinite scroll loop -->
+            <span class="ticker-item">S&P 500: <span style="color:#00a884;">5,840.00 (+0.4%)</span></span>
+            <span class="ticker-item">NASDAQ: <span style="color:#00a884;">18,350.00 (+0.6%)</span></span>
+            <span class="ticker-item">USD/JPY: <span style="color:#00a884;">153.61 (-0.1%)</span></span>
+            <span class="ticker-item">Bitcoin: <span style="color:#00a884;">$92,500 (+2.3%)</span></span>
+        </div>
     </div>
 
-    <div class="categories">
+    <div class="chips">
         {% for cat in categories %}
             <a href="/?category={{ cat }}" class="chip {% if cat == category %}active{% endif %}">{{ cat }}</a>
         {% endfor %}
     </div>
 
-    <h3 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">{{ category }} Top Stories</h3>
+    <h3 style="font-size: 0.9rem; text-transform: uppercase; color: #8696a0; margin-bottom: 12px;">{{ category }} Top Stories</h3>
 
-    <div>
-        {% for article in articles %}
-            <div class="article-card">
-                <a href="{{ article.link }}" target="_blank" class="article-title">{{ article.title }}</a>
-                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">{{ article.published }}</div>
-                <div class="btn-group">
-                    <button onclick="getBrief(this, '{{ article.title | e }}')">AI Brief</button>
-                    <button>Save</button>
-                </div>
-                <div class="brief-box"></div>
+    {% for article in articles %}
+    <div class="card">
+        {% if article.image %}
+            <img src="{{ article.image }}" class="thumb" alt="News thumb">
+        {% endif %}
+        <div class="card-content">
+            <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+            <div class="meta">
+                <span>{{ article.published }}</span>
+                <span>•</span>
+                <span>{{ article.read_time }}</span>
             </div>
-        {% endfor %}
+            <div class="btn-group">
+                <button onclick="getBrief(this, '{{ article.title | e }}')">AI Brief</button>
+                <button onclick="saveArticle(this)">Save</button>
+            </div>
+            <div class="brief"></div>
+        </div>
     </div>
+    {% endfor %}
 
     <script>
         function getBrief(btn, title) {
-            const box = btn.closest('.article-card').querySelector('.brief-box');
+            const box = btn.closest('.card-content').querySelector('.brief');
             box.style.display = 'block';
             box.innerText = 'Generating AI brief...';
-            
             fetch('/api/brief', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({title: title})
             })
             .then(res => res.json())
-            .then(data => {
-                box.innerText = data.brief;
-            })
-            .catch(err => {
-                box.innerText = 'Failed to generate brief.';
-            });
+            .then(data => box.innerText = data.brief)
+            .catch(() => box.innerText = 'Failed to generate brief.');
+        }
+
+        function saveArticle(btn) {
+            btn.innerText = 'Saved ✓';
+            btn.style.background = '#00a884';
+            btn.style.color = '#000';
+            setTimeout(() => {
+                btn.innerText = 'Save';
+                btn.style.background = '#1f2c34';
+                btn.style.color = '#00a884';
+            }, 2000);
         }
     </script>
 </body>
