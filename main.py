@@ -2,10 +2,10 @@ import os
 from flask import Flask, render_template, request, jsonify
 import feedparser
 from bs4 import BeautifulSoup
+import requests
 
 app = Flask(__name__)
 
-# Base feeds including the requested UK category
 FEEDS = {
     "World": "https://feeds.bbci.co.uk/news/world/rss.xml",
     "UK": "https://feeds.bbci.co.uk/news/uk/rss.xml",
@@ -16,25 +16,58 @@ FEEDS = {
     "Android": "https://9to5google.com/feed/"
 }
 
+def fetch_og_image(url):
+    """Scrapes the article webpage for an Open Graph image meta tag as a fallback."""
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(url, headers=headers, timeout=3)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            og_img = soup.find('meta', property='og:image')
+            if og_img and og_img.get('content'):
+                return og_img['content']
+            twitter_img = soup.find('meta', name='twitter:image')
+            if twitter_img and twitter_img.get('content'):
+                return twitter_img['content']
+    except Exception:
+        pass
+    return None
+
 def extract_image(entry):
-    # Check media_content
+    # 1. Check media_content
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
-            if 'url' in media:
+            if 'url' in media and media['url'].startswith('http'):
                 return media['url']
-    # Check enclosures
+                
+    # 2. Check media_thumbnail
+    if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
+        for thumb in entry.media_thumbnail:
+            if 'url' in thumb and thumb['url'].startswith('http'):
+                return thumb['url']
+
+    # 3. Check enclosures
     if hasattr(entry, 'enclosures') and entry.enclosures:
         for enc in entry.enclosures:
-            if 'href' in enc:
+            if 'href' in enc and enc['href'].startswith('http'):
                 return enc['href']
-    # Parse HTML summary/content for img tags
+
+    # 4. Check inline images in summary or content
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         content += entry.content[0].get('value', '')
     soup = BeautifulSoup(content, "html.parser")
     img = soup.find("img")
-    if img and img.get("src"):
+    if img and img.get("src") and img["src"].startswith('http'):
         return img["src"]
+
+    # 5. Fallback: Scrape article Open Graph image from destination URL
+    link = entry.get("link")
+    if link:
+        og_image = fetch_og_image(link)
+        if og_image:
+            return og_image
+
     return None
 
 def calculate_read_time(text):
