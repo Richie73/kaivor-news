@@ -5,8 +5,10 @@ from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
+# Base feeds including the requested UK category
 FEEDS = {
     "World": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "UK": "https://feeds.bbci.co.uk/news/uk/rss.xml",
     "Tech": "https://www.theverge.com/rss/index.xml",
     "Business": "https://feeds.bbci.co.uk/news/business/rss.xml",
     "Sport": "https://feeds.bbci.co.uk/news/sport/rss.xml",
@@ -15,16 +17,21 @@ FEEDS = {
 }
 
 def extract_image(entry):
+    # Check media_content
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             if 'url' in media:
                 return media['url']
+    # Check enclosures
     if hasattr(entry, 'enclosures') and entry.enclosures:
         for enc in entry.enclosures:
             if 'href' in enc:
                 return enc['href']
-    summary = entry.get("summary", "")
-    soup = BeautifulSoup(summary, "html.parser")
+    # Parse HTML summary/content for img tags
+    content = entry.get("summary", "")
+    if hasattr(entry, 'content') and entry.content:
+        content += entry.content[0].get('value', '')
+    soup = BeautifulSoup(content, "html.parser")
     img = soup.find("img")
     if img and img.get("src"):
         return img["src"]
@@ -38,12 +45,14 @@ def calculate_read_time(text):
 @app.route("/")
 def index():
     category = request.args.get("category", "World")
-    feed_url = FEEDS.get(category, FEEDS["World"])
+    custom_feed = request.args.get("custom_feed", "")
+    
+    feed_url = custom_feed if custom_feed else FEEDS.get(category, FEEDS["World"])
     
     articles = []
     try:
         parsed_feed = feedparser.parse(feed_url)
-        for entry in parsed_feed.entries[:10]:
+        for entry in parsed_feed.entries[:12]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             image_url = extract_image(entry)
@@ -60,7 +69,7 @@ def index():
     except Exception as e:
         print(f"Error: {e}")
 
-    return render_template("index.html", category=category, categories=FEEDS.keys(), articles=articles)
+    return render_template("index.html", category=category, categories=FEEDS.keys(), articles=articles, custom_feed=custom_feed)
 
 @app.route("/api/brief", methods=["POST"])
 def ai_brief():

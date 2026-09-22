@@ -6,29 +6,39 @@
     <title>Kaivor News</title>
     <style>
         body { background: #0b131a; color: #e9edef; font-family: sans-serif; margin: 0; padding: 16px; }
-        header { text-align: center; border-bottom: 1px solid #222d34; padding-bottom: 12px; margin-bottom: 16px; }
+        header { text-align: center; border-bottom: 1px solid #222d34; padding-bottom: 12px; margin-bottom: 16px; position: relative; }
         h1 { margin: 0; font-size: 1.4rem; }
         .sub { color: #00a884; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
         
-        /* Moving Ticker */
+        /* Ticker */
         .ticker-wrap { overflow: hidden; white-space: nowrap; background: #111b22; border: 1px solid #222d34; border-radius: 8px; margin-bottom: 16px; padding: 8px 0; }
         .ticker-move { display: inline-block; animation: marquee 25s linear infinite; }
         .ticker-item { display: inline-block; padding: 0 24px; font-size: 0.8rem; }
         @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
 
-        .chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; }
+        .chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px; }
         .chip { background: #111b22; color: #8696a0; border: 1px solid #222d34; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
         .chip.active { background: #00a884; color: #000; font-weight: bold; }
         
+        /* Manager Panel Toggle & Box */
+        .manager-toggle { background: #1f2c34; color: #00a884; border: 1px solid #222d34; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-bottom: 16px; width: 100%; text-align: left; }
+        .manager-box { background: #111b22; border: 1px solid #222d34; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: none; }
+        .manager-box input { width: 100%; background: #080c10; border: 1px solid #222d34; color: #e9edef; padding: 8px; border-radius: 6px; margin-bottom: 8px; box-sizing: border-box; font-size: 0.8rem; }
+        .manager-box label { font-size: 0.75rem; color: #8696a0; display: block; margin-bottom: 4px; }
+
         .card { background: #111b22; border: 1px solid #222d34; border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; gap: 12px; align-items: flex-start; }
         .card-content { flex: 1; }
-        .thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #1f2c34; }
+        .thumb { width: 75px; height: 75px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #1f2c34; }
         .card a { color: #e9edef; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
         .meta { font-size: 0.7rem; color: #8696a0; margin-bottom: 8px; display: flex; gap: 10px; }
         .btn-group { display: flex; gap: 8px; }
         button { background: #1f2c34; color: #00a884; border: 1px solid #222d34; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
         button:hover { background: #00a884; color: #000; }
         .brief { margin-top: 8px; font-size: 0.8rem; color: #8696a0; background: #080c10; padding: 8px; border-radius: 6px; display: none; }
+        
+        .saved-section { margin-top: 24px; border-top: 1px solid #222d34; padding-top: 12px; }
+        .saved-item { font-size: 0.8rem; background: #111b22; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .saved-item a { color: #00a884; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -43,7 +53,6 @@
             <span class="ticker-item">NASDAQ: <span style="color:#00a884;">18,350.00 (+0.6%)</span></span>
             <span class="ticker-item">USD/JPY: <span style="color:#00a884;">153.61 (-0.1%)</span></span>
             <span class="ticker-item">Bitcoin: <span style="color:#00a884;">$92,500 (+2.3%)</span></span>
-            <!-- Duplicate for smooth infinite scroll loop -->
             <span class="ticker-item">S&P 500: <span style="color:#00a884;">5,840.00 (+0.4%)</span></span>
             <span class="ticker-item">NASDAQ: <span style="color:#00a884;">18,350.00 (+0.6%)</span></span>
             <span class="ticker-item">USD/JPY: <span style="color:#00a884;">153.61 (-0.1%)</span></span>
@@ -51,9 +60,20 @@
         </div>
     </div>
 
+    <button class="manager-toggle" onclick="toggleManager()">⚙️ Feed & API Key Manager</button>
+    <div class="manager-box" id="managerBox">
+        <label>Import Custom RSS Feed URL:</label>
+        <form method="GET" action="/">
+            <input type="text" name="custom_feed" placeholder="https://example.com/rss.xml" value="{{ custom_feed }}">
+            <button type="submit" style="width: 100%;">Load Custom Feed</button>
+        </form>
+        <label style="margin-top: 10px;">OpenAI / AI Brief API Key (Stored Locally):</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-..." oninput="saveApiKey()">
+    </div>
+
     <div class="chips">
         {% for cat in categories %}
-            <a href="/?category={{ cat }}" class="chip {% if cat == category %}active{% endif %}">{{ cat }}</a>
+            <a href="/?category={{ cat }}" class="chip {% if cat == category and not custom_feed %}active{% endif %}">{{ cat }}</a>
         {% endfor %}
     </div>
 
@@ -62,7 +82,7 @@
     {% for article in articles %}
     <div class="card">
         {% if article.image %}
-            <img src="{{ article.image }}" class="thumb" alt="News thumb">
+            <img src="{{ article.image }}" class="thumb" alt="Thumb">
         {% endif %}
         <div class="card-content">
             <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
@@ -73,14 +93,37 @@
             </div>
             <div class="btn-group">
                 <button onclick="getBrief(this, '{{ article.title | e }}')">AI Brief</button>
-                <button onclick="saveArticle(this)">Save</button>
+                <button onclick="saveArticle('{{ article.title | e }}', '{{ article.link }}')">Save</button>
             </div>
             <div class="brief"></div>
         </div>
     </div>
     {% endfor %}
 
+    <div class="saved-section">
+        <h3 style="font-size: 0.85rem; color: #00a884; text-transform: uppercase;">Saved Articles</h3>
+        <div id="savedList"></div>
+    </div>
+
     <script>
+        function toggleManager() {
+            const box = document.getElementById('managerBox');
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value;
+            localStorage.setItem('kaivor_api_key', key);
+        }
+
+        window.onload = function() {
+            const savedKey = localStorage.getItem('kaivor_api_key');
+            if (savedKey) {
+                document.getElementById('apiKeyInput').value = savedKey;
+            }
+            renderSavedArticles();
+        };
+
         function getBrief(btn, title) {
             const box = btn.closest('.card-content').querySelector('.brief');
             box.style.display = 'block';
@@ -95,15 +138,36 @@
             .catch(() => box.innerText = 'Failed to generate brief.');
         }
 
-        function saveArticle(btn) {
-            btn.innerText = 'Saved ✓';
-            btn.style.background = '#00a884';
-            btn.style.color = '#000';
-            setTimeout(() => {
-                btn.innerText = 'Save';
-                btn.style.background = '#1f2c34';
-                btn.style.color = '#00a884';
-            }, 2000);
+        function saveArticle(title, link) {
+            let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+            if (!saved.some(item => item.link === link)) {
+                saved.push({title, link});
+                localStorage.setItem('kaivor_saved', JSON.stringify(saved));
+                renderSavedArticles();
+            }
+            alert('Article saved successfully!');
+        }
+
+        function renderSavedArticles() {
+            const list = document.getElementById('savedList');
+            let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+            if (saved.length === 0) {
+                list.innerHTML = '<div style="font-size:0.75rem; color:#8696a0;">No saved articles yet.</div>';
+                return;
+            }
+            list.innerHTML = saved.map((item, index) => `
+                <div class="saved-item">
+                    <a href="${item.link}" target="_blank">${item.title.substring(0, 45)}...</a>
+                    <button onclick="removeSaved(${index})" style="background:#222d34; color:#ff5c5c;">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeSaved(index) {
+            let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+            saved.splice(index, 1);
+            localStorage.setItem('kaivor_saved', JSON.stringify(saved));
+            renderSavedArticles();
         }
     </script>
 </body>
