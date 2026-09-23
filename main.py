@@ -71,7 +71,7 @@ def fetch_guardian_articles(api_key, section="world"):
     
     url = f"https://content.guardianapis.com/search?section={section}&page-size=15&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
     try:
-        response = requests.get(url, timeout=2.0)
+        response = requests.get(url, timeout=1.5)
         if response.status_code == 200:
             data = response.json()
             results = data.get("response", {}).get("results", [])
@@ -88,23 +88,6 @@ def fetch_guardian_articles(api_key, section="world"):
     except Exception as e:
         print(f"Guardian API Error: {e}")
     return articles
-
-def scrape_og_image(url):
-    if not url or url == "#":
-        return None
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        res = requests.get(url, headers=headers, timeout=1.0)
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            og_img = soup.find('meta', property='og:image')
-            if og_img and og_img.get('content'):
-                img_url = og_img['content']
-                if img_url.startswith('http'):
-                    return img_url
-    except Exception:
-        pass
-    return None
 
 def extract_image(entry):
     if hasattr(entry, 'media_content') and entry.media_content:
@@ -136,12 +119,6 @@ def extract_image(entry):
         src = img.get("src") or img.get("data-src")
         if src and src.startswith('http'):
             return src
-
-    article_url = entry.get("link")
-    if article_url:
-        og_url = scrape_og_image(article_url)
-        if og_url:
-            return og_url
 
     return None
 
@@ -278,7 +255,7 @@ def daily_digest():
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "You are an elite chief intelligence briefing officer for global markets and geopolitics. Provide a rigorous, highly professional 5-bullet executive synthesis analyzing macro trends, cross-industry correlations, and strategic takeaways across these headlines."},
+                {"role": "system", "content": "You are an elite chief intelligence briefing officer for global markets and geopolitics. Provide a rigorous, highly professional 5-bullet executive synthesis analyzing macro trends, cross-industry correlations, and strategic takeaways across these headlines. Format each bullet cleanly with a bold title and concise explanation."},
                 {"role": "user", "content": f"Today's Top Headlines:\n{headlines_text}"}
             ]
         }
