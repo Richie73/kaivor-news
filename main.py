@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify
 import feedparser
 from bs4 import BeautifulSoup
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -55,7 +56,7 @@ def fetch_guardian_articles(api_key, section="world"):
     
     url = f"https://content.guardianapis.com/search?section={section}&page-size=15&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
     try:
-        response = requests.get(url, timeout=4)
+        response = requests.get(url, timeout=2)
         if response.status_code == 200:
             data = response.json()
             results = data.get("response", {}).get("results", [])
@@ -72,19 +73,6 @@ def fetch_guardian_articles(api_key, section="world"):
     except Exception as e:
         print(f"Guardian API Error: {e}")
     return articles
-
-def fetch_og_image(url):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=3)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            og_img = soup.find('meta', property='og:image')
-            if og_img and og_img.get('content'):
-                return og_img['content']
-    except Exception:
-        pass
-    return None
 
 def extract_image(entry):
     if hasattr(entry, 'media_content') and entry.media_content:
@@ -107,12 +95,6 @@ def extract_image(entry):
     img = soup.find("img")
     if img and img.get("src") and img["src"].startswith('http'):
         return img["src"]
-        
-    link = entry.get("link")
-    if link:
-        og = fetch_og_image(link)
-        if og:
-            return og
             
     return "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150&auto=format&fit=crop&q=80"
 
@@ -120,6 +102,28 @@ def calculate_read_time(text):
     words = len(text.split())
     minutes = max(1, round(words / 150))
     return f"{minutes} min read"
+
+def parse_single_feed(url):
+    feed_articles = []
+    try:
+        parsed_feed = feedparser.parse(url)
+        for entry in parsed_feed.entries[:8]:
+            summary_text = entry.get("summary", "")
+            clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
+            image_url = extract_image(entry)
+            read_time = calculate_read_time(clean_summary)
+            
+            feed_articles.append({
+                "title": entry.get("title", "No Title"),
+                "link": entry.get("link", "#"),
+                "published": entry.get("published", "Recent"),
+                "summary": clean_summary[:120] + "...",
+                "image": image_url,
+                "read_time": read_time
+            })
+    except Exception as e:
+        print(f"Feed Error ({url}): {e}")
+    return feed_articles
 
 @app.route("/")
 def index():
@@ -131,62 +135,13 @@ def index():
     
     if category == "Puzzles":
         articles = [
-            {
-                "title": "The Telegraph - Daily Cryptic & Quick Crosswords", 
-                "link": "https://www.telegraph.co.uk/content-hub/puzzles/", 
-                "published": "Daily Puzzles", 
-                "summary": "Play renowned British cryptic and quick crosswords from The Telegraph.", 
-                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "15 min play"
-            },
-            {
-                "title": "The Guardian - Daily Crosswords & Quiptic", 
-                "link": "https://www.theguardian.com/crosswords", 
-                "published": "Daily Puzzles", 
-                "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", 
-                "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "12 min play"
-            },
-            {
-                "title": "The New York Times - The Mini Crossword", 
-                "link": "https://www.nytimes.com/crosswords/game/mini", 
-                "published": "Daily Puzzle", 
-                "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", 
-                "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "3 min play"
-            },
-            {
-                "title": "Wordle - Daily Word Guessing Game", 
-                "link": "https://www.nytimes.com/games/wordle/index.html", 
-                "published": "Daily Puzzle", 
-                "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", 
-                "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "5 min play"
-            },
-            {
-                "title": "Connections - Group Words by Common Thread", 
-                "link": "https://www.nytimes.com/games/connections", 
-                "published": "Daily Puzzle", 
-                "summary": "Find groups of four items that share something in common without making mistakes.", 
-                "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "4 min play"
-            },
-            {
-                "title": "Daily Sudoku - Number Placement Challenge", 
-                "link": "https://sudoku.com/", 
-                "published": "Daily Puzzle", 
-                "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", 
-                "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "8 min play"
-            },
-            {
-                "title": "Spelling Bee - Find Words Using 7 Letters", 
-                "link": "https://www.nytimes.com/puzzles/spelling-bee", 
-                "published": "Daily Puzzle", 
-                "summary": "How many words can you make using the hive of 7 letters?", 
-                "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", 
-                "read_time": "10 min play"
-            }
+            {"title": "The Telegraph - Daily Cryptic & Quick Crosswords", "link": "https://www.telegraph.co.uk/content-hub/puzzles/", "published": "Daily Puzzles", "summary": "Play renowned British cryptic and quick crosswords from The Telegraph.", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80", "read_time": "15 min play"},
+            {"title": "The Guardian - Daily Crosswords & Quiptic", "link": "https://www.theguardian.com/crosswords", "published": "Daily Puzzles", "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", "read_time": "12 min play"},
+            {"title": "The New York Times - The Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80", "read_time": "3 min play"},
+            {"title": "Wordle - Daily Word Guessing Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily Puzzle", "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=150&auto=format&fit=crop&q=80", "read_time": "5 min play"},
+            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", "read_time": "4 min play"},
+            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80", "read_time": "8 min play"},
+            {"title": "Spelling Bee - Find Words Using 7 Letters", "link": "https://www.nytimes.com/puzzles/spelling-bee", "published": "Daily Puzzle", "summary": "How many words can you make using the hive of 7 letters?", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", "read_time": "10 min play"}
         ]
     else:
         if guardian_key:
@@ -201,25 +156,13 @@ def index():
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
             
-        for url in feed_urls:
-            try:
-                parsed_feed = feedparser.parse(url)
-                for entry in parsed_feed.entries[:10]:
-                    summary_text = entry.get("summary", "")
-                    clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
-                    image_url = extract_image(entry)
-                    read_time = calculate_read_time(clean_summary)
-                    
-                    articles.append({
-                        "title": entry.get("title", "No Title"),
-                        "link": entry.get("link", "#"),
-                        "published": entry.get("published", "Recent"),
-                        "summary": clean_summary[:120] + "...",
-                        "image": image_url,
-                        "read_time": read_time
-                    })
-            except Exception as e:
-                print(f"Feed Error ({url}): {e}")
+        # Fetch all feeds simultaneously using ThreadPoolExecutor for lightning speed
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {executor.submit(parse_single_feed, url): url for url in feed_urls}
+            for future in as_completed(futures):
+                res = future.result()
+                if res:
+                    articles.extend(res)
 
     return render_template("index.html", category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
 
