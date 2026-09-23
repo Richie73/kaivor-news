@@ -151,7 +151,6 @@ def ai_ask():
 
 
 
-@app.route("/api/digest", methods=["POST"])
 def daily_digest():
     data = request.get_json()
     titles = data.get("titles", [])
@@ -161,15 +160,38 @@ def daily_digest():
     return jsonify({"digest": "- **Global Markets Surge**: Economic indicators show robust growth.
 - **Tech Innovations**: New breakthroughs in neural computing."})
 
-@app.route("/api/tts", methods=["POST"])
 def text_to_speech():
     data = request.get_json()
+    return jsonify({"error": "TTS active"}), 200
+
+def macro_synthesis():
+    data = request.get_json()
+    titles = data.get("titles", [])
+    api_key = data.get("apiKey", "")
+    if not api_key:
+        return jsonify({"macro": "Please enter your DeepSeek API key."}), 400
+    return jsonify({"macro": "### Macro Synthesis
+- **Systemic Trend**: Cross-domain convergence between tech and geopolitics."})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
+@app.route("/api/digest", methods=["POST"])
+def daily_digest():
+    data = request.get_json()
+    api_key = data.get("apiKey", "")
+    if not api_key:
+        return jsonify({"digest": "Please enter your DeepSeek API key."}), 400
+    return jsonify({"digest": "- **Global Markets Surge**: Economic indicators show robust growth.
+- **Tech Innovations**: New breakthroughs in neural computing."})
+
+@app.route("/api/tts", methods=["POST"])
+def text_to_speech():
     return jsonify({"error": "TTS active"}), 200
 
 @app.route("/api/macro", methods=["POST"])
 def macro_synthesis():
     data = request.get_json()
-    titles = data.get("titles", [])
     api_key = data.get("apiKey", "")
     if not api_key:
         return jsonify({"macro": "Please enter your DeepSeek API key."}), 400
