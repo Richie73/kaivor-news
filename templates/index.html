@@ -123,7 +123,7 @@
             <div style="font-size: 0.8rem; color: #8696a0; margin-bottom: 8px;">{{ article.summary }}</div>
             <div class="btn-group">
                 <button onclick="playAudioBriefSmart(this, '{% if article.content %}{{ article.content | escape }}{% else %}{{ article.summary | escape }}{% endif %}')" data-summary="{{ article.summary | escape }}" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 5px;">Listen Brief</button>
-                <button onclick="getBrief(this, '{{ article.title | escape }}')">AI Brief</button>
+                <button onclick="getBrief(this, this.getAttribute('data-title'))" data-title="{{ article.title | escape }}">AI Brief</button>
                 <button onclick="toggleAskBox(this)">Ask AI</button>
                 <button onclick="saveArticle('{{ article.title | escape }}', '{{ article.link }}')">Save</button>
             </div>
@@ -320,6 +320,68 @@ function playAudioBrief(btn, text) {
         // If an AI brief was generated and is visible, read that instead!
         const textToRead = (briefBox && briefBox.innerText.trim().length > 10) ? briefBox.innerText : defaultText;
         playAudioBrief(btn, textToRead);
+    }
+
+
+    function playAudioBrief(btn, defaultText) {
+        const apiKey = localStorage.getItem('kaivor_openai_key') || '';
+        if (!apiKey) {
+            alert('Please enter your OpenAI API key in the Feed & API Key Manager panel.');
+            return;
+        }
+        
+        // Find the parent article card container
+        const card = btn.closest('.card') || btn.closest('div') || btn.parentElement;
+        
+        // Look for any generated brief or content box inside this specific card
+        const briefDiv = card ? card.querySelector('.brief') : null;
+        let textToRead = '';
+        
+        if (briefDiv && briefDiv.innerText && briefDiv.innerText.trim().length > 5) {
+            textToRead = briefDiv.innerText;
+        } else {
+            textToRead = defaultText || btn.getAttribute('data-summary') || '';
+        }
+        
+        if (!textToRead || textToRead.trim() === '') {
+            alert('No content available to read.');
+            return;
+        }
+        
+        const originalText = btn.innerText;
+        btn.innerText = 'Generating Audio...';
+        btn.disabled = true;
+        
+        fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: textToRead, apiKey: apiKey })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('TTS generation failed');
+            return res.blob();
+        })
+        .then(blob => {
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.play().catch(e => {
+                alert('Audio playback blocked by browser. Please tap the button again.');
+            });
+            btn.innerText = '🔊 Playing Brief';
+            audio.onended = () => { 
+                btn.innerText = originalText; 
+                btn.disabled = false;
+            };
+            audio.onerror = () => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            };
+        })
+        .catch(err => {
+            alert('Error generating audio briefing. Check your OpenAI API key and balance.');
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
     }
 
 </script>
