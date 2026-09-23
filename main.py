@@ -136,11 +136,19 @@ def index():
     if category == "Puzzles":
         articles = [
             {
+                "title": "The Telegraph - Daily Cryptic & Quick Crosswords", 
+                "link": "https://www.telegraph.co.uk/puzzles/", 
+                "published": "Daily Puzzles", 
+                "summary": "Play renowned British cryptic and quick crosswords directly from The Telegraph hub.", 
+                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "15 min play"
+            },
+            {
                 "title": "The Independent - Daily Crosswords & Puzzles", 
                 "link": "https://www.independent.co.uk/life-style/puzzles", 
                 "published": "Daily Puzzles", 
                 "summary": "Play daily crosswords, word searches, and brain teasers from The Independent.", 
-                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80", 
+                "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", 
                 "read_time": "15 min play"
             },
             {
