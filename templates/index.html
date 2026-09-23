@@ -103,7 +103,7 @@
     {% if category != "Puzzles" %}
     <div style="margin-bottom: 16px;">
         <button onclick="generateDailyDigest()" style="background: #00a884; color: #000; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem;">⚡ Key Takeaways</button>
-    <button onclick="playAudioBrief(this, document.getElementById('keyTakeawaysResult').innerText)" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-left: 8px;">🔊 Listen Takeaways</button></button>
+    <button onclick="playAudioBrief(this, document.getElementById('keyTakeawaysContent')?.innerText || document.querySelector('.takeaways-box, #keyTakeawaysResult')?.innerText || "Please generate Key Takeaways first.")" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-left: 8px;">🔊 Listen Takeaways</button></button>
         <div id="dailyDigestBox" class="brief-card"></div>
     </div>
     {% endif %}
@@ -122,7 +122,7 @@
             </div>
             <div style="font-size: 0.8rem; color: #8696a0; margin-bottom: 8px;">{{ article.summary }}</div>
             <div class="btn-group">
-                <button onclick="playAudioBrief(this, this.getAttribute('data-summary'))" data-summary="{{ article.summary | escape }}" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 5px;">Listen Brief</button>
+                <button onclick="playAudioBriefSmart(this, '{% if article.content %}{{ article.content | escape }}{% else %}{{ article.summary | escape }}{% endif %}')" data-summary="{{ article.summary | escape }}" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 5px;">Listen Brief</button>
                 <button onclick="getBrief(this, '{{ article.title | escape }}')">AI Brief</button>
                 <button onclick="toggleAskBox(this)">Ask AI</button>
                 <button onclick="saveArticle('{{ article.title | escape }}', '{{ article.link }}')">Save</button>
@@ -313,6 +313,15 @@ function playAudioBrief(btn, text) {
             btn.innerText = 'Listen Brief';
         });
     }
+
+    function playAudioBriefSmart(btn, defaultText) {
+        const card = btn.closest('.card, .article-card, div') || btn.parentElement;
+        const briefBox = card.querySelector('.brief');
+        // If an AI brief was generated and is visible, read that instead!
+        const textToRead = (briefBox && briefBox.innerText.trim().length > 10) ? briefBox.innerText : defaultText;
+        playAudioBrief(btn, textToRead);
+    }
+
 </script>
 
 </body>
