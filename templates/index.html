@@ -99,7 +99,7 @@
     {% if category != "Puzzles" %}
     <div style="margin-bottom: 16px;">
         <button onclick="generateDailyDigest()" style="background: #00a884; color: #000; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-bottom: 6px;">⚡ Key Takeaways</button>
-        <button onclick="toggleAudioBriefing()" id="audioBtn" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 8px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: none;">🔊 Listen to Audio Briefing</button>
+        <button onclick="toggleAudioBriefing()" id="audioBtn" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 8px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: none;">🇬🇧 Listen to British News Briefing</button>
         <div id="dailyDigestBox" class="brief-card"></div>
     </div>
     {% endif %}
@@ -259,23 +259,31 @@
         if (isSpeaking) {
             window.speechSynthesis.cancel();
             isSpeaking = false;
-            audioBtn.innerText = '🔊 Listen to Audio Briefing';
+            audioBtn.innerText = '🇬🇧 Listen to British News Briefing';
             return;
         }
 
-        // Strip HTML tags to read clean text
         const textToSpeak = box.innerText.replace(/<[^>]*>?/gm, '');
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
+        
+        // Lock onto a professional British English voice
+        const voices = window.speechSynthesis.getVoices();
+        const ukVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB' || v.name.includes('UK') || v.name.includes('British') || v.name.includes('Oliver') || v.name.includes('Serena') || v.name.includes('Libby'));
+        
+        if (ukVoice) {
+            utterance.voice = ukVoice;
+        }
+        
+        utterance.rate = 0.95; // Slightly slower, measured cadence like a news anchor
+        utterance.pitch = 0.98; // Natural professional register
 
         utterance.onend = function() {
             isSpeaking = false;
-            audioBtn.innerText = '🔊 Listen to Audio Briefing';
+            audioBtn.innerText = '🇬🇧 Listen to British News Briefing';
         };
 
         isSpeaking = true;
-        audioBtn.innerText = '⏹️ Stop Audio Briefing';
+        audioBtn.innerText = '⏹️ Stop British News Briefing';
         window.speechSynthesis.speak(utterance);
     }
 
