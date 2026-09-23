@@ -4,6 +4,7 @@ import feedparser
 from bs4 import BeautifulSoup
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 app = Flask(__name__)
 
@@ -54,6 +55,10 @@ CATEGORY_FEEDS = {
     "Puzzles": []
 }
 
+# Simple in-memory cache to store fetched feeds for 5 minutes (300 seconds)
+FEED_CACHE = {}
+CACHE_TTL = 300
+
 def fetch_guardian_articles(api_key, section="world"):
     articles = []
     if not api_key or api_key.strip() == "":
@@ -61,7 +66,7 @@ def fetch_guardian_articles(api_key, section="world"):
     
     url = f"https://content.guardianapis.com/search?section={section}&page-size=15&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
     try:
-        response = requests.get(url, timeout=2)
+        response = requests.get(url, timeout=1.5)
         if response.status_code == 200:
             data = response.json()
             results = data.get("response", {}).get("results", [])
@@ -78,22 +83,6 @@ def fetch_guardian_articles(api_key, section="world"):
     except Exception as e:
         print(f"Guardian API Error: {e}")
     return articles
-
-def fetch_og_image(url):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = requests.get(url, headers=headers, timeout=2.5)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            og_img = soup.find('meta', property='og:image')
-            if og_img and og_img.get('content') and og_img['content'].startswith('http'):
-                return og_img['content']
-            twitter_img = soup.find('meta', name='twitter:image')
-            if twitter_img and twitter_img.get('content') and twitter_img['content'].startswith('http'):
-                return twitter_img['content']
-    except Exception:
-        pass
-    return None
 
 def extract_image(entry):
     if hasattr(entry, 'media_content') and entry.media_content:
@@ -125,12 +114,6 @@ def extract_image(entry):
         src = img.get("src") or img.get("data-src")
         if src and src.startswith('http'):
             return src
-        
-    link = entry.get("link")
-    if link:
-        og = fetch_og_image(link)
-        if og:
-            return og
             
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80"
 
@@ -142,10 +125,17 @@ def calculate_read_time(text):
     return f"{max(6, base_calc)} min read"
 
 def parse_single_feed(url):
+    now = time.time()
+    # Check cache first for lightning-fast speeds
+    if url in FEED_CACHE:
+        cached_data, timestamp = FEED_CACHE[url]
+        if now - timestamp < CACHE_TTL:
+            return cached_data
+
     feed_articles = []
     try:
         parsed_feed = feedparser.parse(url)
-        for entry in parsed_feed.entries[:10]:
+        for entry in parsed_feed.entries[:8]: # Reduced slight batch for max speed
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
@@ -160,6 +150,7 @@ def parse_single_feed(url):
                 "image": image_url,
                 "read_time": read_time
             })
+        FEED_CACHE[url] = (feed_articles, now)
     except Exception as e:
         print(f"Feed Error ({url}): {e}")
     return feed_articles
@@ -194,7 +185,7 @@ def index():
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
             
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {executor.submit(parse_single_feed, url): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
