@@ -272,7 +272,8 @@ def ai_brief():
             brief_text = result["choices"][0]["message"]["content"]
             return jsonify({"brief": brief_text})
         else:
-            return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek balance or API key."})
+            print('OpenRouter Error Response:', response.text)
+        return jsonify({"brief": f"API Error ({response.status_code}): {response.text}"})
     except Exception as e:
         return jsonify({"brief": f"Request Timeout / Failed: {str(e)}"})
 
