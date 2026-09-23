@@ -266,7 +266,7 @@ def ai_brief():
             ]
         }
         
-        response = requests.post("https://openrouter.ai/api/v1/chat/completionss", headers=headers, json=payload, timeout=20)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=20)
         if response.status_code == 200:
             result = response.json()
             brief_text = result["choices"][0]["message"]["content"]
@@ -299,7 +299,7 @@ def ai_ask():
                 {"role": "user", "content": f"Article: {title}\nSummary: {summary}\n\nQuestion: {question}"}
             ]
         }
-        response = requests.post("https://openrouter.ai/api/v1/chat/completionss", headers=headers, json=payload, timeout=20)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=20)
         if response.status_code == 200:
             result = response.json()
             return jsonify({"answer": result["choices"][0]["message"]["content"]})
@@ -332,7 +332,7 @@ def daily_digest():
             ]
         }
         
-        response = requests.post("https://openrouter.ai/api/v1/chat/completionss", headers=headers, json=payload, timeout=25)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=25)
         if response.status_code == 200:
             result = response.json()
             digest_text = result["choices"][0]["message"]["content"]
