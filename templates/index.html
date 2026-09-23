@@ -167,6 +167,14 @@
     };
 
     function getBrief(btn, title) {
+    const card = btn.closest('.card, .article-card, div') || btn.parentElement;
+    let box = card.querySelector('.brief');
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'brief';
+        box.style.cssText = 'background: #111b21; padding: 10px; margin-top: 8px; border-radius: 6px; font-size: 0.8rem; color: #e9edef; border-left: 3px solid #00a884;';
+        btn.parentElement.before(box);
+    }
         const cardContent = btn.closest('.card-content');
         const box = cardContent.querySelector('.brief');
         const summary = cardContent.querySelector('div[style*="font-size: 0.8rem"]').innerText;
