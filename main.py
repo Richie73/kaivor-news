@@ -218,30 +218,30 @@ def ai_brief():
     api_key = data.get("apiKey", "")
 
     if not api_key:
-        return jsonify({"brief": "Please enter your OpenRouter or DeepSeek API key in the Feed & API Key Manager panel above."})
+        return jsonify({"brief": "Please enter your DeepSeek API key in the Feed & API Key Manager panel above."})
 
     try:
+        # Use DeepSeek's native API endpoint and model
         headers = {
             "Authorization": f"Bearer {api_key.strip()}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://kaivor-news.onrender.com",
-            "X-Title": "Kaivor News"
+            "Content-Type": "application/json"
         }
         payload = {
-            "model": "deepseek/deepseek-chat",
+            "model": "deepseek-chat",
             "messages": [
                 {"role": "system", "content": "You are a professional geopolitical and financial news analyst. Provide a sharp, concise 2-sentence executive brief analyzing the core structural impact of this news story."},
                 {"role": "user", "content": f"Article Title: {title}\nSummary: {summary}"}
             ]
         }
         
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=6)
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=8)
         if response.status_code == 200:
             result = response.json()
             brief_text = result["choices"][0]["message"]["content"]
             return jsonify({"brief": brief_text})
         else:
-            return jsonify({"brief": f"API Error: Please check your OpenRouter/DeepSeek API credits or key."})
+            print(f"DeepSeek Error Response: {response.text}")
+            return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek API key or balance."})
     except Exception as e:
         return jsonify({"brief": f"Failed to generate brief: {str(e)}"})
 
