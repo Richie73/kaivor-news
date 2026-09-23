@@ -83,6 +83,19 @@ MASTER_PHOTO_POOL = [
     "1503676260728-1c00da094a0b", "1517841905240-472988babdf9", "1531482615713-2afd69097998"
 ]
 
+def get_sentiment_badge(title, summary):
+    text = (title + " " + summary).lower()
+    if any(w in text for w in ["market", "stocks", "economy", "inflation", "bank", "shares", "crypto", "bitcoin"]):
+        return {"text": "⚡ MARKET", "color": "#ffaa00"}
+    elif any(w in text for w in ["breakthrough", "discovery", "science", "research", "study", "space", "quantum"]):
+        return {"text": "🔬 SCIENCE", "color": "#00a884"}
+    elif any(w in text for w in ["war", "conflict", "minister", "election", "government", "president", "policy", "diplomacy"]):
+        return {"text": "🌐 GEO-POL", "color": "#3399ff"}
+    elif any(w in text for w in ["urgent", "breaking", "crisis", "warning", "emergency", "attack"]):
+        return {"text": "🚨 URGENT", "color": "#ff4444"}
+    else:
+        return {"text": "📌 BRIEF", "color": "#8696a0"}
+
 def fetch_guardian_articles(api_key, section="world", used_photos=None):
     if used_photos is None:
         used_photos = set()
@@ -99,6 +112,7 @@ def fetch_guardian_articles(api_key, section="world", used_photos=None):
             for item in results:
                 fields = item.get("fields", {})
                 title = item.get("webTitle", "No Title")
+                summary = fields.get("trailText", "Comprehensive long-form investigative analysis...")
                 
                 available_pool = [p for p in MASTER_PHOTO_POOL if p not in used_photos]
                 if not available_pool:
@@ -112,9 +126,10 @@ def fetch_guardian_articles(api_key, section="world", used_photos=None):
                     "title": title,
                     "link": item.get("webUrl", "#"),
                     "published": item.get("webPublicationDate", "Recent")[:10],
-                    "summary": fields.get("trailText", "Comprehensive long-form investigative analysis and reporting..."),
+                    "summary": summary,
                     "image": img,
-                    "read_time": "12 min read"
+                    "read_time": "12 min read",
+                    "badge": get_sentiment_badge(title, summary)
                 })
     except Exception as e:
         print(f"Guardian API Error: {e}")
@@ -197,7 +212,8 @@ def parse_single_feed(url, category, used_photos):
                 "published": entry.get("published", "Recent")[:16],
                 "summary": clean_summary[:140] + "...",
                 "image": image_url,
-                "read_time": read_time
+                "read_time": read_time,
+                "badge": get_sentiment_badge(title, clean_summary)
             })
         FEED_CACHE[cache_key] = (feed_articles, now)
     except Exception as e:
@@ -215,12 +231,12 @@ def index():
     
     if category == "Puzzles":
         articles = [
-            {"title": "The Independent - Daily Crosswords & Puzzles", "link": "https://www.independent.co.uk/life-style/puzzles", "published": "Daily Puzzles", "summary": "Play daily crosswords, word searches, and brain teasers from The Independent.", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=300&auto=format&fit=crop&q=80", "read_time": "15 min play"},
-            {"title": "The Guardian - Daily Crosswords & Quiptic", "link": "https://www.theguardian.com/crosswords", "published": "Daily Puzzles", "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=300&auto=format&fit=crop&q=80", "read_time": "12 min play"},
-            {"title": "The New York Times - The Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play"},
-            {"title": "Wordle - Daily Word Guessing Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily Puzzle", "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play"},
-            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80", "read_time": "6 min play"},
-            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80", "read_time": "10 min play"}
+            {"title": "The Independent - Daily Crosswords & Puzzles", "link": "https://www.independent.co.uk/life-style/puzzles", "published": "Daily Puzzles", "summary": "Play daily crosswords, word searches, and brain teasers from The Independent.", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=300&auto=format&fit=crop&q=80", "read_time": "15 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}},
+            {"title": "The Guardian - Daily Crosswords & Quiptic", "link": "https://www.theguardian.com/crosswords", "published": "Daily Puzzles", "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=300&auto=format&fit=crop&q=80", "read_time": "12 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}},
+            {"title": "The New York Times - The Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}},
+            {"title": "Wordle - Daily Word Guessing Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily Puzzle", "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}},
+            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80", "read_time": "6 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}},
+            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80", "read_time": "10 min play", "badge": {"text": "🧩 PUZZLE", "color": "#00a884"}}
         ]
     else:
         if guardian_key:
@@ -359,8 +375,8 @@ def text_to_speech():
         }
         payload = {
             "model": "tts-1-hd",
-            "input": text[:2000],  # Cap length for safety
-            "voice": "fable"       # Smooth, authoritative narrator voice
+            "input": text[:2000],
+            "voice": "fable"
         }
         response = requests.post("https://api.openai.com/v1/audio/speech", headers=headers, json=payload, timeout=30)
         if response.status_code == 200:
