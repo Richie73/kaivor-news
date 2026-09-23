@@ -33,10 +33,6 @@
         .card-content { flex: 1; }
         .thumb { width: 75px; height: 75px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #1f2c34; }
         .card a { color: #e9edef; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
-        
-        /* Impact Badge */
-        .badge { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-
         .meta { font-size: 0.7rem; color: #8696a0; margin-bottom: 8px; display: flex; gap: 10px; }
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
         button { background: #1f2c34; color: #00a884; border: 1px solid #222d34; padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
@@ -67,12 +63,12 @@
         <span class="ticker-item">S&P 500: <span style="color:#00a884;">5,840.00 (+0.4%)</span></span>
         <span class="ticker-item">NASDAQ: <span style="color:#00a884;">18,350.00 (+0.6%)</span></span>
         <span class="ticker-item">FTSE 100: <span style="color:#00a884;">8,260.10 (+0.2%)</span></span>
-        <span class="ticker-item">Gold: <span style="color:#00a884;">,740.50 (+0.8%)</span></span>
-        <span class="ticker-item">Crude Oil (Brent): <span style="color:#ff5555;">4.20 (-1.1%)</span></span>
-        <span class="ticker-item">Ethereum: <span style="color:#00a884;">,420.00 (+3.1%)</span></span>
+        <span class="ticker-item">Gold: <span style="color:#00a884;">$2,740.50 (+0.8%)</span></span>
+        <span class="ticker-item">Crude Oil (Brent): <span style="color:#ff5555;">$74.20 (-1.1%)</span></span>
+        <span class="ticker-item">Ethereum: <span style="color:#00a884;">$3,420.00 (+3.1%)</span></span>
         <span class="ticker-item">USD/JPY: <span style="color:#00a884;">153.61 (-0.1%)</span></span>
         <span class="ticker-item">EUR/USD: <span style="color:#ff5555;">1.0820 (-0.05%)</span></span>
-        <span class="ticker-item">Bitcoin: <span style="color:#00a884;">2,500 (+2.3%)</span></span>
+        <span class="ticker-item">Bitcoin: <span style="color:#00a884;">$92,500 (+2.3%)</span></span>
     </div>
 </div>
 
@@ -92,9 +88,6 @@
 
         <label style="margin-top: 10px;">DeepSeek API Key (Stored Locally):</label>
         <input type="password" id="aiKeyInput" placeholder="sk-..." oninput="saveAIKey(this.value)">
-
-        <label style="margin-top: 10px;">OpenAI API Key (For HD Audio Briefings):</label>
-        <input type="password" id="openaiKeyInput" placeholder="sk-proj-..." oninput="saveOpenAIKey(this.value)">
     </div>
 
     <div class="chips">
@@ -105,11 +98,7 @@
 
     {% if category != "Puzzles" %}
     <div style="margin-bottom: 16px;">
-        <button onclick="generateMacroSynthesis()" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-bottom: 6px;">🧠 Macro Thematic Synthesis</button>
-        <div id="macroBox" class="brief-card" style="border-left-color: #3399ff;"></div>
-        <button onclick="generateDailyDigest()" style="background: #00a884; color: #000; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-bottom: 6px;">⚡ Key Takeaways</button>
-        <button onclick="generateAudioBriefing()" id="audioBtn" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 8px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: none; margin-bottom: 8px;">🎙️ Generate HD Audio Podcast Briefing</button>
-        <audio id="audioPlayer" controls style="width: 100%; display: none; margin-bottom: 8px;"></audio>
+        <button onclick="generateDailyDigest()" style="background: #00a884; color: #000; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem;">⚡ Key Takeaways</button>
         <div id="dailyDigestBox" class="brief-card"></div>
     </div>
     {% endif %}
@@ -120,7 +109,6 @@
     <div class="card">
         <img src="{{ article.image }}" class="thumb" alt="" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80';">
         <div class="card-content">
-            <span class="badge" style="background: {{ article.badge.color }}22; color: {{ article.badge.color }}; border: 1px solid {{ article.badge.color }}44;">{{ article.badge.text }}</span>
             <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
             <div class="meta">
                 <span>{{ article.published }}</span>
@@ -155,17 +143,23 @@
         box.style.display = box.style.display === 'block' ? 'none' : 'block';
     }
 
-    function saveGuardianKey(val) { localStorage.setItem("kaivor_guardian_key", val); }
-    function saveAIKey(val) { localStorage.setItem("kaivor_ai_key", val); }
-    function saveOpenAIKey(val) { localStorage.setItem("kaivor_openai_key", val); }
+    function saveGuardianKey(val) {
+        localStorage.setItem("kaivor_guardian_key", val);
+    }
+
+    function saveAIKey(val) {
+        localStorage.setItem("kaivor_ai_key", val);
+    }
 
     window.onload = function() {
         const savedGKey = localStorage.getItem("kaivor_guardian_key");
-        if (savedGKey) document.getElementById('guardianKeyInput').value = savedGKey;
+        if (savedGKey) {
+            document.getElementById('guardianKeyInput').value = savedGKey;
+        }
         const savedAIKey = localStorage.getItem("kaivor_ai_key");
-        if (savedAIKey) document.getElementById('aiKeyInput').value = savedAIKey;
-        const savedOpenAIKey = localStorage.getItem("kaivor_openai_key");
-        if (savedOpenAIKey) document.getElementById('openaiKeyInput').value = savedOpenAIKey;
+        if (savedAIKey) {
+            document.getElementById('aiKeyInput').value = savedAIKey;
+        }
         renderSavedArticles();
     };
 
@@ -177,7 +171,7 @@
         box.style.display = 'block';
         box.innerText = 'Generating live DeepSeek analysis...';
         
-        const apiKey = localStorage.getItem("kaivor_ai_key") || '';
+        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
 
         fetch('/api/brief', {
             method: 'POST',
@@ -185,8 +179,12 @@
             body: JSON.stringify({ title: title, summary: summary, apiKey: apiKey })
         })
         .then(res => res.json())
-        .then(data => { box.innerText = data.brief; })
-        .catch(() => { box.innerText = 'Failed to generate brief.'; });
+        .then(data => {
+            box.innerText = data.brief;
+        })
+        .catch(() => {
+            box.innerText = 'Failed to generate brief.';
+        });
     }
 
     function toggleAskBox(btn) {
@@ -202,12 +200,12 @@
         const summary = cardContent.querySelector('div[style*="font-size: 0.8rem"]').innerText;
         const question = input.value.trim();
 
-        if (question === '') return;
+        if (!question) return;
 
         resultBox.style.display = 'block';
         resultBox.innerText = 'Querying DeepSeek AI...';
         
-        const apiKey = localStorage.getItem("kaivor_ai_key") || '';
+        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
 
         fetch('/api/ask', {
             method: 'POST',
@@ -215,40 +213,21 @@
             body: JSON.stringify({ title: title, summary: summary, question: question, apiKey: apiKey })
         })
         .then(res => res.json())
-        .then(data => { resultBox.innerText = data.answer; })
-        .catch(() => { resultBox.innerText = 'Failed to get answer.'; });
-    }
-
-    async function generateMacroSynthesis() {
-        const box = document.getElementById('macroBox');
-        box.style.display = 'block';
-        box.innerHTML = 'Synthesizing cross-domain macro intelligence...';
-
-        const titles = Array.from(document.querySelectorAll('.card-content a')).map(el => el.innerText);
-        const apiKey = localStorage.getItem("kaivor_ai_key") || '';
-
-        try {
-            const response = await fetch('/api/macro', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titles: titles, apiKey: apiKey })
-            });
-            const data = await response.json();
-            box.innerHTML = data.macro.replace(/\*\*/g, '<strong>').replace(/
-/g, '<br>');
-        } catch (err) {
-            box.innerHTML = 'Failed to generate macro synthesis.';
-        }
+        .then(data => {
+            resultBox.innerText = data.answer;
+        })
+        .catch(() => {
+            resultBox.innerText = 'Failed to get answer. Please check your API key.';
+        });
     }
 
     async function generateDailyDigest() {
         const box = document.getElementById('dailyDigestBox');
-        const audioBtn = document.getElementById('audioBtn');
         box.style.display = 'block';
         box.innerHTML = 'Synthesizing global intelligence with DeepSeek...';
 
         const titles = Array.from(document.querySelectorAll('.card-content a')).map(el => el.innerText).slice(0, 10);
-        const apiKey = localStorage.getItem("kaivor_ai_key") || '';
+        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
 
         try {
             const response = await fetch('/api/digest', {
@@ -257,58 +236,17 @@
                 body: JSON.stringify({ titles: titles, apiKey: apiKey })
             });
             const data = await response.json();
-            box.innerHTML = data.digest.replace(/\*\*/g, '<strong>').replace(/
-/g, '<br>');
-            audioBtn.style.display = 'block';
+            box.innerHTML = data.digest.replace(/\*\*/g, '<strong>').replace(/\n/g, '<br>');
         } catch (err) {
             box.innerHTML = 'Failed to generate key takeaways.';
         }
     }
 
-    async function generateAudioBriefing() {
-        const box = document.getElementById('dailyDigestBox');
-        const audioBtn = document.getElementById('audioBtn');
-        const audioPlayer = document.getElementById('audioPlayer');
-        
-        const openaiKey = localStorage.getItem("kaivor_openai_key") || '';
-        if (openaiKey === '') {
-            alert('Please enter your OpenAI API key in the Manager panel to generate HD audio briefings.');
-            return;
-        }
-
-        audioBtn.innerText = '⏳ Synthesizing HD Audio (OpenAI TTS)...';
-        const textToSpeak = box.innerText.replace(/<[^>]*>?/gm, '');
-
-        try {
-            const res = await fetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: textToSpeak, apiKey: openaiKey })
-            });
-
-            if (res.ok === true) {
-                const blob = await res.blob();
-                const audioUrl = URL.createObjectURL(blob);
-                audioPlayer.src = audioUrl;
-                audioPlayer.style.display = 'block';
-                audioPlayer.play();
-                audioBtn.innerText = '🎙️ Re-generate HD Audio Podcast Briefing';
-            } else {
-                const errData = await res.json();
-                alert(errData.error || 'Failed to generate audio.');
-                audioBtn.innerText = '🎙️ Generate HD Audio Podcast Briefing';
-            }
-        } catch (err) {
-            alert('Network error generating audio.');
-            audioBtn.innerText = '🎙️ Generate HD Audio Podcast Briefing';
-        }
-    }
-
     function saveArticle(title, link) {
-        let saved = JSON.parse(localStorage.getItem("kaivor_saved")) || [];
-        if (saved.some(item => item.link === link) === false) {
+        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
+        if (!saved.some(item => item.link === link)) {
             saved.push({title, link});
-            localStorage.setItem("kaivor_saved", JSON.stringify(saved));
+            localStorage.setItem('kaivor_saved', JSON.stringify(saved));
             renderSavedArticles();
             alert('Article saved successfully!');
         } else {
@@ -318,7 +256,7 @@
 
     function renderSavedArticles() {
         const list = document.getElementById('savedList');
-        let saved = JSON.parse(localStorage.getItem("kaivor_saved")) || [];
+        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
         if (saved.length === 0) {
             list.innerHTML = '<div style="font-size: 0.75rem; color: #8696a0;">No saved articles yet.</div>';
             return;
@@ -332,9 +270,9 @@
     }
 
     function removeSaved(index) {
-        let saved = JSON.parse(localStorage.getItem("kaivor_saved")) || [];
+        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
         saved.splice(index, 1);
-        localStorage.setItem("kaivor_saved", JSON.stringify(saved));
+        localStorage.setItem('kaivor_saved', JSON.stringify(saved));
         renderSavedArticles();
     }
 </script>
