@@ -6,7 +6,6 @@ import requests
 
 app = Flask(__name__)
 
-# Expanded multi-source RSS feeds for all categories
 CATEGORY_FEEDS = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -45,7 +44,7 @@ CATEGORY_FEEDS = {
         "https://www.androidcentral.com/rss.xml",
         "https://www.androidpolice.com/feed/"
     ],
-    "Puzzles": [] # Handled separately with interactive links and mini games
+    "Puzzles": []
 }
 
 def fetch_guardian_articles(api_key, section="world"):
@@ -66,7 +65,7 @@ def fetch_guardian_articles(api_key, section="world"):
                     "link": item.get("webUrl", "#"),
                     "published": item.get("webPublicationDate", "Recent")[:10],
                     "summary": fields.get("trailText", "Read full coverage on The Guardian..."),
-                    "image": fields.get("thumbnail", None),
+                    "image": fields.get("thumbnail", "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=150&auto=format&fit=crop&q=80"),
                     "read_time": "3 min read"
                 })
     except Exception as e:
@@ -87,6 +86,7 @@ def fetch_og_image(url):
     return None
 
 def extract_image(entry):
+    # Try RSS media and enclosures first
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             if 'url' in media and media['url'].startswith('http'):
@@ -99,6 +99,8 @@ def extract_image(entry):
         for enc in entry.enclosures:
             if 'href' in enc and enc['href'].startswith('http'):
                 return enc['href']
+    
+    # Try parsing inline images from summary/content
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         content += entry.content[0].get('value', '')
@@ -106,12 +108,16 @@ def extract_image(entry):
     img = soup.find("img")
     if img and img.get("src") and img["src"].startswith('http'):
         return img["src"]
+        
+    # Open Graph Web Scraping Fallback
     link = entry.get("link")
     if link:
         og = fetch_og_image(link)
         if og:
             return og
-    return None
+            
+    # Guaranteed professional fallback placeholder so pictures always render next to headlines
+    return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=150&auto=format&fit=crop&q=80"
 
 def calculate_read_time(text):
     words = len(text.split())
@@ -127,12 +133,47 @@ def index():
     articles = []
     
     if category == "Puzzles":
-        # Curated puzzle and word game sources
         articles = [
-            {"title": "Wordle - Daily Word Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily", "summary": "Guess the hidden 5-letter word in 6 tries.", "image": "https://www.nytimes.com/games-assets/v2/metadata/wordle-social-card-1200x630.png", "read_time": "5 min play"},
-            {"title": "The Daily Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily", "summary": "A quick and easy miniature crossword puzzle.", "image": "https://www.nytimes.com/games-assets/v2/metadata/crosswords-social-card.png", "read_time": "3 min play"},
-            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily", "summary": "Find groups of four items that share something in common.", "image": "https://www.nytimes.com/games-assets/v2/metadata/connections-social-card.png", "read_time": "4 min play"},
-            {"title": "Spelling Bee - Find Words Using 7 Letters", "link": "https://www.nytimes.com/puzzles/spelling-bee", "published": "Daily", "summary": "How many words can you make with 7 letters?", "image": "https://www.nytimes.com/games-assets/v2/metadata/spelling-bee-social-card.png", "read_time": "10 min play"}
+            {
+                "title": "Wordle - Daily Word Guessing Game", 
+                "link": "https://www.nytimes.com/games/wordle/index.html", 
+                "published": "Daily Puzzle", 
+                "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", 
+                "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "5 min play"
+            },
+            {
+                "title": "The Daily Mini Crossword", 
+                "link": "https://www.nytimes.com/crosswords/game/mini", 
+                "published": "Daily Puzzle", 
+                "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", 
+                "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "3 min play"
+            },
+            {
+                "title": "Connections - Group Words by Common Thread", 
+                "link": "https://www.nytimes.com/games/connections", 
+                "published": "Daily Puzzle", 
+                "summary": "Find groups of four items that share something in common without making mistakes.", 
+                "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "4 min play"
+            },
+            {
+                "title": "Daily Sudoku - Number Placement Challenge", 
+                "link": "https://sudoku.com/", 
+                "published": "Daily Puzzle", 
+                "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", 
+                "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "8 min play"
+            },
+            {
+                "title": "Spelling Bee - Find Words Using 7 Letters", 
+                "link": "https://www.nytimes.com/puzzles/spelling-bee", 
+                "published": "Daily Puzzle", 
+                "summary": "How many words can you make using the hive of 7 letters?", 
+                "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "10 min play"
+            }
         ]
     else:
         if guardian_key:
