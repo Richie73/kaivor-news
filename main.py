@@ -14,7 +14,8 @@ CATEGORY_FEEDS = {
         "https://moxie.foxnews.com/feedburner/world.rss",
         "https://www.aljazeera.com/xml/rss/all.rss",
         "https://www.france24.com/en/rss",
-        "https://www.dw.com/en/top-stories/s-9097/rss"
+        "https://www.dw.com/en/top-stories/s-9097/rss",
+        "https://www.foreignaffairs.com/rss.xml"
     ],
     "UK": [
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
@@ -25,7 +26,8 @@ CATEGORY_FEEDS = {
         "https://www.theverge.com/rss/index.xml",
         "https://techcrunch.com/feed/",
         "https://feeds.arstechnica.com/arstechnica/index",
-        "https://www.wired.com/feed/rss"
+        "https://www.wired.com/feed/rss",
+        "https://www.newscientist.com/feed/home/"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
@@ -41,7 +43,8 @@ CATEGORY_FEEDS = {
     "Music": [
         "https://pitchfork.com/feed/feed-news/rss",
         "https://www.rollingstone.com/music/music-news/feed/",
-        "https://NME.com/feed"
+        "https://NME.com/feed",
+        "https://www.loudersound.com/rss"
     ],
     "Android": [
         "https://9to5google.com/feed/",
@@ -131,8 +134,7 @@ def extract_image(entry):
             
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80"
 
-def calculate_read_time(text, title=""):
-    # Ensure deep/analytical journalism gets realistic long-form read times (5 to 15 mins)
+def calculate_read_time(text):
     words = len(text.split())
     base_calc = max(5, round(words / 40))  
     if base_calc > 15:
@@ -148,7 +150,7 @@ def parse_single_feed(url):
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
             image_url = extract_image(entry)
-            read_time = calculate_read_time(clean_summary, title)
+            read_time = calculate_read_time(clean_summary)
             
             feed_articles.append({
                 "title": title,
