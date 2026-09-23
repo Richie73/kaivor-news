@@ -261,7 +261,7 @@ def ai_brief():
             "X-Title": "Kaivor News"
         }
         payload = {
-            "model": "deepseek/deepseek-chat",
+            "model": "openai/gpt-4o-mini",
             "messages": [
                 {"role": "system", "content": "You are a professional geopolitical and financial news analyst. Provide a sharp, concise 2-sentence executive brief analyzing the core structural impact of this news story."},
                 {"role": "user", "content": f"Article Title: {title}\nSummary: {summary}"}
@@ -298,7 +298,7 @@ def ai_ask():
             "X-Title": "Kaivor News"
         }
         payload = {
-            "model": "deepseek/deepseek-chat",
+            "model": "openai/gpt-4o-mini",
             "messages": [
                 {"role": "system", "content": "You are an expert intelligence analyst answering specific user questions about a news article. Be concise, objective, and insightful."},
                 {"role": "user", "content": f"Article: {title}\nSummary: {summary}\n\nQuestion: {question}"}
@@ -332,7 +332,7 @@ def daily_digest():
             "X-Title": "Kaivor News"
         }
         payload = {
-            "model": "deepseek/deepseek-chat",
+            "model": "openai/gpt-4o-mini",
             "messages": [
                 {"role": "system", "content": "You are an elite chief intelligence briefing officer for global markets and geopolitics. Provide a rigorous, highly professional 5-bullet executive synthesis analyzing macro trends, cross-industry correlations, and strategic takeaways across these headlines. Format each bullet cleanly with a bold title and concise explanation."},
                 {"role": "user", "content": f"Today's Top Headlines:\n{headlines_text}"}
@@ -351,3 +351,27 @@ def daily_digest():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+@app.route("/api/tts", methods=["POST"])
+def api_tts():
+    data = request.get_json()
+    text = data.get("text", "")
+    api_key = data.get("apiKey", "")
+    if not api_key:
+        return jsonify({"error": "Please enter your OpenAI API key."}), 400
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "tts-1-hd",
+            "input": text,
+            "voice": "alloy"
+        }
+        resp = requests.post("https://api.openai.com/v1/audio/speech", headers=headers, json=payload, timeout=30)
+        if resp.status_code == 200:
+            return resp.content, 200, {"Content-Type": "audio/mpeg"}
+        return jsonify({"error": f"OpenAI TTS Error: {resp.text}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
