@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
-import hashlib
 
 app = Flask(__name__)
 
@@ -72,26 +71,38 @@ def fetch_guardian_articles(api_key, section="world"):
             results = data.get("response", {}).get("results", [])
             for item in results:
                 fields = item.get("fields", {})
-                title = item.get("webTitle", "News")
-                thumb = fields.get("thumbnail")
-                
-                # If guardian thumbnail exists, use it; otherwise generate a unique hash-seeded photo ID
-                img_url = thumb if thumb else f"https://images.unsplash.com/photo-{1500000 + (abs(hash(title)) % 500000)}?w=300&auto=format&fit=crop&q=80"
-                
                 articles.append({
-                    "title": title,
+                    "title": item.get("webTitle", "No Title"),
                     "link": item.get("webUrl", "#"),
                     "published": item.get("webPublicationDate", "Recent")[:10],
                     "summary": fields.get("trailText", "Comprehensive long-form investigative analysis and reporting..."),
-                    "image": img_url,
+                    "image": fields.get("thumbnail"),
                     "read_time": "12 min read"
                 })
     except Exception as e:
         print(f"Guardian API Error: {e}")
     return articles
 
-def extract_image(entry, category, title=""):
-    # 1. Check media content / enclosures from RSS
+def scrape_og_image(url):
+    """Scrapes the official OpenGraph image meta tag from the target article URL."""
+    if not url or url == "#":
+        return None
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        res = requests.get(url, headers=headers, timeout=1.2)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, 'html.parser')
+            og_img = soup.find('meta', property='og:image')
+            if og_img and og_img.get('content'):
+                img_url = og_img['content']
+                if img_url.startswith('http'):
+                    return img_url
+    except Exception:
+        pass
+    return None
+
+def extract_image(entry):
+    # 1. Check RSS media content / thumbnails
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
@@ -110,7 +121,7 @@ def extract_image(entry, category, title=""):
             if url and url.startswith('http'):
                 return url
     
-    # 2. Check embedded images in summary/content
+    # 2. Check embedded images in entry summary
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         for c in entry.content:
@@ -122,20 +133,15 @@ def extract_image(entry, category, title=""):
         src = img.get("src") or img.get("data-src")
         if src and src.startswith('http'):
             return src
-            
-    # 3. Fallback: Generate a unique, deterministic high-res Unsplash photo ID based on the article title hash 
-    # This guarantees every article gets a distinct, relevant photographic visual without repeating stock images.
-    hash_val = abs(hash(title))
-    # Pool of vetted professional photo IDs across various subjects (tech, business, world, sport, music)
-    photo_ids = [
-        1518770660439, 1526374965328, 1611974789855, 1590283603385,
-        1508098682722, 1574629810360, 1511671782779, 1470225620780,
-        1585829365295, 1521747116042, 1451187580459, 1486406146926,
-        15507518274bd, 1517649763962, 1461896836934, 1514525253161
-    ]
-    # Use numeric combination to ensure distinct mapping per title
-    selected_id = 1500000 + (hash_val % 700000)
-    return f"https://images.unsplash.com/photo-{selected_id}?w=300&auto=format&fit=crop&q=80"
+
+    # 3. Scrape official publisher OpenGraph image from destination URL
+    article_url = entry.get("link")
+    if article_url:
+        og_url = scrape_og_image(article_url)
+        if og_url:
+            return og_url
+
+    return None
 
 def calculate_read_time(text):
     words = len(text.split())
@@ -163,7 +169,7 @@ def parse_single_feed(url, category):
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
-            image_url = extract_image(entry, category, title)
+            image_url = extract_image(entry)
             read_time = calculate_read_time(clean_summary)
             
             feed_articles.append({
