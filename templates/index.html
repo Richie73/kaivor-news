@@ -121,6 +121,7 @@
             </div>
             <div style="font-size: 0.8rem; color: #8696a0; margin-bottom: 8px;">{{ article.summary }}</div>
             <div class="btn-group">
+                <button onclick="playAudioBrief(this, '{{ article.summary | escape }}')" style="background: #202c33; color: #00a884; border: 1px solid #00a884; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 5px;">Listen Brief</button>
                 <button onclick="getBrief(this, '{{ article.title | escape }}')">AI Brief</button>
                 <button onclick="toggleAskBox(this)">Ask AI</button>
                 <button onclick="saveArticle('{{ article.title | escape }}', '{{ article.link }}')">Save</button>
