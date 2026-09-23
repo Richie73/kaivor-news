@@ -15,8 +15,17 @@ CATEGORY_FEEDS = {
         "https://moxie.foxnews.com/feedburner/world.rss",
         "https://www.aljazeera.com/xml/rss/all.rss",
         "https://www.france24.com/en/rss",
-        "https://www.dw.com/en/top-stories/s-9097/rss",
-        "https://www.foreignaffairs.com/rss.xml"
+        "https://www.dw.com/en/top-stories/s-9097/rss"
+    ],
+    "Politics": [
+        "https://www.foreignaffairs.com/rss.xml",
+        "https://feeds.bbci.co.uk/news/politics/rss.xml",
+        "https://rss.politico.com/politics-news.xml"
+    ],
+    "Science": [
+        "https://www.newscientist.com/feed/home/",
+        "https://www.sciencedaily.com/rss/top.xml",
+        "https://www.nature.com/nature.rss"
     ],
     "UK": [
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
@@ -27,8 +36,7 @@ CATEGORY_FEEDS = {
         "https://www.theverge.com/rss/index.xml",
         "https://techcrunch.com/feed/",
         "https://feeds.arstechnica.com/arstechnica/index",
-        "https://www.wired.com/feed/rss",
-        "https://www.newscientist.com/feed/home/"
+        "https://www.wired.com/feed/rss"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
@@ -38,14 +46,12 @@ CATEGORY_FEEDS = {
     "Sport": [
         "https://feeds.bbci.co.uk/sport/football/rss.xml",
         "https://www.skysports.com/rss/12110",
-        "https://www.espn.com/espn/rss/football/news",
-        "https://theathletic.com/rss/"
+        "https://www.espn.com/espn/rss/football/news"
     ],
     "Music": [
         "https://pitchfork.com/feed/feed-news/rss",
         "https://www.rollingstone.com/music/music-news/feed/",
-        "https://NME.com/feed",
-        "https://www.loudersound.com/rss"
+        "https://NME.com/feed"
     ],
     "Android": [
         "https://9to5google.com/feed/",
@@ -84,12 +90,11 @@ def fetch_guardian_articles(api_key, section="world"):
     return articles
 
 def scrape_og_image(url):
-    """Scrapes the official OpenGraph image meta tag from the target article URL."""
     if not url or url == "#":
         return None
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        res = requests.get(url, headers=headers, timeout=1.2)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        res = requests.get(url, headers=headers, timeout=1.0)
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, 'html.parser')
             og_img = soup.find('meta', property='og:image')
@@ -102,7 +107,6 @@ def scrape_og_image(url):
     return None
 
 def extract_image(entry):
-    # 1. Check RSS media content / thumbnails
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
@@ -121,7 +125,6 @@ def extract_image(entry):
             if url and url.startswith('http'):
                 return url
     
-    # 2. Check embedded images in entry summary
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         for c in entry.content:
@@ -134,7 +137,6 @@ def extract_image(entry):
         if src and src.startswith('http'):
             return src
 
-    # 3. Scrape official publisher OpenGraph image from destination URL
     article_url = entry.get("link")
     if article_url:
         og_url = scrape_og_image(article_url)
@@ -165,7 +167,7 @@ def parse_single_feed(url, category):
     feed_articles = []
     try:
         parsed_feed = feedparser.parse(url)
-        for entry in parsed_feed.entries[:10]:
+        for entry in parsed_feed.entries[:8]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
@@ -215,7 +217,7 @@ def index():
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
             
-        with ThreadPoolExecutor(max_workers=6) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(parse_single_feed, url, category): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
@@ -276,8 +278,8 @@ def daily_digest():
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "You are an elite executive intelligence briefing officer. Provide a concise, highly strategic 3-bullet executive briefing summarizing the main themes across these headlines."},
-                {"role": "user", "content": f"Today's Headlines:\n{headlines_text}"}
+                {"role": "system", "content": "You are an elite chief intelligence briefing officer for global markets and geopolitics. Provide a rigorous, highly professional 5-bullet executive synthesis analyzing macro trends, cross-industry correlations, and strategic takeaways across these headlines."},
+                {"role": "user", "content": f"Today's Top Headlines:\n{headlines_text}"}
             ]
         }
         
