@@ -93,28 +93,24 @@ def fetch_og_image(url):
     return None
 
 def extract_image(entry):
-    # 1. Check media_content
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
             if url and url.startswith('http'):
                 return url
                 
-    # 2. Check media_thumbnail
     if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
         for thumb in entry.media_thumbnail:
             url = thumb.get('url')
             if url and url.startswith('http'):
                 return url
 
-    # 3. Check enclosures
     if hasattr(entry, 'enclosures') and entry.enclosures:
         for enc in entry.enclosures:
             url = enc.get('href')
             if url and url.startswith('http'):
                 return url
     
-    # 4. Parse inline images in summary or content
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         for c in entry.content:
@@ -127,23 +123,21 @@ def extract_image(entry):
         if src and src.startswith('http'):
             return src
         
-    # 5. Open Graph Web Scraping Fallback
     link = entry.get("link")
     if link:
         og = fetch_og_image(link)
         if og:
             return og
             
-    # 6. Guaranteed high-quality professional fallback placeholder
     return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80"
 
-def calculate_read_time(text):
+def calculate_read_time(text, title=""):
+    # Ensure deep/analytical journalism gets realistic long-form read times (5 to 15 mins)
     words = len(text.split())
-    # Mix in longer read times for deep analytical pieces
-    if words > 180:
-        return f"{max(8, round(words / 130))} min read"
-    minutes = max(2, round(words / 150))
-    return f"{minutes} min read"
+    base_calc = max(5, round(words / 40))  
+    if base_calc > 15:
+        return "15 min read"
+    return f"{max(6, base_calc)} min read"
 
 def parse_single_feed(url):
     feed_articles = []
@@ -152,11 +146,12 @@ def parse_single_feed(url):
         for entry in parsed_feed.entries[:10]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
+            title = entry.get("title", "No Title")
             image_url = extract_image(entry)
-            read_time = calculate_read_time(clean_summary)
+            read_time = calculate_read_time(clean_summary, title)
             
             feed_articles.append({
-                "title": entry.get("title", "No Title"),
+                "title": title,
                 "link": entry.get("link", "#"),
                 "published": entry.get("published", "Recent")[:16],
                 "summary": clean_summary[:140] + "...",
@@ -179,10 +174,10 @@ def index():
         articles = [
             {"title": "The Independent - Daily Crosswords & Puzzles", "link": "https://www.independent.co.uk/life-style/puzzles", "published": "Daily Puzzles", "summary": "Play daily crosswords, word searches, and brain teasers from The Independent.", "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=300&auto=format&fit=crop&q=80", "read_time": "15 min play"},
             {"title": "The Guardian - Daily Crosswords & Quiptic", "link": "https://www.theguardian.com/crosswords", "published": "Daily Puzzles", "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=300&auto=format&fit=crop&q=80", "read_time": "12 min play"},
-            {"title": "The New York Times - The Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80", "read_time": "3 min play"},
+            {"title": "The New York Times - The Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play"},
             {"title": "Wordle - Daily Word Guessing Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily Puzzle", "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=300&auto=format&fit=crop&q=80", "read_time": "5 min play"},
-            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80", "read_time": "4 min play"},
-            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80", "read_time": "8 min play"}
+            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80", "read_time": "6 min play"},
+            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80", "read_time": "10 min play"}
         ]
     else:
         if guardian_key:
