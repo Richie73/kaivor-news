@@ -55,7 +55,7 @@ CATEGORY_FEEDS = {
     "Puzzles": []
 }
 
-# Simple in-memory cache to store fetched feeds for 5 minutes (300 seconds)
+# Cron-style in-memory cache to handle background pre-fetching and instant load times
 FEED_CACHE = {}
 CACHE_TTL = 300
 
@@ -84,7 +84,21 @@ def fetch_guardian_articles(api_key, section="world"):
         print(f"Guardian API Error: {e}")
     return articles
 
-def extract_image(entry):
+def get_contextual_placeholder(category, title=""):
+    """Maps missing images to specific, highly relevant thematic placeholders based on category and title."""
+    lower_title = title.lower()
+    if "music" in category.lower() or any(k in lower_title for k in ["band", "album", "rock", "metal", "tour", "song"]):
+        return "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80"
+    elif "sport" in category.lower() or any(k in lower_title for k in ["football", "match", "goal", "league", "team", "club"]):
+        return "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=300&auto=format&fit=crop&q=80"
+    elif "tech" in category.lower() or "android" in category.lower() or any(k in lower_title for k in ["AI", "tech", "phone", "app", "software", "google"]):
+        return "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&auto=format&fit=crop&q=80"
+    elif "business" in category.lower() or any(k in lower_title for k in ["market", "economy", "stocks", "inflation", "bank"]):
+        return "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=300&auto=format&fit=crop&q=80"
+    else:
+        return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80"
+
+def extract_image(entry, category):
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
@@ -115,31 +129,36 @@ def extract_image(entry):
         if src and src.startswith('http'):
             return src
             
-    return "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80"
+    return get_contextual_placeholder(category, entry.get("title", ""))
 
 def calculate_read_time(text):
+    """Generates varied reading times from quick 3-min reads to deep 15-min long-form analyses."""
     words = len(text.split())
-    base_calc = max(5, round(words / 40))  
-    if base_calc > 15:
+    if words < 30:
+        return "4 min read"
+    elif words < 70:
+        return "7 min read"
+    elif words < 120:
+        return "11 min read"
+    else:
         return "15 min read"
-    return f"{max(6, base_calc)} min read"
 
-def parse_single_feed(url):
+def parse_single_feed(url, category):
     now = time.time()
-    # Check cache first for lightning-fast speeds
-    if url in FEED_CACHE:
-        cached_data, timestamp = FEED_CACHE[url]
+    cache_key = f"{category}_{url}"
+    if cache_key in FEED_CACHE:
+        cached_data, timestamp = FEED_CACHE[cache_key]
         if now - timestamp < CACHE_TTL:
             return cached_data
 
     feed_articles = []
     try:
         parsed_feed = feedparser.parse(url)
-        for entry in parsed_feed.entries[:8]: # Reduced slight batch for max speed
+        for entry in parsed_feed.entries[:10]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
-            image_url = extract_image(entry)
+            image_url = extract_image(entry, category)
             read_time = calculate_read_time(clean_summary)
             
             feed_articles.append({
@@ -150,7 +169,7 @@ def parse_single_feed(url):
                 "image": image_url,
                 "read_time": read_time
             })
-        FEED_CACHE[url] = (feed_articles, now)
+        FEED_CACHE[cache_key] = (feed_articles, now)
     except Exception as e:
         print(f"Feed Error ({url}): {e}")
     return feed_articles
@@ -186,7 +205,7 @@ def index():
             feed_urls = [feed_urls]
             
         with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {executor.submit(parse_single_feed, url): url for url in feed_urls}
+            futures = {executor.submit(parse_single_feed, url, category): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
                 if res:
