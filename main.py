@@ -394,8 +394,6 @@ def text_to_speech():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 
-@app.route("/api/macro", methods=["POST"])
-def macro_synthesis():
     data = request.get_json()
     titles = data.get("titles", [])
     api_key = data.get("apiKey", "")
@@ -420,6 +418,40 @@ def macro_synthesis():
             ]
         }
         
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=25)
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify({"macro": result["choices"][0]["message"]["content"]})
+        else:
+            return jsonify({"macro": "API Error: Check your DeepSeek credits."}), 400
+    except Exception as e:
+        return jsonify({"macro": f"Failed: {str(e)}"}), 500
+
+@app.route("/api/macro", methods=["POST"])
+def macro_synthesis():
+    data = request.get_json()
+    titles = data.get("titles", [])
+    api_key = data.get("apiKey", "")
+
+    if not api_key:
+        return jsonify({"macro": "Please enter your DeepSeek API key in the Manager panel."}), 400
+
+    headlines_text = "
+".join([f"- {t}" for t in titles])
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "You are a senior global intelligence director. Provide a rigorous thematic synthesis identifying macro shifts." },
+                {"role": "user", "content": f"Active Global Headlines:
+{headlines_text}"}
+            ]
+        }
         response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=25)
         if response.status_code == 200:
             result = response.json()
