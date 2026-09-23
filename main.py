@@ -55,7 +55,6 @@ CATEGORY_FEEDS = {
     "Puzzles": []
 }
 
-# Cron-style in-memory cache to handle background pre-fetching and instant load times
 FEED_CACHE = {}
 CACHE_TTL = 300
 
@@ -85,7 +84,6 @@ def fetch_guardian_articles(api_key, section="world"):
     return articles
 
 def get_contextual_placeholder(category, title=""):
-    """Maps missing images to specific, highly relevant thematic placeholders based on category and title."""
     lower_title = title.lower()
     if "music" in category.lower() or any(k in lower_title for k in ["band", "album", "rock", "metal", "tour", "song"]):
         return "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80"
@@ -132,7 +130,6 @@ def extract_image(entry, category):
     return get_contextual_placeholder(category, entry.get("title", ""))
 
 def calculate_read_time(text):
-    """Generates varied reading times from quick 3-min reads to deep 15-min long-form analyses."""
     words = len(text.split())
     if words < 30:
         return "4 min read"
@@ -217,7 +214,36 @@ def index():
 def ai_brief():
     data = request.get_json()
     title = data.get("title", "this article")
-    return jsonify({"brief": f"AI Brief: '{title}' provides comprehensive geopolitical and sector-wide analysis, highlighting core structural catalysts and forward-looking impacts."})
+    summary = data.get("summary", "")
+    api_key = data.get("apiKey", "")
+
+    if not api_key:
+        return jsonify({"brief": "Please enter your OpenRouter or DeepSeek API key in the Feed & API Key Manager panel above."})
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://kaivor-news.onrender.com",
+            "X-Title": "Kaivor News"
+        }
+        payload = {
+            "model": "deepseek/deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "You are a professional geopolitical and financial news analyst. Provide a sharp, concise 2-sentence executive brief analyzing the core structural impact of this news story."},
+                {"role": "user", "content": f"Article Title: {title}\nSummary: {summary}"}
+            ]
+        }
+        
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=6)
+        if response.status_code == 200:
+            result = response.json()
+            brief_text = result["choices"][0]["message"]["content"]
+            return jsonify({"brief": brief_text})
+        else:
+            return jsonify({"brief": f"API Error: Please check your OpenRouter/DeepSeek API credits or key."})
+    except Exception as e:
+        return jsonify({"brief": f"Failed to generate brief: {str(e)}"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
