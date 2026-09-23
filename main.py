@@ -259,7 +259,7 @@ def ai_brief():
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "deepseek-chat",
+            "model": "google/gemma-2-9b-it:free",
             "messages": [
                 {"role": "system", "content": "You are a professional geopolitical and financial news analyst. Provide a sharp, concise 2-sentence executive brief analyzing the core structural impact of this news story."},
                 {"role": "user", "content": f"Article Title: {title}\nSummary: {summary}"}
@@ -293,7 +293,7 @@ def ai_ask():
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "deepseek-chat",
+            "model": "google/gemma-2-9b-it:free",
             "messages": [
                 {"role": "system", "content": "You are an expert intelligence analyst answering specific user questions about a news article. Be concise, objective, and insightful."},
                 {"role": "user", "content": f"Article: {title}\nSummary: {summary}\n\nQuestion: {question}"}
@@ -304,7 +304,7 @@ def ai_ask():
             result = response.json()
             return jsonify({"answer": result["choices"][0]["message"]["content"]})
         else:
-            return jsonify({"answer": "API Error: Check your DeepSeek credits."})
+            return jsonify({"answer": "API Error: Check your OpenRouter API key or model credits."})
     except Exception as e:
         return jsonify({"answer": f"Request failed: {str(e)}"})
 
@@ -325,7 +325,7 @@ def daily_digest():
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "deepseek-chat",
+            "model": "google/gemma-2-9b-it:free",
             "messages": [
                 {"role": "system", "content": "You are an elite chief intelligence briefing officer for global markets and geopolitics. Provide a rigorous, highly professional 5-bullet executive synthesis analyzing macro trends, cross-industry correlations, and strategic takeaways across these headlines. Format each bullet cleanly with a bold title and concise explanation."},
                 {"role": "user", "content": f"Today's Top Headlines:\n{headlines_text}"}
@@ -338,7 +338,7 @@ def daily_digest():
             digest_text = result["choices"][0]["message"]["content"]
             return jsonify({"digest": digest_text})
         else:
-            return jsonify({"digest": f"API Error: Check your DeepSeek credits."})
+            return jsonify({"digest": f"API Error: Check your OpenRouter API key or model credits."})
     except Exception as e:
         return jsonify({"digest": f"Failed: {str(e)}"})
 
