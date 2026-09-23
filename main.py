@@ -64,7 +64,6 @@ CATEGORY_FEEDS = {
 FEED_CACHE = {}
 CACHE_TTL = 300
 
-# Massive master pool of 40+ unique, stunning, verified high-res Unsplash photo IDs to prevent any duplication
 MASTER_PHOTO_POOL = [
     "1507413245164-6160d8298b31", "1532094349884-543bc11b234d", "1507668077129-56e32842fceb",
     "1518770660439-4636190af475", "1530497610245-94d3c16cda28", "1516321318423-f06f85e504b3",
@@ -77,10 +76,15 @@ MASTER_PHOTO_POOL = [
     "1518091043644-c1d4457512c6", "1461896836934-ffe607ba8211", "1517649763962-0c623066013b",
     "1543326727-cf6c39e8f84c", "1511671782779-c97d3d27a1d4", "1470225620780-dba8ba36b745",
     "1514525253161-7a46d19cd819", "1511192336575-5a79af67a629", "1585829365295-ab7cd400c167",
-    "1516321318423-f06f85e504b3", "1446776811953-b23d57bd21aa", "1509228468518-180dd4864904"
+    "1446776811953-b23d57bd21aa", "1509228468518-180dd4864904", "1551288049-bebda4e38f71",
+    "1504384308090-c894fdcc538d", "1454165804606-c3d57bc86b40", "1517245386807-bb43f82c33c4",
+    "1516321497487-e288fb19713f", "1522071820081-009f0129c71c", "1551836022-d5d88e9218df",
+    "1503676260728-1c00da094a0b", "1517841905240-472988babdf9", "1531482615713-2afd69097998"
 ]
 
-def fetch_guardian_articles(api_key, section="world"):
+def fetch_guardian_articles(api_key, section="world", used_photos=None):
+    if used_photos is None:
+        used_photos = set()
     articles = []
     if not api_key or api_key.strip() == "":
         return articles
@@ -91,12 +95,18 @@ def fetch_guardian_articles(api_key, section="world"):
         if response.status_code == 200:
             data = response.json()
             results = data.get("response", {}).get("results", [])
-            for idx, item in enumerate(results):
+            for item in results:
                 fields = item.get("fields", {})
                 title = item.get("webTitle", "No Title")
-                # Pick unique photo using index offset and title hash
-                photo_id = MASTER_PHOTO_POOL[(abs(hash(title)) + idx) % len(MASTER_PHOTO_POOL)]
-                img = fields.get("thumbnail") or f"https://images.unsplash.com/photo-{photo_id}?w=300&auto=format&fit=crop&q=80"
+                
+                available_pool = [p for p in MASTER_PHOTO_POOL if p not in used_photos]
+                if not available_pool:
+                    available_pool = MASTER_PHOTO_POOL
+                
+                chosen_photo = available_pool[abs(hash(title)) % len(available_pool)]
+                used_photos.add(chosen_photo)
+                
+                img = fields.get("thumbnail") or f"https://images.unsplash.com/photo-{chosen_photo}?w=300&auto=format&fit=crop&q=80"
                 articles.append({
                     "title": title,
                     "link": item.get("webUrl", "#"),
@@ -109,7 +119,10 @@ def fetch_guardian_articles(api_key, section="world"):
         print(f"Guardian API Error: {e}")
     return articles
 
-def extract_image(entry, title="", index=0):
+def extract_image(entry, title="", used_photos=None):
+    if used_photos is None:
+        used_photos = set()
+
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
@@ -140,9 +153,13 @@ def extract_image(entry, title="", index=0):
         if src and src.startswith('http'):
             return src
 
-    # Guaranteed unique photo mapping across the entire master pool using title hash + index offset
-    photo_id = MASTER_PHOTO_POOL[(abs(hash(title)) + index) % len(MASTER_PHOTO_POOL)]
-    return f"https://images.unsplash.com/photo-{photo_id}?w=300&auto=format&fit=crop&q=80"
+    available_pool = [p for p in MASTER_PHOTO_POOL if p not in used_photos]
+    if not available_pool:
+        available_pool = MASTER_PHOTO_POOL
+
+    chosen_photo = available_pool[abs(hash(title)) % len(available_pool)]
+    used_photos.add(chosen_photo)
+    return f"https://images.unsplash.com/photo-{chosen_photo}?w=300&auto=format&fit=crop&q=80"
 
 def calculate_read_time(text):
     words = len(text.split())
@@ -155,7 +172,7 @@ def calculate_read_time(text):
     else:
         return "15 min read"
 
-def parse_single_feed(url, category):
+def parse_single_feed(url, category, used_photos):
     now = time.time()
     cache_key = f"{category}_{url}"
     if cache_key in FEED_CACHE:
@@ -166,11 +183,11 @@ def parse_single_feed(url, category):
     feed_articles = []
     try:
         parsed_feed = feedparser.parse(url)
-        for idx, entry in enumerate(parsed_feed.entries[:8]):
+        for entry in parsed_feed.entries[:8]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
             title = entry.get("title", "No Title")
-            image_url = extract_image(entry, title, idx)
+            image_url = extract_image(entry, title, used_photos)
             read_time = calculate_read_time(clean_summary)
             
             feed_articles.append({
@@ -193,6 +210,7 @@ def index():
     guardian_key = request.args.get("guardian_key", "")
     
     articles = []
+    used_photos = set()
     
     if category == "Puzzles":
         articles = [
@@ -206,18 +224,18 @@ def index():
     else:
         if guardian_key:
             if category == "World":
-                articles.extend(fetch_guardian_articles(guardian_key, section="world"))
+                articles.extend(fetch_guardian_articles(guardian_key, section="world", used_photos=used_photos))
             elif category == "UK":
-                articles.extend(fetch_guardian_articles(guardian_key, section="uk"))
+                articles.extend(fetch_guardian_articles(guardian_key, section="uk", used_photos=used_photos))
             elif category == "Sport":
-                articles.extend(fetch_guardian_articles(guardian_key, section="sport"))
+                articles.extend(fetch_guardian_articles(guardian_key, section="sport", used_photos=used_photos))
 
         feed_urls = [custom_feed] if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
             
         with ThreadPoolExecutor(max_workers=8) as executor:
-            futures = {executor.submit(parse_single_feed, url, category): url for url in feed_urls}
+            futures = {executor.submit(parse_single_feed, url, category, used_photos): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
                 if res:
@@ -257,6 +275,38 @@ def ai_brief():
             return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek balance or API key."})
     except Exception as e:
         return jsonify({"brief": f"Request Timeout / Failed: {str(e)}"})
+
+@app.route("/api/ask", methods=["POST"])
+def ai_ask():
+    data = request.get_json()
+    title = data.get("title", "")
+    summary = data.get("summary", "")
+    question = data.get("question", "")
+    api_key = data.get("apiKey", "")
+
+    if not api_key:
+        return jsonify({"answer": "Please enter your DeepSeek API key in the Manager panel."})
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "You are an expert intelligence analyst answering specific user questions about a news article. Be concise, objective, and insightful."},
+                {"role": "user", "content": f"Article: {title}\nSummary: {summary}\n\nQuestion: {question}"}
+            ]
+        }
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=20)
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify({"answer": result["choices"][0]["message"]["content"]})
+        else:
+            return jsonify({"answer": "API Error: Check your DeepSeek credits."})
+    except Exception as e:
+        return jsonify({"answer": f"Request failed: {str(e)}"})
 
 @app.route("/api/digest", methods=["POST"])
 def daily_digest():

@@ -34,13 +34,17 @@
         .thumb { width: 75px; height: 75px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #1f2c34; }
         .card a { color: #e9edef; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
         .meta { font-size: 0.7rem; color: #8696a0; margin-bottom: 8px; display: flex; gap: 10px; }
-        .btn-group { display: flex; gap: 8px; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
         button { background: #1f2c34; color: #00a884; border: 1px solid #222d34; padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
         button:hover { background: #00a884; color: #000; }
         
-        /* Styled Executive Briefing Box */
+        /* AI Elements */
         .brief-card { margin-top: 12px; font-size: 0.85rem; color: #e9edef; background: #111b22; border: 1px solid #222d34; padding: 14px; border-radius: 10px; border-left: 4px solid #00a884; display: none; line-height: 1.5; }
         .brief { margin-top: 8px; font-size: 0.8rem; color: #8696a0; background: #080c10; padding: 8px; border-radius: 6px; border-left: 3px solid #00a884; display: none; white-space: pre-line; }
+        
+        .ask-box { margin-top: 8px; display: none; background: #080c10; padding: 8px; border-radius: 6px; border: 1px solid #222d34; }
+        .ask-box input { width: 70%; background: #111b22; border: 1px solid #222d34; padding: 5px; color: #fff; border-radius: 4px; font-size: 0.75rem; }
+        .ask-result { margin-top: 6px; font-size: 0.75rem; color: #00a884; white-space: pre-line; }
 
         .saved-section { margin-top: 24px; border-top: 1px solid #222d34; padding-top: 12px; }
         .saved-item { font-size: 0.8rem; background: #111b22; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
@@ -114,9 +118,15 @@
             <div style="font-size: 0.8rem; color: #8696a0; margin-bottom: 8px;">{{ article.summary }}</div>
             <div class="btn-group">
                 <button onclick="getBrief(this, '{{ article.title | escape }}')">AI Brief</button>
+                <button onclick="toggleAskBox(this)">Ask AI</button>
                 <button onclick="saveArticle('{{ article.title | escape }}', '{{ article.link }}')">Save</button>
             </div>
             <div class="brief"></div>
+            <div class="ask-box">
+                <input type="text" placeholder="Ask a question about this article...">
+                <button onclick="askAI(this, '{{ article.title | escape }}')" style="padding: 5px 8px;">Send</button>
+                <div class="ask-result"></div>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -174,6 +184,38 @@
         })
         .catch(() => {
             box.innerText = 'Failed to generate brief.';
+        });
+    }
+
+    function toggleAskBox(btn) {
+        const cardContent = btn.closest('.card-content');
+        const box = cardContent.querySelector('.ask-box');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function askAI(btn, title) {
+        const cardContent = btn.closest('.card-content');
+        const input = cardContent.querySelector('.ask-box input');
+        const resultBox = cardContent.querySelector('.ask-result');
+        const summary = cardContent.querySelector('div[style*="font-size: 0.8rem"]').innerText;
+        const question = input.value.trim();
+
+        if (!question) return;
+
+        resultBox.innerText = 'DeepSeek is analyzing...';
+        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
+
+        fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title, summary: summary, question: question, apiKey: apiKey })
+        })
+        .then(res => res.json())
+        .then(data => {
+            resultBox.innerText = data.answer;
+        })
+        .catch(() => {
+            resultBox.innerText = 'Failed to get answer.';
         });
     }
 
