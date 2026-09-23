@@ -359,6 +359,7 @@ def daily_digest():
     except Exception as e:
         return jsonify({"digest": f"Failed: {str(e)}"})
 
+
 @app.route("/api/tts", methods=["POST"])
 def text_to_speech():
     data = request.get_json()
@@ -391,42 +392,6 @@ def text_to_speech():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-
-    data = request.get_json()
-    titles = data.get("titles", [])
-    api_key = data.get("apiKey", "")
-
-    if not api_key:
-        return jsonify({"macro": "Please enter your DeepSeek API key in the Manager panel."}), 400
-
-    headlines_text = "
-".join([f"- {t}" for t in titles])
-
-    try:
-        headers = {
-            "Authorization": f"Bearer {api_key.strip()}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "deepseek-chat",
-            "messages": [
-                {"role": "system", "content": "You are a senior global intelligence director. Analyze these cross-domain headlines (spanning tech, politics, business, and world news) and provide a rigorous thematic synthesis identifying hidden systemic correlations, second-order macro effects, and overarching global momentum shifts. Format with professional executive headers."},
-                {"role": "user", "content": f"Active Global Headlines:
-{headlines_text}"}
-            ]
-        }
-        
-        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=25)
-        if response.status_code == 200:
-            result = response.json()
-            return jsonify({"macro": result["choices"][0]["message"]["content"]})
-        else:
-            return jsonify({"macro": "API Error: Check your DeepSeek credits."}), 400
-    except Exception as e:
-        return jsonify({"macro": f"Failed: {str(e)}"}), 500
-
 @app.route("/api/macro", methods=["POST"])
 def macro_synthesis():
     data = request.get_json()
@@ -447,7 +412,7 @@ def macro_synthesis():
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "You are a senior global intelligence director. Provide a rigorous thematic synthesis identifying macro shifts." },
+                {"role": "system", "content": "You are a senior global intelligence director. Provide a rigorous thematic synthesis identifying macro shifts."},
                 {"role": "user", "content": f"Active Global Headlines:
 {headlines_text}"}
             ]
