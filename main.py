@@ -65,7 +65,7 @@ def fetch_guardian_articles(api_key, section="world"):
     
     url = f"https://content.guardianapis.com/search?section={section}&page-size=15&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
     try:
-        response = requests.get(url, timeout=1.5)
+        response = requests.get(url, timeout=2.0)
         if response.status_code == 200:
             data = response.json()
             results = data.get("response", {}).get("results", [])
@@ -218,7 +218,7 @@ def ai_brief():
     api_key = data.get("apiKey", "")
 
     if not api_key:
-        return jsonify({"brief": "Please enter your DeepSeek API key in the Feed & API Key Manager panel above."})
+        return jsonify({"brief": "Please enter your DeepSeek API key in the Manager panel above."})
 
     try:
         headers = {
@@ -233,15 +233,15 @@ def ai_brief():
             ]
         }
         
-        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=8)
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=20)
         if response.status_code == 200:
             result = response.json()
             brief_text = result["choices"][0]["message"]["content"]
             return jsonify({"brief": brief_text})
         else:
-            return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek API key or balance."})
+            return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek balance or API key."})
     except Exception as e:
-        return jsonify({"brief": f"Failed to generate brief: {str(e)}"})
+        return jsonify({"brief": f"Request Timeout / Failed: {str(e)}"})
 
 @app.route("/api/digest", methods=["POST"])
 def daily_digest():
@@ -267,7 +267,7 @@ def daily_digest():
             ]
         }
         
-        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=10)
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=25)
         if response.status_code == 200:
             result = response.json()
             digest_text = result["choices"][0]["message"]["content"]
