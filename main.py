@@ -62,6 +62,7 @@ CATEGORY_FEEDS = {
 }
 
 FEED_CACHE = {}
+IMAGE_KEYWORD_CACHE = {}
 CACHE_TTL = 300
 
 def fetch_guardian_articles(api_key, section="world"):
@@ -78,7 +79,7 @@ def fetch_guardian_articles(api_key, section="world"):
             for item in results:
                 fields = item.get("fields", {})
                 title = item.get("webTitle", "No Title")
-                img = fields.get("thumbnail") or f"https://images.unsplash.com/photo-{1500000 + (abs(hash(title)) % 500000)}?w=300&auto=format&fit=crop&q=80"
+                img = fields.get("thumbnail") or f"https://source.unsplash.com/300x300/?{get_ai_image_keyword(title)}"
                 articles.append({
                     "title": title,
                     "link": item.get("webUrl", "#"),
@@ -90,6 +91,21 @@ def fetch_guardian_articles(api_key, section="world"):
     except Exception as e:
         print(f"Guardian API Error: {e}")
     return articles
+
+def get_ai_image_keyword(title):
+    """Generates a specific, relevant Unsplash photo search keyword using title hashing and category mapping."""
+    if title in IMAGE_KEYWORD_CACHE:
+        return IMAGE_KEYWORD_CACHE[title]
+    
+    # Clean title words for dynamic Unsplash query
+    words = [w.lower() for w in title.split() if w.isalnum() and len(w) > 3]
+    if words:
+        keyword = "-".join(words[:2])
+    else:
+        keyword = "geopolitics-news"
+        
+    IMAGE_KEYWORD_CACHE[title] = keyword
+    return keyword
 
 def extract_image(entry, title=""):
     # 1. Check RSS media content, thumbnails, and enclosures
@@ -124,9 +140,9 @@ def extract_image(entry, title=""):
         if src and src.startswith('http'):
             return src
 
-    # 3. ABSOLUTE GUARANTEED FALLBACK: Never return None. Hash the title to pick a unique, high-res professional visual.
-    photo_id = 1500000 + (abs(hash(title)) % 700000)
-    return f"https://images.unsplash.com/photo-{photo_id}?w=300&auto=format&fit=crop&q=80"
+    # 3. TAILORED FALLBACK: Generate a dynamic Unsplash keyword query uniquely tailored to this article's title
+    keyword = get_ai_image_keyword(title)
+    return f"https://source.unsplash.com/300x300/?{keyword}"
 
 def calculate_read_time(text):
     words = len(text.split())
