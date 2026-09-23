@@ -6,47 +6,54 @@ import requests
 
 app = Flask(__name__)
 
-# Expanded multiple RSS sources per category for richer feeds
+# Expanded multi-source RSS feeds for all categories
 CATEGORY_FEEDS = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
         "https://rss.cnn.com/rss/edition_world.rss",
-        "https://moxie.foxnews.com/feedburner/world.rss"
+        "https://moxie.foxnews.com/feedburner/world.rss",
+        "https://www.aljazeera.com/xml/rss/all.rss"
     ],
     "UK": [
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
-        "https://www.independent.co.uk/news/uk/rss"
+        "https://www.independent.co.uk/news/uk/rss",
+        "https://www.standard.co.uk/rss"
     ],
     "Tech": [
         "https://www.theverge.com/rss/index.xml",
         "https://techcrunch.com/feed/",
-        "https://feeds.arstechnica.com/arstechnica/index"
+        "https://feeds.arstechnica.com/arstechnica/index",
+        "https://www.wired.com/feed/rss"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
-        "https://www.cnbc.com/id/10001147/device/rss/rss.html"
+        "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "https://feeds.feedburner.com/reuters/businessNews"
     ],
     "Sport": [
         "https://feeds.bbci.co.uk/news/sport/rss.xml",
-        "https://www.espn.com/espn/rss/news"
+        "https://www.espn.com/espn/rss/news",
+        "https://www.skysports.com/rss/12040"
     ],
     "Music": [
         "https://pitchfork.com/feed/feed-news/rss",
-        "https://www.rollingstone.com/music/music-news/feed/"
+        "https://www.rollingstone.com/music/music-news/feed/",
+        "https://NME.com/feed"
     ],
     "Android": [
         "https://9to5google.com/feed/",
-        "https://www.androidcentral.com/rss.xml"
-    ]
+        "https://www.androidcentral.com/rss.xml",
+        "https://www.androidpolice.com/feed/"
+    ],
+    "Puzzles": [] # Handled separately with interactive links and mini games
 }
 
 def fetch_guardian_articles(api_key, section="world"):
-    """Fetches articles from The Guardian API and maps them to World or UK sections."""
     articles = []
     if not api_key or api_key.strip() == "":
         return articles
     
-    url = f"https://content.guardianapis.com/search?section={section}&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
+    url = f"https://content.guardianapis.com/search?section={section}&page-size=15&show-fields=thumbnail,trailText,byline&api-key={api_key.strip()}"
     try:
         response = requests.get(url, timeout=4)
         if response.status_code == 200:
@@ -119,37 +126,44 @@ def index():
     
     articles = []
     
-    # 1. Pull Guardian API articles if key is present and category matches World or UK
-    if guardian_key:
-        if category == "World":
-            articles.extend(fetch_guardian_articles(guardian_key, section="world"))
-        elif category == "UK":
-            articles.extend(fetch_guardian_articles(guardian_key, section="uk"))
+    if category == "Puzzles":
+        # Curated puzzle and word game sources
+        articles = [
+            {"title": "Wordle - Daily Word Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily", "summary": "Guess the hidden 5-letter word in 6 tries.", "image": "https://www.nytimes.com/games-assets/v2/metadata/wordle-social-card-1200x630.png", "read_time": "5 min play"},
+            {"title": "The Daily Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily", "summary": "A quick and easy miniature crossword puzzle.", "image": "https://www.nytimes.com/games-assets/v2/metadata/crosswords-social-card.png", "read_time": "3 min play"},
+            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily", "summary": "Find groups of four items that share something in common.", "image": "https://www.nytimes.com/games-assets/v2/metadata/connections-social-card.png", "read_time": "4 min play"},
+            {"title": "Spelling Bee - Find Words Using 7 Letters", "link": "https://www.nytimes.com/puzzles/spelling-bee", "published": "Daily", "summary": "How many words can you make with 7 letters?", "image": "https://www.nytimes.com/games-assets/v2/metadata/spelling-bee-social-card.png", "read_time": "10 min play"}
+        ]
+    else:
+        if guardian_key:
+            if category == "World":
+                articles.extend(fetch_guardian_articles(guardian_key, section="world"))
+            elif category == "UK":
+                articles.extend(fetch_guardian_articles(guardian_key, section="uk"))
 
-    # 2. Pull from multi-source RSS feeds for the category
-    feed_urls = [custom_feed] if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
-    if isinstance(feed_urls, str):
-        feed_urls = [feed_urls]
-        
-    for url in feed_urls:
-        try:
-            parsed_feed = feedparser.parse(url)
-            for entry in parsed_feed.entries[:6]: # Pull a balanced mix from each source
-                summary_text = entry.get("summary", "")
-                clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
-                image_url = extract_image(entry)
-                read_time = calculate_read_time(clean_summary)
-                
-                articles.append({
-                    "title": entry.get("title", "No Title"),
-                    "link": entry.get("link", "#"),
-                    "published": entry.get("published", "Recent"),
-                    "summary": clean_summary[:120] + "...",
-                    "image": image_url,
-                    "read_time": read_time
-                })
-        except Exception as e:
-            print(f"Feed Error ({url}): {e}")
+        feed_urls = [custom_feed] if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
+        if isinstance(feed_urls, str):
+            feed_urls = [feed_urls]
+            
+        for url in feed_urls:
+            try:
+                parsed_feed = feedparser.parse(url)
+                for entry in parsed_feed.entries[:10]:
+                    summary_text = entry.get("summary", "")
+                    clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
+                    image_url = extract_image(entry)
+                    read_time = calculate_read_time(clean_summary)
+                    
+                    articles.append({
+                        "title": entry.get("title", "No Title"),
+                        "link": entry.get("link", "#"),
+                        "published": entry.get("published", "Recent"),
+                        "summary": clean_summary[:120] + "...",
+                        "image": image_url,
+                        "read_time": read_time
+                    })
+            except Exception as e:
+                print(f"Feed Error ({url}): {e}")
 
     return render_template("index.html", category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
 
