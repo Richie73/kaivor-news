@@ -131,11 +131,62 @@ def index():
     
     if category == "Puzzles":
         articles = [
-            {"title": "Wordle - Daily Word Guessing Game", "link": "https://www.nytimes.com/games/wordle/index.html", "published": "Daily Puzzle", "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=150&auto=format&fit=crop&q=80", "read_time": "5 min play"},
-            {"title": "The Daily Mini Crossword", "link": "https://www.nytimes.com/crosswords/game/mini", "published": "Daily Puzzle", "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80", "read_time": "3 min play"},
-            {"title": "Connections - Group Words by Common Thread", "link": "https://www.nytimes.com/games/connections", "published": "Daily Puzzle", "summary": "Find groups of four items that share something in common without making mistakes.", "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", "read_time": "4 min play"},
-            {"title": "Daily Sudoku - Number Placement Challenge", "link": "https://sudoku.com/", "published": "Daily Puzzle", "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80", "read_time": "8 min play"},
-            {"title": "Spelling Bee - Find Words Using 7 Letters", "link": "https://www.nytimes.com/puzzles/spelling-bee", "published": "Daily Puzzle", "summary": "How many words can you make using the hive of 7 letters?", "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", "read_time": "10 min play"}
+            {
+                "title": "The Telegraph - Daily Cryptic & Quick Crosswords", 
+                "link": "https://www.telegraph.co.uk/content-hub/puzzles/", 
+                "published": "Daily Puzzles", 
+                "summary": "Play renowned British cryptic and quick crosswords from The Telegraph.", 
+                "image": "https://images.unsplash.com/photo-1543269865-cbf427effbad?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "15 min play"
+            },
+            {
+                "title": "The Guardian - Daily Crosswords & Quiptic", 
+                "link": "https://www.theguardian.com/crosswords", 
+                "published": "Daily Puzzles", 
+                "summary": "Explore famous Guardian crosswords including Quick, Cryptic, and Quiptic puzzles.", 
+                "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "12 min play"
+            },
+            {
+                "title": "The New York Times - The Mini Crossword", 
+                "link": "https://www.nytimes.com/crosswords/game/mini", 
+                "published": "Daily Puzzle", 
+                "summary": "A snappy, miniature crossword puzzle designed to be solved in minutes.", 
+                "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "3 min play"
+            },
+            {
+                "title": "Wordle - Daily Word Guessing Game", 
+                "link": "https://www.nytimes.com/games/wordle/index.html", 
+                "published": "Daily Puzzle", 
+                "summary": "Guess the hidden 5-letter word in 6 tries with color-coded clues.", 
+                "image": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "5 min play"
+            },
+            {
+                "title": "Connections - Group Words by Common Thread", 
+                "link": "https://www.nytimes.com/games/connections", 
+                "published": "Daily Puzzle", 
+                "summary": "Find groups of four items that share something in common without making mistakes.", 
+                "image": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "4 min play"
+            },
+            {
+                "title": "Daily Sudoku - Number Placement Challenge", 
+                "link": "https://sudoku.com/", 
+                "published": "Daily Puzzle", 
+                "summary": "Fill the 9x9 grid so that each column, row, and section contains digits 1-9.", 
+                "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "8 min play"
+            },
+            {
+                "title": "Spelling Bee - Find Words Using 7 Letters", 
+                "link": "https://www.nytimes.com/puzzles/spelling-bee", 
+                "published": "Daily Puzzle", 
+                "summary": "How many words can you make using the hive of 7 letters?", 
+                "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80", 
+                "read_time": "10 min play"
+            }
         ]
     else:
         if guardian_key:
