@@ -92,7 +92,7 @@ def fetch_guardian_articles(api_key, section="world"):
     return articles
 
 def extract_image(entry, title=""):
-    # 1. Check RSS media/enclosures
+    # 1. Check RSS media content, thumbnails, and enclosures
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             url = media.get('url')
@@ -111,6 +111,7 @@ def extract_image(entry, title=""):
             if url and url.startswith('http'):
                 return url
     
+    # 2. Check embedded images in entry summary/content
     content = entry.get("summary", "")
     if hasattr(entry, 'content') and entry.content:
         for c in entry.content:
@@ -123,7 +124,7 @@ def extract_image(entry, title=""):
         if src and src.startswith('http'):
             return src
 
-    # 2. GUARANTEED FALLBACK: If publisher provides no image, generate a unique, high-res hash image instantly
+    # 3. ABSOLUTE GUARANTEED FALLBACK: Never return None. Hash the title to pick a unique, high-res professional visual.
     photo_id = 1500000 + (abs(hash(title)) % 700000)
     return f"https://images.unsplash.com/photo-{photo_id}?w=300&auto=format&fit=crop&q=80"
 

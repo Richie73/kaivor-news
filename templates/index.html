@@ -103,9 +103,7 @@
 
     {% for article in articles %}
     <div class="card">
-        {% if article.image %}
-        <img src="{{ article.image }}" class="thumb" alt="" onerror="this.remove();">
-        {% endif %}
+        <img src="{{ article.image }}" class="thumb" alt="" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=300&auto=format&fit=crop&q=80';">
         <div class="card-content">
             <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
             <div class="meta">
