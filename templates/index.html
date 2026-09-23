@@ -55,7 +55,10 @@
 
 <header>
     <h1>KAIVOR NEWS</h1>
-    <div class="sub">Global Intelligence & Puzzles</div>
+    <div class="sub">Global Intelligence & Puzzles</div><div style="margin-top: 10px;">
+        <label style="font-size: 0.75rem; color: #8696a0; display: block; margin-bottom: 4px;">OpenAI API Key (For HD Audio Briefings / TTS):</label>
+        <input type="password" id="openaiKeyInput" placeholder="sk-..." style="width: 100%; padding: 8px; background: #222d34; border: 1px solid #334145; color: #fff; border-radius: 4px;" onchange="localStorage.setItem('kaivor_openai_key', this.value)">
+    </div>
 </header>
 
 <div class="ticker-wrap">
@@ -86,7 +89,7 @@
         <label style="margin-top: 10px;">The Guardian API Key (Optional):</label>
         <input type="password" id="guardianKeyInput" placeholder="a1b2c3d4-..." oninput="saveGuardianKey(this.value)">
 
-        <label style="margin-top: 10px;">DeepSeek API Key (Stored Locally):</label>
+        <label style="margin-top: 10px;">OpenRouter / AI API Key (Stored Locally):</label>
         <input type="password" id="aiKeyInput" placeholder="sk-..." oninput="saveAIKey(this.value)">
     </div>
 
