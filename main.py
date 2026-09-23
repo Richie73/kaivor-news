@@ -221,7 +221,6 @@ def ai_brief():
         return jsonify({"brief": "Please enter your DeepSeek API key in the Feed & API Key Manager panel above."})
 
     try:
-        # Use DeepSeek's native API endpoint and model
         headers = {
             "Authorization": f"Bearer {api_key.strip()}",
             "Content-Type": "application/json"
@@ -240,10 +239,43 @@ def ai_brief():
             brief_text = result["choices"][0]["message"]["content"]
             return jsonify({"brief": brief_text})
         else:
-            print(f"DeepSeek Error Response: {response.text}")
             return jsonify({"brief": f"API Error ({response.status_code}): Please check your DeepSeek API key or balance."})
     except Exception as e:
         return jsonify({"brief": f"Failed to generate brief: {str(e)}"})
+
+@app.route("/api/digest", methods=["POST"])
+def daily_digest():
+    data = request.get_json()
+    titles = data.get("titles", [])
+    api_key = data.get("apiKey", "")
+
+    if not api_key:
+        return jsonify({"digest": "Please enter your DeepSeek API key in the Manager panel."})
+
+    headlines_text = "\n".join([f"- {t}" for t in titles])
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "You are an elite executive intelligence briefing officer. Provide a concise, highly strategic 3-bullet executive briefing summarizing the main themes across these headlines."},
+                {"role": "user", "content": f"Today's Headlines:\n{headlines_text}"}
+            ]
+        }
+        
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            result = response.json()
+            digest_text = result["choices"][0]["message"]["content"]
+            return jsonify({"digest": digest_text})
+        else:
+            return jsonify({"digest": f"API Error: Check your DeepSeek credits."})
+    except Exception as e:
+        return jsonify({"digest": f"Failed: {str(e)}"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
