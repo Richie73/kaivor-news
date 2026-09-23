@@ -295,8 +295,8 @@ def ai_ask():
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "You are an expert intelligence analyst answering specific user questions about a news article. Be concise, objective, and insightful."},
-                {"role": "user", "content": f"Article: {title}\nSummary: {summary}\n\nQuestion: {question}"}
+                {"role": "system", "content": "You are an expert intelligence analyst and news commentator. Use the provided article title and summary as context, but also use your extensive global knowledge to directly and helpfully answer the user's question about the topic. Never respond by simply saying information is missing from the snippet; instead, provide a rich, informative answer based on the subject matter."},
+                {"role": "user", "content": f"Article Title: {title}\nExcerpt/Summary: {summary}\n\nUser Question: {question}"}
             ]
         }
         response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=20)
