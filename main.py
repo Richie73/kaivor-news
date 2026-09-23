@@ -1,10 +1,11 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import feedparser
 from bs4 import BeautifulSoup
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import io
 
 app = Flask(__name__)
 
@@ -295,7 +296,7 @@ def ai_ask():
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "You are an expert intelligence analyst and news commentator. Use the provided article title and summary as context, but also use your extensive global knowledge to directly and helpfully answer the user's question about the topic. Never respond by simply saying information is missing from the snippet; instead, provide a rich, informative answer based on the subject matter."},
+                {"role": "system", "content": "You are an expert intelligence analyst and news commentator. Use the provided article title and summary as context, but also use your extensive global knowledge to directly and helpfully answer the user's question about the topic."},
                 {"role": "user", "content": f"Article Title: {title}\nExcerpt/Summary: {summary}\n\nUser Question: {question}"}
             ]
         }
@@ -341,6 +342,38 @@ def daily_digest():
             return jsonify({"digest": f"API Error: Check your DeepSeek credits."})
     except Exception as e:
         return jsonify({"digest": f"Failed: {str(e)}"})
+
+@app.route("/api/tts", methods=["POST"])
+def text_to_speech():
+    data = request.get_json()
+    text = data.get("text", "")
+    api_key = data.get("apiKey", "")
+
+    if not api_key:
+        return jsonify({"error": "Please enter your OpenAI API key in the Manager panel."}), 400
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "tts-1-hd",
+            "input": text[:2000],  # Cap length for safety
+            "voice": "fable"       # Smooth, authoritative narrator voice
+        }
+        response = requests.post("https://api.openai.com/v1/audio/speech", headers=headers, json=payload, timeout=30)
+        if response.status_code == 200:
+            return send_file(
+                io.BytesIO(response.content),
+                mimetype="audio/mpeg",
+                as_attachment=False,
+                download_name="briefing.mp3"
+            )
+        else:
+            return jsonify({"error": f"OpenAI TTS Error: {response.status_code}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

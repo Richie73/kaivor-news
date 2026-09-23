@@ -88,6 +88,9 @@
 
         <label style="margin-top: 10px;">DeepSeek API Key (Stored Locally):</label>
         <input type="password" id="aiKeyInput" placeholder="sk-..." oninput="saveAIKey(this.value)">
+
+        <label style="margin-top: 10px;">OpenAI API Key (For HD Audio Briefings):</label>
+        <input type="password" id="openaiKeyInput" placeholder="sk-proj-..." oninput="saveOpenAIKey(this.value)">
     </div>
 
     <div class="chips">
@@ -99,7 +102,8 @@
     {% if category != "Puzzles" %}
     <div style="margin-bottom: 16px;">
         <button onclick="generateDailyDigest()" style="background: #00a884; color: #000; padding: 10px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-bottom: 6px;">⚡ Key Takeaways</button>
-        <button onclick="toggleAudioBriefing()" id="audioBtn" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 8px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: none;">🇬🇧 Listen to British News Briefing</button>
+        <button onclick="generateAudioBriefing()" id="audioBtn" style="background: #1f2c34; color: #00a884; border: 1px solid #00a884; padding: 8px 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: none; margin-bottom: 8px;">🎙️ Generate HD Audio Podcast Briefing</button>
+        <audio id="audioPlayer" controls style="width: 100%; display: none; margin-bottom: 8px;"></audio>
         <div id="dailyDigestBox" class="brief-card"></div>
     </div>
     {% endif %}
@@ -139,30 +143,22 @@
 </div>
 
 <script>
-    let isSpeaking = false;
-
     function toggleManager() {
         const box = document.getElementById('managerBox');
         box.style.display = box.style.display === 'block' ? 'none' : 'block';
     }
 
-    function saveGuardianKey(val) {
-        localStorage.setItem("kaivor_guardian_key", val);
-    }
-
-    function saveAIKey(val) {
-        localStorage.setItem("kaivor_ai_key", val);
-    }
+    function saveGuardianKey(val) { localStorage.setItem("kaivor_guardian_key", val); }
+    function saveAIKey(val) { localStorage.setItem("kaivor_ai_key", val); }
+    function saveOpenAIKey(val) { localStorage.setItem("kaivor_openai_key", val); }
 
     window.onload = function() {
         const savedGKey = localStorage.getItem("kaivor_guardian_key");
-        if (savedGKey) {
-            document.getElementById('guardianKeyInput').value = savedGKey;
-        }
+        if (savedGKey) document.getElementById('guardianKeyInput').value = savedGKey;
         const savedAIKey = localStorage.getItem("kaivor_ai_key");
-        if (savedAIKey) {
-            document.getElementById('aiKeyInput').value = savedAIKey;
-        }
+        if (savedAIKey) document.getElementById('aiKeyInput').value = savedAIKey;
+        const savedOpenAIKey = localStorage.getItem("kaivor_openai_key");
+        if (savedOpenAIKey) document.getElementById('openaiKeyInput').value = savedOpenAIKey;
         renderSavedArticles();
     };
 
@@ -182,12 +178,8 @@
             body: JSON.stringify({ title: title, summary: summary, apiKey: apiKey })
         })
         .then(res => res.json())
-        .then(data => {
-            box.innerText = data.brief;
-        })
-        .catch(() => {
-            box.innerText = 'Failed to generate brief.';
-        });
+        .then(data => { box.innerText = data.brief; })
+        .catch(() => { box.innerText = 'Failed to generate brief.'; });
     }
 
     function toggleAskBox(btn) {
@@ -216,12 +208,8 @@
             body: JSON.stringify({ title: title, summary: summary, question: question, apiKey: apiKey })
         })
         .then(res => res.json())
-        .then(data => {
-            resultBox.innerText = data.answer;
-        })
-        .catch(() => {
-            resultBox.innerText = 'Failed to get answer. Please check your API key.';
-        });
+        .then(data => { resultBox.innerText = data.answer; })
+        .catch(() => { resultBox.innerText = 'Failed to get answer.'; });
     }
 
     async function generateDailyDigest() {
@@ -247,44 +235,43 @@
         }
     }
 
-    function toggleAudioBriefing() {
+    async function generateAudioBriefing() {
         const box = document.getElementById('dailyDigestBox');
         const audioBtn = document.getElementById('audioBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
         
-        if (!('speechSynthesis' in window)) {
-            alert('Text-to-speech is not supported by your browser.');
+        const openaiKey = localStorage.getItem('kaivor_openai_key') || '';
+        if (!openaiKey) {
+            alert('Please enter your OpenAI API key in the Manager panel to generate HD audio briefings.');
             return;
         }
 
-        if (isSpeaking) {
-            window.speechSynthesis.cancel();
-            isSpeaking = false;
-            audioBtn.innerText = '🇬🇧 Listen to British News Briefing';
-            return;
-        }
-
+        audioBtn.innerText = '⏳ Synthesizing HD Audio (OpenAI TTS)...';
         const textToSpeak = box.innerText.replace(/<[^>]*>?/gm, '');
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        
-        // Lock onto a professional British English voice
-        const voices = window.speechSynthesis.getVoices();
-        const ukVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB' || v.name.includes('UK') || v.name.includes('British') || v.name.includes('Oliver') || v.name.includes('Serena') || v.name.includes('Libby'));
-        
-        if (ukVoice) {
-            utterance.voice = ukVoice;
+
+        try {
+            const res = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: textToSpeak, apiKey: openaiKey })
+            });
+
+            if (res.ok) {
+                const blob = await res.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                audioPlayer.play();
+                audioBtn.innerText = '🎙️ Re-generate HD Audio Podcast Briefing';
+            } else {
+                const errData = await res.json();
+                alert(errData.error || 'Failed to generate audio.');
+                audioBtn.innerText = '🎙️ Generate HD Audio Podcast Briefing';
+            }
+        } catch (err) {
+            alert('Network error generating audio.');
+            audioBtn.innerText = '🎙️ Generate HD Audio Podcast Briefing';
         }
-        
-        utterance.rate = 0.95; // Slightly slower, measured cadence like a news anchor
-        utterance.pitch = 0.98; // Natural professional register
-
-        utterance.onend = function() {
-            isSpeaking = false;
-            audioBtn.innerText = '🇬🇧 Listen to British News Briefing';
-        };
-
-        isSpeaking = true;
-        audioBtn.innerText = '⏹️ Stop British News Briefing';
-        window.speechSynthesis.speak(utterance);
     }
 
     function saveArticle(title, link) {
