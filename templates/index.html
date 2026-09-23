@@ -279,6 +279,34 @@
         localStorage.setItem('kaivor_saved', JSON.stringify(saved));
         renderSavedArticles();
     }
+function playAudioBrief(btn, text) {
+        const apiKey = localStorage.getItem('kaivor_openai_key') || '';
+        if (!apiKey) {
+            alert('Please enter your OpenAI API key in the Feed & API Key Manager for audio briefings.');
+            return;
+        }
+        btn.innerText = 'Generating Audio...';
+        fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text, apiKey: apiKey })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('TTS generation failed');
+            return res.blob();
+        })
+        .then(blob => {
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+            btn.innerText = '🔊 Playing Brief';
+            audio.onended = () => { btn.innerText = 'Listen Brief'; };
+        })
+        .catch(err => {
+            alert('Error generating audio briefing. Check your OpenAI API key credits.');
+            btn.innerText = 'Listen Brief';
+        });
+    }
 </script>
 
 </body>
