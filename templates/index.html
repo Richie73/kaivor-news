@@ -279,5 +279,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+
+<script>
+function listenBrief(title, text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(title + ". " + text);
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert("Audio playback not supported on this browser.");
+    }
+}
+
+function saveAIKey(val) {
+    localStorage.setItem('kaivor_openai_key', val);
+}
+
+function saveGuardianKey(val) {
+    localStorage.setItem('kaivor_guardian_key', val);
+}
+</script>
+
 </body>
 </html>
