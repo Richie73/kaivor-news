@@ -413,6 +413,9 @@ function playAudioBrief(btn, text) {
     
 
 
+    
+
+
     <script>
     function importCustomRSS() {
         const urlInput = document.getElementById('rssUrlInput');
@@ -441,13 +444,18 @@ function playAudioBrief(btn, text) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: url, category: category })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('Error: ' + (data.error || 'Failed to import RSS feed.'));
+        .then(res => res.text())
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to import RSS feed.'));
+                }
+            } catch (e) {
+                alert('Server returned invalid response: ' + text.substring(0, 100));
             }
         })
         .catch(err => {
