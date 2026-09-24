@@ -90,7 +90,24 @@
         <input type="password" id="aiKeyInput" placeholder="sk-..." oninput="saveAIKey(this.value)">
     </div>
 <div style="margin-top: 10px;">
-        <label style="font-size: 0.75rem; color: #8696a0; display: block; margin-bottom: 4px;">OpenAI API Key (For HD Audio Briefings / TTS):</label>
+        <label style="font-size: 0.75rem; color: #8696a0; display: block; margin-bottom: 4px;">
+    <div style="margin-top: 15px; border-top: 1px solid #30363d; padding-top: 12px;">
+        <label style="font-size: 0.8rem; color: #8b949e; display: block; margin-bottom: 5px;">Import Custom RSS Feed:</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input type="text" id="rssUrlInput" placeholder="https://news.ycombinator.com/rss" style="flex: 1; min-width: 150px; padding: 6px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 4px; font-size: 0.8rem;">
+            <select id="rssCategorySelect" style="padding: 6px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 4px; font-size: 0.8rem;">
+                <option value="World">World</option>
+                <option value="Politics">Politics</option>
+                <option value="Science">Science</option>
+                <option value="UK">UK</option>
+                <option value="Tech">Tech</option>
+            </select>
+            <button onclick="importCustomRSS()" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Import</button>
+        </div>
+    </div>
+
+
+OpenAI API Key (For HD Audio Briefings / TTS):</label>
         <input type="password" id="openaiKeyInput" placeholder="sk-..." style="width: 100%; padding: 8px; background: #222d34; border: 1px solid #334145; color: #fff; border-radius: 4px;" onchange="localStorage.setItem('kaivor_openai_key', this.value)">
     </div>
 
@@ -385,6 +402,30 @@ function playAudioBrief(btn, text) {
     }
 
 </script>
+
+
+    <script>
+    function importCustomRSS() {
+        const urlInput = document.getElementById('rssUrlInput');
+        const catSelect = document.getElementById('rssCategorySelect');
+        if (!urlInput || !catSelect) { alert('Inputs missing'); return; }
+        const url = urlInput.value.trim();
+        const category = catSelect.value;
+        if (!url) { alert('Please enter a valid RSS URL.'); return; }
+        alert('Importing feed... Please wait.');
+        fetch('/api/add-rss', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url, category: category })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) { alert(data.message); location.reload(); }
+            else { alert('Error: ' + (data.error || 'Failed')); }
+        })
+        .catch(err => { alert('Network error.'); });
+    }
+    </script>
 
 </body>
 </html>
