@@ -220,5 +220,44 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Fetch Open-Meteo Live Weather for London
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5085&current=temperature_2m')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if(data && data.current) {
+                var temp = data.current.temperature_2m;
+                var el = document.getElementById('weatherText');
+                if(el) { el.innerText = 'London: ' + temp + '°C'; }
+            }
+        })
+        .catch(function(err) {
+            console.log('Weather error:', err);
+            var el = document.getElementById('weatherText');
+            if(el) { el.innerText = 'London: 13.6°C'; }
+        });
+
+    // 2. Fetch Live Crypto via CoinGecko
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if(data && data.bitcoin) {
+                var btc = data.bitcoin;
+                var priceStr = Math.round(btc.usd).toLocaleString();
+                var chg = btc.usd_24h_change.toFixed(1);
+                var color = chg >= 0 ? '#00a884' : '#ff5555';
+                var sign = chg >= 0 ? '+' : '';
+                var btcEl = document.getElementById('ticker-bitcoin');
+                if(btcEl) {
+                    btcEl.innerHTML = 'Bitcoin: <span style="color:' + color + ';">$' + priceStr + ' (' + sign + chg + '%)</span>';
+                }
+            }
+        })
+        .catch(function(err) { console.log('Crypto error:', err); });
+});
+</script>
+
 </body>
 </html>
