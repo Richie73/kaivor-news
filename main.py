@@ -436,3 +436,4 @@ def add_rss():
         return jsonify({'success': True, 'message': f'Successfully imported {imported} articles into {category}!'})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Server Error: {str(e)}'}), 500
+
