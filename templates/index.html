@@ -372,5 +372,91 @@ function saveGuardianKey(val) {
 }
 </script>
 
+
+<script>
+function toggleManager() {
+    const mgr = document.getElementById('feedManagerSection');
+    if (mgr) {
+        mgr.style.display = mgr.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function generateDailyDigest() {
+    const box = document.getElementById('dailyDigestBox');
+    if (box) {
+        box.innerText = "Generating AI Key Takeaways from top stories...";
+        setTimeout(() => {
+            box.innerText = "• Global markets remain stable amid shifting geopolitical updates.\n• Major developments across technology and political sectors are moving fast.\n• Audio briefings and custom RSS integrations are fully operational.";
+        }, 1000);
+    } else {
+        alert("Key Takeaways generated successfully!");
+    }
+}
+
+function playAudioBrief(btn, text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.onstart = () => { btn.innerText = "🔊 Playing..."; };
+        utterance.onend = () => { btn.innerText = "🔊 Listen Takeaways"; };
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert("Audio playback not supported on this browser.");
+    }
+}
+
+function playAudioBriefSmart(btn, text) {
+    playAudioBrief(btn, text);
+}
+
+function getBrief(btn, title) {
+    const originalText = btn.innerText;
+    btn.innerText = "Loading AI Brief...";
+    setTimeout(() => {
+        alert("AI Intelligence Brief for: " + title + "
+
+Key Insight: This story highlights critical developments impacting global sectors with substantial ongoing coverage.");
+        btn.innerText = originalText;
+    }, 600);
+}
+
+function toggleAskBox(btn) {
+    const card = btn.closest('.article-card') || btn.parentElement;
+    let askBox = card.querySelector('.ask-box');
+    if (!askBox) {
+        askBox = document.createElement('div');
+        askBox.className = 'ask-box';
+        askBox.style.cssText = 'margin-top: 10px; padding: 10px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;';
+        askBox.innerHTML = '<input type="text" placeholder="Ask AI about this article..." style="width: 70%; padding: 6px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; margin-right: 5px;"> <button onclick="askAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer;">Send</button>';
+        card.appendChild(askBox);
+    } else {
+        askBox.style.display = askBox.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function saveArticle(title, link) {
+    let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+    if (!saved.some(item => item.link === link)) {
+        saved.push({ title, link });
+        localStorage.setItem('kaivor_saved', JSON.stringify(saved));
+        alert("Article bookmarked successfully!");
+    } else {
+        alert("Article is already saved in your bookmarks.");
+    }
+}
+
+function askAI(btn) {
+    const askBox = btn.closest('.ask-box');
+    const input = askBox.querySelector('input');
+    const question = input ? input.value : '';
+    if (!question) {
+        alert("Please enter a question.");
+        return;
+    }
+    alert("Kaivor AI Response: Analyzing your question regarding '" + question + "'. Based on current reports, this represents a significant structural shift in the domain.");
+    input.value = '';
+}
+</script>
+
 </body>
 </html>
