@@ -26,9 +26,12 @@ def get_live_market_data():
         if 'ethereum' in c_data and 'usd' in c_data['ethereum']:
             data["ethereum"] = f"${int(c_data['ethereum']['usd']):,}"
     except Exception as e:
-        print("Crypto fetch error:", e)
+        print("Crypto fetch error (using fallback):", e)
 
     return data
+
+
+
 
 
 
