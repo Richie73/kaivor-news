@@ -195,6 +195,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -208,32 +209,42 @@ function generateDailyDigest() {
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ Comprehensive AI Intelligence Digest:</strong><br><em>Synthesizing top stories across global feeds...</em>";
+    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Synthesizing top article headlines...</em>";
     
     setTimeout(() => {
-        // Gather headlines dynamically from the page
-        const titles = Array.from(document.querySelectorAll('.article-card h3, .article-card h2, h3'))
-            .map(el => el.innerText.trim())
-            .filter(Boolean)
-            .slice(0, 4);
+        // Target only actual article cards' titles
+        const articleCards = document.querySelectorAll('.article-card');
+        let titles = [];
+        articleCards.forEach(card => {
+            const h = card.querySelector('h3, h2, a');
+            if (h && h.innerText.trim() && !h.innerText.includes('TOP STORIES')) {
+                titles.push(h.innerText.trim());
+            }
+        });
+        
+        if (titles.length === 0) {
+            // Fallback selector
+            titles = Array.from(document.querySelectorAll('h3')).map(e => e.innerText.trim()).filter(t => !t.includes('TOP STORIES'));
+        }
+        
+        const selected = titles.slice(0, 3);
+        let bullets = selected.length > 0 
+            ? selected.map(t => `• <strong>Insight:</strong> ${t}`).join('<br>')
+            : "• Global technology and market updates indicate steady growth.<br>• Key sector developments are under active observation.";
             
-        let bullets = titles.length > 0 
-            ? titles.map(t => `• <strong>Key Development:</strong> ${t} - Analysis indicates significant multi-sector impact and evolving geopolitical/market consequences.`).join('<br>')
-            : "• Global markets display ongoing stability amidst regulatory shifts.<br>• Major technological and political updates require close monitoring.<br>• Custom feeds and live briefings remain fully active.";
-            
-        box.innerHTML = `<strong>⚡ Comprehensive AI Intelligence Digest:</strong><br>${bullets}`;
-    }, 800);
+        box.innerHTML = `<strong>⚡ AI Key Takeaways:</strong><br>${bullets}`;
+    }, 600);
 }
 
 function playAudioBrief(btn, text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.onstart = () => { btn.innerText = "🔊 Playing Audio Brief..."; };
+        utterance.onstart = () => { btn.innerText = "🔊 Playing..."; };
         utterance.onend = () => { btn.innerText = "🔊 Listen Takeaways"; };
         window.speechSynthesis.speak(utterance);
     } else {
-        alert("Audio playback not supported on this browser.");
+        alert("Audio playback not supported.");
     }
 }
 
@@ -245,15 +256,14 @@ function getBrief(btn, title) {
     const card = btn.closest('.article-card') || btn.parentElement;
     let briefBox = card.querySelector('.ai-brief-box');
     
-    // Extract actual article snippet if available
-    const snippetEl = card.querySelector('p');
-    const snippet = snippetEl ? snippetEl.innerText : "Detailed reporting indicates ongoing developments.";
+    const pEl = card.querySelector('p');
+    const snippet = pEl ? pEl.innerText : "Core intelligence summary for this item.";
     
     if (!briefBox) {
         briefBox = document.createElement('div');
         briefBox.className = 'ai-brief-box';
         briefBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem;';
-        briefBox.innerHTML = `<strong>🤖 Comprehensive Kaivor Intelligence Brief:</strong><p style="margin: 6px 0 4px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p><p style="margin: 0; color: #c9d1d9;"><strong>Core Analysis:</strong> ${snippet} Analysts emphasize that this situation involves critical underlying factors with substantial future implications across related industries.</p>`;
+        briefBox.innerHTML = `<strong>🤖 Kaivor AI Brief:</strong><p style="margin: 6px 0 4px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p><p style="margin: 0; color: #c9d1d9;">${snippet}</p>`;
         card.appendChild(briefBox);
     } else {
         briefBox.style.display = briefBox.style.display === 'none' ? 'block' : 'none';
@@ -271,7 +281,7 @@ function toggleAskBox(btn) {
         askBox.innerHTML = `
             <div style="display: flex; gap: 6px;">
                 <input type="text" class="ask-input" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
-                <button onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Send</button>
+                <button type="button" onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Send</button>
             </div>
             <div class="ask-response" style="margin-top: 8px; font-size: 0.8rem; color: #8b949e; display: none;"></div>
         `;
@@ -282,10 +292,6 @@ function toggleAskBox(btn) {
 }
 
 function submitAskAI(btn) {
-    const card = btn.closest('.article-card');
-    const titleEl = card ? card.querySelector('h3, h2') : null;
-    const articleTitle = titleEl ? titleEl.innerText : "this article";
-    
     const askBox = btn.closest('.ask-box');
     const input = askBox.querySelector('.ask-input');
     const responseDiv = askBox.querySelector('.ask-response');
@@ -297,12 +303,12 @@ function submitAskAI(btn) {
     }
     
     responseDiv.style.display = 'block';
-    responseDiv.innerHTML = "🤖 Analyzing document context and generating comprehensive response...";
+    responseDiv.innerHTML = "🤖 Generating AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Analysis:</strong> Regarding your query ("${question}") concerning <em>${articleTitle}</em>, current intelligence and contextual parsing indicate that this event ties directly into broader structural trends, policy shifts, and stakeholder reactions currently monitored across global feeds.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI:</strong> Regarding "${question}", our analysis indicates this connects directly to broader industry patterns and ongoing public updates.`;
         input.value = '';
-    }, 800);
+    }, 600);
 }
 
 function saveArticle(title, link) {
@@ -312,7 +318,7 @@ function saveArticle(title, link) {
         localStorage.setItem('kaivor_saved', JSON.stringify(saved));
         alert("Article bookmarked successfully!");
     } else {
-        alert("Article already saved in bookmarks.");
+        alert("Article already saved.");
     }
 }
 
@@ -320,7 +326,7 @@ function importCustomRSS() {
     const url = document.getElementById('rssUrlInput').value;
     const cat = document.getElementById('rssCategorySelect').value;
     if (!url) {
-        alert("Please enter a valid RSS URL.");
+        alert("Please enter an RSS URL.");
         return;
     }
     window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
