@@ -378,3 +378,61 @@ def api_tts():
 
 
 # RSS route active
+
+
+
+@app.route('/api/add-rss', methods=['POST'])
+def add_rss():
+    try:
+        data = request.get_json() or {}
+        raw_url = data.get('url', '').strip()
+        category = data.get('category', 'World')
+        
+        if '[' in raw_url and '](' in raw_url:
+            parts = raw_url.split('](')
+            url = parts[1].replace(')', '').strip() if len(parts) > 1 else parts[0].replace('[', '').strip()
+        else:
+            url = raw_url
+        url = url.strip('<>"''')
+        
+        if not url:
+            return jsonify({'success': False, 'error': 'RSS URL is required'}), 400
+            
+        import urllib.request, feedparser
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        )
+        
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                feed = feedparser.parse(response.read())
+        except Exception as net_err:
+            return jsonify({'success': False, 'error': f'Connection failed: {str(net_err)}'}), 400
+            
+        if not feed.entries:
+            return jsonify({'success': False, 'error': 'No entries found in this RSS feed.'}), 400
+            
+        global FEEDS
+        if 'FEEDS' not in globals():
+            global feeds
+            FEEDS = globals().get('feeds', {})
+            
+        if category not in FEEDS:
+            FEEDS[category] = []
+            
+        imported = 0
+        for entry in feed.entries[:15]:
+            article = {
+                'title': entry.get('title', 'Untitled'),
+                'link': entry.get('link', '#'),
+                'summary': entry.get('summary', entry.get('description', 'No summary available.')),
+                'published': entry.get('published', 'Today')
+            }
+            if not any(a['link'] == article['link'] for a in FEEDS[category]):
+                FEEDS[category].insert(0, article)
+                imported += 1
+                
+        return jsonify({'success': True, 'message': f'Successfully imported {imported} articles into {category}!'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Server Error: {str(e)}'}), 500
