@@ -407,6 +407,9 @@ function playAudioBrief(btn, text) {
     
 
 
+    
+
+
     <script>
     function importCustomRSS() {
         const urlInput = document.getElementById('rssUrlInput');
@@ -417,22 +420,17 @@ function playAudioBrief(btn, text) {
             return;
         }
         
-        let url = urlInput.value.trim();
+        let rawInput = urlInput.value.trim();
         const category = catSelect.value;
         
-        if (!url) {
+        if (!rawInput) {
             alert('Please enter a valid RSS URL.');
             return;
         }
         
-        // Automatically clean markdown link formatting if pasted
-        if (url.startsWith('[') && url.includes('](')) {
-            const parts = url.split('](');
-            if (parts.length > 1) {
-                url = parts[1].replace(')', '').trim();
-            }
-        }
-        url = url.replace(/^<|>$/g, '').trim();
+        // Extract the first http:// or https:// URL found in the input string
+        const urlMatch = rawInput.match(/https?:\/\/[^\s\)]+/);
+        const url = urlMatch ? urlMatch[0] : rawInput;
         
         alert('Importing feed... Please wait.');
         
