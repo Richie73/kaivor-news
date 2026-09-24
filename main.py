@@ -1,3 +1,32 @@
+
+import urllib.request
+import json
+
+def get_live_market_data():
+    data = {
+        "weather": "13.6°C",
+        "gold": "$4,125.00",
+        "bitcoin": "$92,500"
+    }
+    try:
+        req = urllib.request.urlopen("https://api.open-meteo.com/v1/forecast?latitude=51.5085&current=temperature_2m", timeout=2)
+        w_data = json.loads(req.read().decode('utf-8'))
+        if 'current' in w_data:
+            data["weather"] = f"{w_data['current']['temperature_2m']}°C"
+    except Exception as e:
+        print("Weather fetch error:", e)
+
+    try:
+        req = urllib.request.urlopen("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=2)
+        c_data = json.loads(req.read().decode('utf-8'))
+        if 'bitcoin' in c_data:
+            data["bitcoin"] = f"${int(c_data['bitcoin']['usd']):,}"
+    except Exception as e:
+        print("Crypto fetch error:", e)
+
+    return data
+
+
 import os
 from flask import Flask, render_template, request, jsonify
 import feedparser
@@ -205,6 +234,7 @@ def parse_single_feed(url, category, used_photos):
 
 @app.route("/")
 def index():
+    market_data = get_live_market_data()
     category = request.args.get("category", "World")
     custom_feed = request.args.get("custom_feed", "")
     guardian_key = request.args.get("guardian_key", "")
@@ -241,7 +271,7 @@ def index():
                 if res:
                     articles.extend(res)
 
-    return render_template("index.html", category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
+    return render_template("index.html", market=market_data, category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
 
 @app.route("/api/brief", methods=["POST"])
 def ai_brief():
