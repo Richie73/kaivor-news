@@ -404,15 +404,38 @@ function playAudioBrief(btn, text) {
 </script>
 
 
+    
+
+
     <script>
     function importCustomRSS() {
         const urlInput = document.getElementById('rssUrlInput');
         const catSelect = document.getElementById('rssCategorySelect');
-        if (!urlInput || !catSelect) { alert('Inputs missing'); return; }
-        const url = urlInput.value.trim();
+        
+        if (!urlInput || !catSelect) {
+            alert('Error: RSS inputs missing from DOM');
+            return;
+        }
+        
+        let url = urlInput.value.trim();
         const category = catSelect.value;
-        if (!url) { alert('Please enter a valid RSS URL.'); return; }
+        
+        if (!url) {
+            alert('Please enter a valid RSS URL.');
+            return;
+        }
+        
+        // Automatically clean markdown link formatting if pasted
+        if (url.startsWith('[') && url.includes('](')) {
+            const parts = url.split('](');
+            if (parts.length > 1) {
+                url = parts[1].replace(')', '').trim();
+            }
+        }
+        url = url.replace(/^<|>$/g, '').trim();
+        
         alert('Importing feed... Please wait.');
+        
         fetch('/api/add-rss', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -420,10 +443,16 @@ function playAudioBrief(btn, text) {
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) { alert(data.message); location.reload(); }
-            else { alert('Error: ' + (data.error || 'Failed')); }
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to import RSS feed.'));
+            }
         })
-        .catch(err => { alert('Network error.'); });
+        .catch(err => {
+            alert('Network error while importing RSS feed.');
+        });
     }
     </script>
 
