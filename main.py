@@ -6,7 +6,9 @@ def get_live_market_data():
     data = {
         "weather": "13.6°C",
         "gold": "$4,125.00",
-        "bitcoin": "$92,500"
+        "bitcoin": "$92,500",
+        "ethereum": "$3,420.00",
+        "oil": "$74.20"
     }
     try:
         req = urllib.request.urlopen("https://api.open-meteo.com/v1/forecast?latitude=51.5085&current=temperature_2m", timeout=2)
@@ -17,14 +19,19 @@ def get_live_market_data():
         print("Weather fetch error:", e)
 
     try:
-        req = urllib.request.urlopen("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=2)
+        req = urllib.request.urlopen("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd", timeout=2)
         c_data = json.loads(req.read().decode('utf-8'))
         if 'bitcoin' in c_data:
             data["bitcoin"] = f"${int(c_data['bitcoin']['usd']):,}"
+        if 'ethereum' in c_data:
+            data["ethereum"] = f"${int(c_data['ethereum']['usd']):,}"
     except Exception as e:
         print("Crypto fetch error:", e)
 
     return data
+
+
+
 
 
 import os
