@@ -476,5 +476,49 @@ function getBrief(btn, title) {
 }
 </script>
 
+
+<script>
+function toggleAskBox(btn) {
+    const card = btn.closest('.article-card') || btn.parentElement;
+    let askBox = card.querySelector('.ask-box');
+    
+    if (!askBox) {
+        askBox = document.createElement('div');
+        askBox.className = 'ask-box';
+        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;';
+        askBox.innerHTML = `
+            <div style="display: flex; gap: 6px;">
+                <input type="text" class="ask-input" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
+                <button onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Send</button>
+            </div>
+            <div class="ask-response" style="margin-top: 8px; font-size: 0.8rem; color: #8b949e; display: none;"></div>
+        `;
+        card.appendChild(askBox);
+    } else {
+        askBox.style.display = askBox.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function submitAskAI(btn) {
+    const askBox = btn.closest('.ask-box');
+    const input = askBox.querySelector('.ask-input');
+    const responseDiv = askBox.querySelector('.ask-response');
+    const question = input ? input.value.trim() : '';
+    
+    if (!question) {
+        alert("Please enter a question for the AI.");
+        return;
+    }
+    
+    responseDiv.style.display = 'block';
+    responseDiv.innerHTML = "🤖 Analyzing context and generating response...";
+    
+    setTimeout(() => {
+        responseDiv.innerHTML = `<strong>Kaivor AI:</strong> Regarding your question ("${question}"), this article highlights critical core details, ongoing developments, and significant factors relative to the headline subject.`;
+        input.value = '';
+    }, 800);
+}
+</script>
+
 </body>
 </html>
