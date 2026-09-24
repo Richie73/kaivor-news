@@ -95,6 +95,7 @@
         <label style="font-size: 0.8rem; color: #8b949e; display: block; margin-bottom: 5px;">Import Custom RSS Feed:</label>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <input type="text" id="rssUrlInput" placeholder="https://news.ycombinator.com/rss" style="flex: 1; min-width: 150px; padding: 6px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 4px; font-size: 0.8rem;">
+            <button type="button" onclick="document.getElementById('rssUrlInput').value='https://news.ycombinator.com/rss'; document.getElementById('rssCategorySelect').value='Tech';" style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Load HN</button>
             <select id="rssCategorySelect" style="padding: 6px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 4px; font-size: 0.8rem;">
                 <option value="World">World</option>
                 <option value="Politics">Politics</option>
