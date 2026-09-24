@@ -410,6 +410,9 @@ function playAudioBrief(btn, text) {
     
 
 
+    
+
+
     <script>
     function importCustomRSS() {
         const urlInput = document.getElementById('rssUrlInput');
@@ -428,7 +431,6 @@ function playAudioBrief(btn, text) {
             return;
         }
         
-        // Extract the first http:// or https:// URL found in the input string
         const urlMatch = rawInput.match(/https?:\/\/[^\s\)]+/);
         const url = urlMatch ? urlMatch[0] : rawInput;
         
@@ -449,7 +451,7 @@ function playAudioBrief(btn, text) {
             }
         })
         .catch(err => {
-            alert('Network error while importing RSS feed.');
+            alert('Fetch Error: ' + err);
         });
     }
     </script>
