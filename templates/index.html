@@ -458,5 +458,23 @@ function askAI(btn) {
 }
 </script>
 
+
+<script>
+function getBrief(btn, title) {
+    const card = btn.closest('.article-card') || btn.parentElement;
+    let briefBox = card.querySelector('.ai-brief-box');
+    
+    if (!briefBox) {
+        briefBox = document.createElement('div');
+        briefBox.className = 'ai-brief-box';
+        briefBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem;';
+        briefBox.innerHTML = '<strong>🤖 Kaivor AI Brief:</strong><p style="margin: 6px 0 0 0; color: #8b949e;">Analyzing "' + title + '"... Key takeaways indicate major ongoing impacts across global sectors with significant updates expected.</p>';
+        card.appendChild(briefBox);
+    } else {
+        briefBox.style.display = briefBox.style.display === 'none' ? 'block' : 'none';
+    }
+}
+</script>
+
 </body>
 </html>
