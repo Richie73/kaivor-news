@@ -170,360 +170,53 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
     </div>
 </div>
 
+
+
+
 <script>
-    function toggleManager() {
-        const box = document.getElementById('managerBox');
-        box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function saveGuardianKey(val) {
-        localStorage.setItem("kaivor_guardian_key", val);
-    }
-
-    function saveAIKey(val) {
-        localStorage.setItem("kaivor_ai_key", val);
-    }
-
-    window.onload = function() {
-        const savedGKey = localStorage.getItem("kaivor_guardian_key");
-        if (savedGKey) {
-            document.getElementById('guardianKeyInput').value = savedGKey;
-        }
-        const savedAIKey = localStorage.getItem("kaivor_ai_key");
-        if (savedAIKey) {
-            document.getElementById('aiKeyInput').value = savedAIKey;
-        }
-        renderSavedArticles();
-    };
-
-    function getBrief(btn, title) {
-        const cardContent = btn.closest('.card-content');
-        const box = cardContent.querySelector('.brief');
-        const summary = cardContent.querySelector('div[style*="font-size: 0.8rem"]').innerText;
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 1. Fetch live Crypto (Bitcoin, Ethereum) from CoinGecko (Free, no key)
+        const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
+        const cryptoData = await cryptoRes.json();
         
-        box.style.display = 'block';
-        box.innerText = 'Generating live DeepSeek analysis...';
-        
-        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
-
-        fetch('/api/brief', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: title, summary: summary, apiKey: apiKey })
-        })
-        .then(res => res.json())
-        .then(data => {
-            box.innerText = data.brief;
-        })
-        .catch(() => {
-            box.innerText = 'Failed to generate brief.';
-        });
-    }
-
-    function toggleAskBox(btn) {
-        const cardContent = btn.closest('.card-content');
-        const box = cardContent.querySelector('.ask-box');
-        box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function askAI(btn, title) {
-        const cardContent = btn.closest('.card-content');
-        const input = cardContent.querySelector('.ask-input');
-        const resultBox = cardContent.querySelector('.ask-result');
-        const summary = cardContent.querySelector('div[style*="font-size: 0.8rem"]').innerText;
-        const question = input.value.trim();
-
-        if (!question) return;
-
-        resultBox.style.display = 'block';
-        resultBox.innerText = 'Querying DeepSeek AI...';
-        
-        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
-
-        fetch('/api/ask', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: title, summary: summary, question: question, apiKey: apiKey })
-        })
-        .then(res => res.json())
-        .then(data => {
-            resultBox.innerText = data.answer;
-        })
-        .catch(() => {
-            resultBox.innerText = 'Failed to get answer. Please check your API key.';
-        });
-    }
-
-    async function generateDailyDigest() {
-        const box = document.getElementById('dailyDigestBox');
-        box.style.display = 'block';
-        box.innerHTML = 'Synthesizing global intelligence with DeepSeek...';
-
-        const titles = Array.from(document.querySelectorAll('.card-content a')).map(el => el.innerText).slice(0, 10);
-        const apiKey = localStorage.getItem('kaivor_ai_key') || '';
-
-        try {
-            const response = await fetch('/api/digest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titles: titles, apiKey: apiKey })
-            });
-            const data = await response.json();
-            box.innerHTML = data.digest.replace(/\*\*/g, '<strong>').replace(/\n/g, '<br>');
-        } catch (err) {
-            box.innerHTML = 'Failed to generate key takeaways.';
-        }
-    }
-
-    function saveArticle(title, link) {
-        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
-        if (!saved.some(item => item.link === link)) {
-            saved.push({title, link});
-            localStorage.setItem('kaivor_saved', JSON.stringify(saved));
-            renderSavedArticles();
-            alert('Article saved successfully!');
-        } else {
-            alert('Article already saved.');
-        }
-    }
-
-    function renderSavedArticles() {
-        const list = document.getElementById('savedList');
-        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
-        if (saved.length === 0) {
-            list.innerHTML = '<div style="font-size: 0.75rem; color: #8696a0;">No saved articles yet.</div>';
-            return;
-        }
-        list.innerHTML = saved.map((item, index) => `
-            <div class="saved-item">
-                <a href="${item.link}" target="_blank">${item.title.substring(0, 45)}...</a>
-                <button onclick="removeSaved(${index})" style="background: #222d34; color: #ff5555; padding: 2px 6px;">Remove</button>
-            </div>
-        `).join('');
-    }
-
-    function removeSaved(index) {
-        let saved = JSON.parse(localStorage.getItem('kaivor_saved')) || [];
-        saved.splice(index, 1);
-        localStorage.setItem('kaivor_saved', JSON.stringify(saved));
-        renderSavedArticles();
-    }
-function playAudioBrief(btn, text) {
-        if (!text) {
-            // Fallback if passed via dataset
-            text = btn.getAttribute('data-summary') || '';
-        }
-        const apiKey = localStorage.getItem('kaivor_openai_key') || '';
-        if (!apiKey) {
-            alert('Please enter your OpenAI API key in the Feed & API Key Manager for audio briefings.');
-            return;
-        }
-        btn.innerText = 'Generating Audio...';
-        fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text, apiKey: apiKey })
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('TTS generation failed');
-            return res.blob();
-        })
-        .then(blob => {
-            const audioUrl = URL.createObjectURL(blob);
-            const audio = new Audio(audioUrl);
-            audio.play();
-            btn.innerText = '🔊 Playing Brief';
-            audio.onended = () => { btn.innerText = 'Listen Brief'; };
-        })
-        .catch(err => {
-            alert('Error generating audio briefing. Check your OpenAI API key credits.');
-            btn.innerText = 'Listen Brief';
-        });
-    }
-
-    function playAudioBriefSmart(btn, defaultText) {
-        const card = btn.closest('.card, .article-card, div') || btn.parentElement;
-        const briefBox = card.querySelector('.brief');
-        // If an AI brief was generated and is visible, read that instead!
-        const textToRead = (briefBox && briefBox.innerText.trim().length > 10) ? briefBox.innerText : defaultText;
-        playAudioBrief(btn, textToRead);
-    }
-
-
-    function playAudioBrief(btn, defaultText) {
-        const apiKey = localStorage.getItem('kaivor_openai_key') || '';
-        if (!apiKey) {
-            alert('Please enter your OpenAI API key in the Feed & API Key Manager panel.');
-            return;
-        }
-        
-        // Find the parent article card container
-        const card = btn.closest('.card') || btn.closest('div') || btn.parentElement;
-        
-        // Look for any generated brief or content box inside this specific card
-        const briefDiv = card ? card.querySelector('.brief') : null;
-        let textToRead = '';
-        
-        if (briefDiv && briefDiv.innerText && briefDiv.innerText.trim().length > 5) {
-            textToRead = briefDiv.innerText;
-        } else {
-            textToRead = defaultText || btn.getAttribute('data-summary') || '';
-        }
-        
-        if (!textToRead || textToRead.trim() === '') {
-            alert('No content available to read.');
-            return;
-        }
-        
-        const originalText = btn.innerText;
-        btn.innerText = 'Generating Audio...';
-        btn.disabled = true;
-        
-        fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: textToRead, apiKey: apiKey })
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('TTS generation failed');
-            return res.blob();
-        })
-        .then(blob => {
-            const audioUrl = URL.createObjectURL(blob);
-            const audio = new Audio(audioUrl);
-            audio.play().catch(e => {
-                alert('Audio playback blocked by browser. Please tap the button again.');
-            });
-            btn.innerText = '🔊 Playing Brief';
-            audio.onended = () => { 
-                btn.innerText = originalText; 
-                btn.disabled = false;
-            };
-            audio.onerror = () => {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            };
-        })
-        .catch(err => {
-            alert('Error generating audio briefing. Check your OpenAI API key and balance.');
-            btn.innerText = originalText;
-            btn.disabled = false;
-        });
-    }
-
-</script>
-
-
-    
-
-
-    
-
-
-    
-
-
-    
-
-
-    <script>
-    function importCustomRSS() {
-        const urlInput = document.getElementById('rssUrlInput');
-        const catSelect = document.getElementById('rssCategorySelect');
-        
-        if (!urlInput || !catSelect) {
-            alert('Error: RSS inputs missing from DOM');
-            return;
-        }
-        
-        let rawInput = urlInput.value.trim();
-        const category = catSelect.value;
-        
-        if (!rawInput) {
-            alert('Please enter a valid RSS URL.');
-            return;
-        }
-        
-        const urlMatch = rawInput.match(/https?:\/\/[^\s\)]+/);
-        const url = urlMatch ? urlMatch[0] : rawInput;
-        
-        alert('Importing feed... Please wait.');
-        
-        fetch('/api/add-rss', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: url, category: category })
-        })
-        .then(res => res.text())
-        .then(text => {
-            try {
-                const data = JSON.parse(text);
-                if (data.success) {
-                    alert(data.message);
-                    location.reload();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to import RSS feed.'));
-                }
-            } catch (e) {
-                alert('Server returned invalid response: ' + text.substring(0, 100));
+        if (cryptoData.bitcoin) {
+            const btcEl = document.getElementById('ticker-bitcoin') || document.querySelector('.ticker-item:nth-child(10)');
+            if (btcEl) {
+                const price = Math.round(cryptoData.bitcoin.usd).toLocaleString();
+                const change = cryptoData.bitcoin.usd_24h_change.toFixed(1);
+                const color = change >= 0 ? '#00a884' : '#ff5555';
+                const sign = change >= 0 ? '+' : '';
+                btcEl.innerHTML = ;
             }
-        })
-        .catch(err => {
-            alert('Fetch Error: ' + err);
-        });
-    }
-    </script>
+        }
 
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m')
-        .then(res => res.json())
-        .then(data => {
-            const temp = data.current.temperature_2m;
-            const el = document.getElementById('weatherText');
-            if(el) el.innerText = `London: ${temp}°C`;
-        })
-        .catch(err => {
-            const el = document.getElementById('weatherText');
-            if(el) el.innerText = 'Unavailable';
-        });
-});
-</script>
-
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m')
-        .then(res => res.json())
-        .then(data => {
-            const temp = data.current.temperature_2m;
-            const el = document.getElementById('weatherText');
-            if(el) el.innerText = ;
-        })
-        .catch(err => {
-            const el = document.getElementById('weatherText');
-            if(el) el.innerText = 'N/A';
-        });
-});
-</script>
-
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    // Fetch live Bitcoin / Ethereum / Crypto via CoinGecko (Free, no key required)
-    fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether&vs_currencies=usd&include_24hr_change=true')
-        .then(res => res.json())
-        .then(data => {
-            if(data.bitcoin) {
-                const btcPrice = Math.round(data.bitcoin.usd).toLocaleString();
-                const btcChange = data.bitcoin.usd_24h_change.toFixed(1);
-                // Update bitcoin if element exists
+        if (cryptoData.ethereum) {
+            const ethEl = document.querySelector('.ticker-item:nth-child(7)');
+            if (ethEl) {
+                const price = Math.round(cryptoData.ethereum.usd).toLocaleString();
+                const change = cryptoData.ethereum.usd_24h_change.toFixed(1);
+                const color = change >= 0 ? '#00a884' : '#ff5555';
+                const sign = change >= 0 ? '+' : '';
+                ethEl.innerHTML = ;
             }
-        }).catch(e => console.log('Crypto fetch error:', e));
+        }
 
-    // For FX and commodities, we can ensure the ticker stays crisp and responsive
-    console.log('Finance ticker ready.');
+        // 2. Fetch live Forex / Exchange Rates (GBP/USD, EUR/USD, USD/JPY)
+        const fxRes = await fetch('https://open.er-api.com/v6/latest/USD');
+        const fxData = await fxRes.json();
+        if (fxData && fxData.rates) {
+            const gbpRate = (1 / fxData.rates.GBP).toFixed(4);
+            const gbpEl = document.getElementById('ticker-gbpusd') || document.querySelector('.ticker-item:nth-child(3)');
+            if (gbpEl) {
+                gbpEl.innerHTML = ;
+            }
+        }
+
+        console.log('Live financial ticker updated successfully.');
+    } catch (err) {
+        console.log('Live ticker fetch fallback active:', err);
+    }
 });
 </script>
 
