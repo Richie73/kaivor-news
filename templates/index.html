@@ -300,5 +300,77 @@ function saveGuardianKey(val) {
 }
 </script>
 
+
+<script>
+function toggleManager() {
+    const mgr = document.getElementById('feedManagerSection');
+    if (mgr) {
+        mgr.style.display = mgr.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function generateDailyDigest() {
+    alert("Generating key takeaways...");
+}
+
+function playAudioBrief(btn, text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert("Audio playback not supported.");
+    }
+}
+
+function playAudioBriefSmart(btn, text) {
+    playAudioBrief(btn, text);
+}
+
+function getBrief(btn, title) {
+    alert("AI Brief for: " + title);
+}
+
+function toggleAskBox(btn) {
+    const parent = btn.closest('.article-card') || btn.parentElement;
+    const box = parent.querySelector('.ask-box');
+    if (box) {
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function saveArticle(title, link) {
+    let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+    saved.push({ title, link });
+    localStorage.setItem('kaivor_saved', JSON.stringify(saved));
+    alert("Article saved!");
+}
+
+function askAI(btn, title) {
+    const parent = btn.closest('.ask-box') || btn.parentElement;
+    const input = parent.querySelector('input');
+    const q = input ? input.value : '';
+    alert("Asking AI about '" + title + "': " + q);
+}
+
+function importCustomRSS() {
+    const url = document.getElementById('rssUrlInput').value;
+    const cat = document.getElementById('rssCategorySelect').value;
+    if (!url) {
+        alert("Please enter a valid RSS URL.");
+        return;
+    }
+    window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
+}
+
+function saveAIKey(val) {
+    localStorage.setItem('kaivor_openai_key', val);
+}
+
+function saveGuardianKey(val) {
+    localStorage.setItem('kaivor_guardian_key', val);
+}
+</script>
+
 </body>
 </html>
