@@ -482,5 +482,22 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m')
+        .then(res => res.json())
+        .then(data => {
+            const temp = data.current.temperature_2m;
+            const el = document.getElementById('weatherText');
+            if(el) el.innerText = ;
+        })
+        .catch(err => {
+            const el = document.getElementById('weatherText');
+            if(el) el.innerText = 'N/A';
+        });
+});
+</script>
+
 </body>
 </html>
