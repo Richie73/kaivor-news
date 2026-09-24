@@ -21,14 +21,17 @@ def get_live_market_data():
     try:
         req = urllib.request.urlopen("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd", timeout=2)
         c_data = json.loads(req.read().decode('utf-8'))
-        if 'bitcoin' in c_data:
+        if 'bitcoin' in c_data and 'usd' in c_data['bitcoin']:
             data["bitcoin"] = f"${int(c_data['bitcoin']['usd']):,}"
-        if 'ethereum' in c_data:
+        if 'ethereum' in c_data and 'usd' in c_data['ethereum']:
             data["ethereum"] = f"${int(c_data['ethereum']['usd']):,}"
     except Exception as e:
         print("Crypto fetch error:", e)
 
     return data
+
+
+
 
 
 

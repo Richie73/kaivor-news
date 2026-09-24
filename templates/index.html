@@ -50,6 +50,14 @@
         .saved-item { font-size: 0.8rem; background: #111b22; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .saved-item a { color: #00a884; text-decoration: none; }
     </style>
+
+<style>
+.ticker-wrap { overflow: hidden; white-space: nowrap; background: #111b22; border: 1px solid #222d34; padding: 6px 0; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
+.ticker-move { display: inline-block; white-space: nowrap; animation: marquee 35s linear infinite; }
+.ticker-item { display: inline-block; padding: 0 24px; font-size: 0.8rem; }
+@keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+</style>
+
 </head>
 <body>
 
