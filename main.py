@@ -380,7 +380,16 @@ def api_tts():
 def add_rss():
     try:
         data = request.get_json() or {}
-        url = data.get('url', '').strip()
+        
+        raw_url = data.get('url', '').strip()
+        # Aggressively extract pure URL if markdown formatting was pasted
+        if '[' in raw_url and '](' in raw_url:
+            parts = raw_url.split('](')
+            url = parts[1].replace(')', '').strip() if len(parts) > 1 else parts[0].replace('[', '').strip()
+        else:
+            url = raw_url
+        url = url.strip('<>"\'')
+
         category = data.get('category', 'World')
         
         if not url:
