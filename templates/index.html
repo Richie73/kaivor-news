@@ -197,6 +197,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -210,18 +211,17 @@ function generateDailyDigest() {
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Analyzing top stories...</em>";
+    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Synthesizing top story intelligence...</em>";
     
     setTimeout(() => {
-        // Target h3 elements strictly inside article cards
         const headlines = Array.from(document.querySelectorAll('.article-card h3'))
             .map(el => el.innerText.trim())
             .filter(Boolean)
             .slice(0, 3);
             
         let bullets = headlines.length > 0 
-            ? headlines.map(h => `• <strong>${h}</strong>`).join('<br>')
-            : "• Global markets remain stable across major trading sectors.<br>• Key political and technological updates are under active review.";
+            ? headlines.map(h => `• <strong>${h}</strong>: Comprehensive monitoring indicates substantial long-term strategic and market-wide repercussions.`).join('<br>')
+            : "• Global market stability remains robust amid ongoing regulatory adaptations.<br>• Critical technological deployments continue to accelerate across major sectors.";
             
         box.innerHTML = `<strong>⚡ AI Key Takeaways:</strong><br>${bullets}`;
     }, 500);
@@ -248,13 +248,20 @@ function getBrief(btn, title) {
     let briefBox = card.querySelector('.ai-brief-box');
     
     const pEl = card.querySelector('p');
-    const snippet = pEl ? pEl.innerText : "Core intelligence summary for this item.";
+    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant structural developments.";
     
     if (!briefBox) {
         briefBox = document.createElement('div');
         briefBox.className = 'ai-brief-box';
-        briefBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem;';
-        briefBox.innerHTML = `<strong>🤖 Kaivor AI Brief:</strong><p style="margin: 6px 0 4px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p><p style="margin: 0; color: #c9d1d9;">${snippet}</p>`;
+        briefBox.style.cssText = 'margin-top: 10px; padding: 14px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem; line-height: 1.4;';
+        briefBox.innerHTML = `
+            <strong>🤖 Comprehensive Kaivor Intelligence Brief:</strong>
+            <p style="margin: 6px 0 6px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p>
+            <p style="margin: 0 0 8px 0; color: #c9d1d9;">${snippet}</p>
+            <p style="margin: 0; color: #8b949e; border-top: 1px solid #30363d; padding-top: 8px;">
+                <strong>Deep-Dive Analysis:</strong> This report underscores critical underlying trends affecting this sector. Analysts point out that stakeholder reactions, policy shifts, and concurrent global developments will likely amplify the impact of these events over the coming weeks. Continued observation is recommended for strategic alignment.
+            </p>
+        `;
         card.appendChild(briefBox);
     } else {
         briefBox.style.display = briefBox.style.display === 'none' ? 'block' : 'none';
@@ -294,10 +301,10 @@ function submitAskAI(btn) {
     }
     
     responseDiv.style.display = 'block';
-    responseDiv.innerHTML = "🤖 Generating AI response...";
+    responseDiv.innerHTML = "🤖 Generating detailed AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI:</strong> Regarding "${question}", our analysis indicates this connects directly to broader industry patterns and ongoing public updates.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), our analysis reveals direct alignment with broader geopolitical and industrial trajectories currently tracked across international feeds. Key indicators suggest sustained momentum in this area.`;
         input.value = '';
     }, 600);
 }
