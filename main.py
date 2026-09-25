@@ -54,10 +54,13 @@ CATEGORY_FEEDS = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
         "https://rss.cnn.com/rss/edition_world.rss",
-        "https://moxie.foxnews.com/feedburner/world.rss",
         "https://www.aljazeera.com/xml/rss/all.rss",
         "https://www.france24.com/en/rss",
-        "https://www.dw.com/en/top-stories/s-9097/rss"
+        "https://www.dw.com/en/top-stories/s-9097/rss",
+        "https://www.theguardian.com/world/rss",
+        "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+        "https://feeds.npr.org/1004/rss.xml",
+        "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"
     ],
     "Politics": [
         "https://www.foreignaffairs.com/rss.xml",
