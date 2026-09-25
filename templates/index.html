@@ -173,6 +173,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
                 <button onclick="getBrief(this, this.getAttribute('data-title'))" data-title="{{ article.title | escape }}">AI Brief</button>
                 <button onclick="toggleAskBox(this)">Ask AI</button>
                 <button onclick="saveArticle('{{ article.title | escape }}', '{{ article.link }}')">Save</button>
+<a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" style="background: #1f2c34; color: #58a6ff; border: 1px solid #30363d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; text-decoration: none; display: inline-block; margin-left: 5px;">🌐 Open in Chrome</a>
             </div>
             <div class="brief"></div>
             <div class="ask-box">
