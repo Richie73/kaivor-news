@@ -111,6 +111,19 @@ CATEGORY_FEEDS = {
 }
 
 FEED_CACHE = {}
+
+def prefetch_all_feeds():
+    print("Pre-fetching all category feeds into memory for instant switching...")
+    used_photos = set()
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        for cat, urls in CATEGORY_FEEDS.items():
+            for url in urls:
+                executor.submit(parse_single_feed, url, cat, used_photos)
+    print("All category feeds cached successfully!")
+
+# Trigger prefetch on startup in a background thread
+threading.Thread(target=prefetch_all_feeds, daemon=True).start()
+
 CACHE_TTL = 900
 
 MASTER_PHOTO_POOL = [
