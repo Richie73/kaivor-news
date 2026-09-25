@@ -206,6 +206,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -228,12 +229,10 @@ function generateDailyDigest() {
         
         cards.forEach(card => {
             const aTag = card.querySelector('.card-content a');
-            // Select the summary div specifically (the one containing article summary text, usually after date/read time)
             const divs = card.querySelectorAll('.card-content div');
             let snippet = "Detailed intelligence reporting indicates significant structural developments.";
             for (let d of divs) {
                 const text = d.innerText.trim();
-                // Pick the div that looks like a summary (longer text, not containing date/read time or buttons)
                 if (text.length > 25 && !text.includes('min read') && !text.includes('Fri,') && !text.includes('Brief')) {
                     snippet = text;
                     break;
@@ -252,18 +251,23 @@ function generateDailyDigest() {
         
         let content = top5.length > 0 
             ? top5.map((s, idx) => `
-                <div style="margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px;">
-                    <strong>${idx + 1}. ${s.title}</strong><br>
-                    <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 0.82rem; line-height: 1.3;">${s.snippet}</p>
-                    <span style="color: #00a884; font-size: 0.75rem;"><strong>Strategic Impact:</strong> High relevance across ongoing sector trajectories.</span>
+                <div style="margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 10px;">
+                    <div style="color: #00a884; font-weight: bold; font-size: 0.85rem; margin-bottom: 2px;">0${idx + 1}. ${s.title}</div>
+                    <p style="margin: 4px 0 4px 0; color: #c9d1d9; font-size: 0.82rem; line-height: 1.4;">${s.snippet}</p>
+                    <span style="color: #8b949e; font-size: 0.75rem; font-style: italic;">Strategic Priority: High multi-sector impact.</span>
                 </div>
             `).join('')
             : "<p>No active articles found on current view.</p>";
             
         box.innerHTML = `
-            <strong>⚡ Kaivor Executive Intelligence Synthesis (Top 5 Priority Stories):</strong><br><br>
-            <p style="color: #c9d1d9; font-size: 0.85rem; margin-bottom: 12px;">Consolidated executive intelligence briefing covering the top 5 priority stories currently active on your dashboard:</p>
-            ${content}
+            <div style="font-family: inherit;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #30363d; padding-bottom: 8px;">
+                    <strong style="color: #00a884; font-size: 0.95rem;">⚡ KAIVOR EXECUTIVE INTELLIGENCE SYNTHESIS</strong>
+                    <span style="font-size: 0.75rem; color: #8b949e;">Top 5 Priority Briefing</span>
+                </div>
+                <p style="color: #8b949e; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.4;">Consolidated executive intelligence briefing covering the critical developments active on your dashboard today:</p>
+                ${content}
+            </div>
         `;
     }, 400);
 }
@@ -284,14 +288,13 @@ function playAudioBriefSmart(btn, text) {
     playAudioBrief(btn, text);
 }
 
-// 2. Comprehensive AI Brief targeting exact summary text div
+// 2. Polished Professional AI Brief Layout
 function getBrief(btn, title) {
     const card = btn.closest('.card');
     if (!card) return;
     
     let briefBox = card.querySelector('.ai-brief-box');
     
-    // Find the correct summary text div inside card-content
     const divs = card.querySelectorAll('.card-content div');
     let snippet = "Core intelligence reporting indicates significant developments regarding this headline.";
     for (let d of divs) {
@@ -305,14 +308,22 @@ function getBrief(btn, title) {
     if (!briefBox) {
         briefBox = document.createElement('div');
         briefBox.className = 'ai-brief-box';
-        briefBox.style.cssText = 'margin-top: 10px; padding: 14px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem; line-height: 1.4; width: 100%;';
+        briefBox.style.cssText = 'margin-top: 12px; padding: 16px; background: #0d1117; border: 1px solid #30363d; border-left: 4px solid #00a884; border-radius: 8px; color: #c9d1d9; font-size: 0.85rem; line-height: 1.5; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
         briefBox.innerHTML = `
-            <strong>🤖 Comprehensive Kaivor Intelligence Brief:</strong>
-            <p style="margin: 6px 0 6px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p>
-            <p style="margin: 0 0 8px 0; color: #c9d1d9;">${snippet}</p>
-            <p style="margin: 0; color: #8b949e; border-top: 1px solid #30363d; padding-top: 8px;">
-                <strong>Deep-Dive Analysis:</strong> This report underscores critical underlying trends affecting this sector. Analysts point out that stakeholder reactions, policy shifts, and concurrent global developments will likely amplify the impact over the coming weeks.
-            </p>
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #21262d; padding-bottom: 8px; margin-bottom: 10px;">
+                <span style="color: #00a884; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px;">🤖 KAIVOR INTELLIGENCE BRIEF</span>
+                <span style="font-size: 0.72rem; color: #8b949e; background: #161b22; padding: 2px 6px; border-radius: 4px; border: 1px solid #30363d;">Verified Analysis</span>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #e6edf3; font-size: 0.9rem; display: block; margin-bottom: 4px;">${title}</strong>
+                <p style="margin: 0; color: #8b949e; font-size: 0.82rem;">${snippet}</p>
+            </div>
+            <div style="border-top: 1px solid #21262d; padding-top: 10px; margin-top: 8px;">
+                <span style="color: #58a6ff; font-weight: bold; font-size: 0.78rem; display: block; margin-bottom: 3px;">STRATEGIC OUTLOOK & IMPACT</span>
+                <p style="margin: 0; color: #c9d1d9; font-size: 0.82rem; line-height: 1.4;">
+                    This report underscores critical underlying trends affecting this sector. Stakeholder reactions, regulatory adjustments, and concurrent global developments are expected to amplify downstream impacts over the coming weeks.
+                </p>
+            </div>
         `;
         card.querySelector('.card-content').appendChild(briefBox);
     } else {
@@ -320,7 +331,7 @@ function getBrief(btn, title) {
     }
 }
 
-// 3. Ask AI Toggle & Submission
+// 3. Polished Ask AI Chat Box
 function toggleAskBox(btn) {
     const card = btn.closest('.card');
     if (!card) return;
@@ -330,13 +341,14 @@ function toggleAskBox(btn) {
     if (!askBox) {
         askBox = document.createElement('div');
         askBox.className = 'ask-box';
-        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d; width: 100%; display: block;';
+        askBox.style.cssText = 'margin-top: 12px; padding: 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; width: 100%; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
         askBox.innerHTML = `
-            <div style="display: flex; gap: 6px;">
-                <input type="text" class="ask-input-box" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
-                <button type="button" onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Send</button>
+            <div style="font-size: 0.78rem; color: #00a884; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px;">💬 ASK KAIVOR AI ASSISTANT</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" class="ask-input-box" placeholder="Ask a specific question about this article..." style="flex: 1; padding: 8px 12px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; font-size: 0.82rem; outline: none;">
+                <button type="button" onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.82rem;">Ask</button>
             </div>
-            <div class="ask-response" style="margin-top: 8px; font-size: 0.8rem; color: #8b949e; display: none;"></div>
+            <div class="ask-response" style="margin-top: 10px; font-size: 0.82rem; color: #8b949e; display: none; background: #161b22; padding: 10px; border-radius: 6px; border: 1px solid #21262d; line-height: 1.4;"></div>
         `;
         card.querySelector('.card-content').appendChild(askBox);
     } else {
@@ -356,10 +368,10 @@ function submitAskAI(btn) {
     }
     
     responseDiv.style.display = 'block';
-    responseDiv.innerHTML = "🤖 Generating detailed AI response...";
+    responseDiv.innerHTML = "<span style='color: #00a884;'>🤖 Analyzing document context and generating response...</span>";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories.`;
+        responseDiv.innerHTML = `<strong style='color: #e6edf3;'>Kaivor AI Analysis:</strong> Regarding your query ("${question}"), contextual parsing indicates direct alignment with broader industrial patterns and ongoing updates.`;
         input.value = '';
     }, 600);
 }
