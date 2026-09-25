@@ -196,6 +196,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -209,31 +210,21 @@ function generateDailyDigest() {
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Synthesizing top article headlines...</em>";
+    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Analyzing top stories...</em>";
     
     setTimeout(() => {
-        // Target only actual article cards' titles
-        const articleCards = document.querySelectorAll('.article-card');
-        let titles = [];
-        articleCards.forEach(card => {
-            const h = card.querySelector('h3, h2, a');
-            if (h && h.innerText.trim() && !h.innerText.includes('TOP STORIES')) {
-                titles.push(h.innerText.trim());
-            }
-        });
-        
-        if (titles.length === 0) {
-            // Fallback selector
-            titles = Array.from(document.querySelectorAll('h3')).map(e => e.innerText.trim()).filter(t => !t.includes('TOP STORIES'));
-        }
-        
-        const selected = titles.slice(0, 3);
-        let bullets = selected.length > 0 
-            ? selected.map(t => `• <strong>Insight:</strong> ${t}`).join('<br>')
-            : "• Global technology and market updates indicate steady growth.<br>• Key sector developments are under active observation.";
+        // Target h3 elements strictly inside article cards
+        const headlines = Array.from(document.querySelectorAll('.article-card h3'))
+            .map(el => el.innerText.trim())
+            .filter(Boolean)
+            .slice(0, 3);
+            
+        let bullets = headlines.length > 0 
+            ? headlines.map(h => `• <strong>${h}</strong>`).join('<br>')
+            : "• Global markets remain stable across major trading sectors.<br>• Key political and technological updates are under active review.";
             
         box.innerHTML = `<strong>⚡ AI Key Takeaways:</strong><br>${bullets}`;
-    }, 600);
+    }, 500);
 }
 
 function playAudioBrief(btn, text) {
