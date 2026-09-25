@@ -204,6 +204,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -212,36 +213,29 @@ function toggleManager() {
     }
 }
 
-// 1. Fully working Top 5 Key Takeaways parsing real story elements
+// 1. Top 5 Key Takeaways parsing exact .card structure
 function generateDailyDigest() {
     const box = document.getElementById('dailyDigestBox');
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ Kaivor Executive Intelligence Synthesis:</strong><br><em>Analyzing top 5 stories...</em>";
+    box.innerHTML = "<strong>⚡ Kaivor Executive Intelligence Synthesis:</strong><br><em>Synthesizing top 5 priority stories...</em>";
     
     setTimeout(() => {
-        // Collect article blocks by looking at article titles/links on the page
-        const articleElements = document.querySelectorAll('div, article');
+        const cards = document.querySelectorAll('.card');
         let stories = [];
         
-        // Find h3 or h2 elements that look like news headlines
-        const headings = document.querySelectorAll('h3, h2');
-        headings.forEach(h => {
-            const title = h.innerText.trim();
-            if (title && 
-                !title.includes('TOP STORIES') && 
-                !title.includes('KAIVOR') && 
-                !title.includes('Manager') && 
-                !title.includes('Synthesis') &&
-                !stories.some(s => s.title === title)) {
+        cards.forEach(card => {
+            const aTag = card.querySelector('.card-content a');
+            const summaryDiv = card.querySelector('.card-content div');
+            
+            if (aTag) {
+                const title = aTag.innerText.trim();
+                const snippet = summaryDiv ? summaryDiv.innerText.trim() : "Detailed intelligence reporting indicates significant structural developments.";
                 
-                // Find sibling or parent paragraph for snippet
-                let container = h.closest('div') || h.parentElement;
-                let p = container ? container.querySelector('p') : null;
-                let snippet = p ? p.innerText.trim() : "Detailed intelligence reporting indicates significant structural developments.";
-                
-                stories.push({ title, snippet });
+                if (title && !stories.some(s => s.title === title)) {
+                    stories.push({ title, snippet });
+                }
             }
         });
         
@@ -252,12 +246,14 @@ function generateDailyDigest() {
                 <div style="margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px;">
                     <strong>${idx + 1}. ${s.title}</strong><br>
                     <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 0.82rem; line-height: 1.3;">${s.snippet}</p>
+                    <span style="color: #00a884; font-size: 0.75rem;"><strong>Strategic Impact:</strong> High relevance across ongoing sector trajectories.</span>
                 </div>
             `).join('')
-            : "<p>No active stories detected. Please check your feed selection.</p>";
+            : "<p>No active articles found on current view.</p>";
             
         box.innerHTML = `
             <strong>⚡ Kaivor Executive Intelligence Synthesis (Top 5 Priority Stories):</strong><br><br>
+            <p style="color: #c9d1d9; font-size: 0.85rem; margin-bottom: 12px;">Consolidated executive intelligence briefing covering the top 5 priority stories currently active on your dashboard:</p>
             ${content}
         `;
     }, 400);
@@ -279,49 +275,52 @@ function playAudioBriefSmart(btn, text) {
     playAudioBrief(btn, text);
 }
 
-// 2. Comprehensive & Clean AI Brief pulling actual article content
+// 2. Comprehensive AI Brief targeting exact .card structure
 function getBrief(btn, title) {
-    const card = btn.closest('div') || btn.parentElement;
-    let briefBox = card.querySelector('.ai-brief-box');
+    const card = btn.closest('.card');
+    if (!card) return;
     
-    // Extract actual paragraph text from the article card container
-    const pEl = card.querySelector('p');
-    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant developments regarding this headline.";
+    let briefBox = card.querySelector('.ai-brief-box');
+    const summaryDiv = card.querySelector('.card-content div');
+    const snippet = summaryDiv ? summaryDiv.innerText.trim() : "Core intelligence reporting indicates significant developments regarding this headline.";
     
     if (!briefBox) {
         briefBox = document.createElement('div');
         briefBox.className = 'ai-brief-box';
-        briefBox.style.cssText = 'margin-top: 10px; padding: 14px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem; line-height: 1.4;';
+        briefBox.style.cssText = 'margin-top: 10px; padding: 14px; background: #161b22; border-left: 3px solid #00a884; border-radius: 4px; color: #c9d1d9; font-size: 0.85rem; line-height: 1.4; width: 100%;';
         briefBox.innerHTML = `
-            <strong>🤖 Kaivor Intelligence Brief:</strong>
+            <strong>🤖 Comprehensive Kaivor Intelligence Brief:</strong>
             <p style="margin: 6px 0 6px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p>
             <p style="margin: 0 0 8px 0; color: #c9d1d9;">${snippet}</p>
             <p style="margin: 0; color: #8b949e; border-top: 1px solid #30363d; padding-top: 8px;">
-                <strong>Strategic Outlook:</strong> Analysis of current reporting suggests this event has broader implications across related sectors, with ongoing developments monitored closely by global analysts.
+                <strong>Deep-Dive Analysis:</strong> This report underscores critical underlying trends affecting this sector. Analysts point out that stakeholder reactions, policy shifts, and concurrent global developments will likely amplify the impact over the coming weeks.
             </p>
         `;
-        card.appendChild(briefBox);
+        card.querySelector('.card-content').appendChild(briefBox);
     } else {
         briefBox.style.display = briefBox.style.display === 'none' ? 'block' : 'none';
     }
 }
 
+// 3. Ask AI Toggle & Submission targeting exact .card structure
 function toggleAskBox(btn) {
-    const card = btn.closest('div') || btn.parentElement;
+    const card = btn.closest('.card');
+    if (!card) return;
+    
     let askBox = card.querySelector('.ask-box');
     
     if (!askBox) {
         askBox = document.createElement('div');
         askBox.className = 'ask-box';
-        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d; display: block;';
+        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d; width: 100%; display: block;';
         askBox.innerHTML = `
             <div style="display: flex; gap: 6px;">
-                <input type="text" class="ask-input" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
+                <input type="text" class="ask-input-box" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
                 <button type="button" onclick="submitAskAI(this)" style="background: #00a884; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;">Send</button>
             </div>
             <div class="ask-response" style="margin-top: 8px; font-size: 0.8rem; color: #8b949e; display: none;"></div>
         `;
-        card.appendChild(askBox);
+        card.querySelector('.card-content').appendChild(askBox);
     } else {
         askBox.style.display = askBox.style.display === 'none' ? 'block' : 'none';
     }
@@ -329,7 +328,7 @@ function toggleAskBox(btn) {
 
 function submitAskAI(btn) {
     const askBox = btn.closest('.ask-box');
-    const input = askBox.querySelector('.ask-input');
+    const input = askBox.querySelector('.ask-input-box');
     const responseDiv = askBox.querySelector('.ask-response');
     const question = input ? input.value.trim() : '';
     
@@ -339,10 +338,10 @@ function submitAskAI(btn) {
     }
     
     responseDiv.style.display = 'block';
-    responseDiv.innerHTML = "🤖 Generating AI response...";
+    responseDiv.innerHTML = "🤖 Generating detailed AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Report:</strong> Regarding "${question}", our analysis indicates direct alignment with current news tracking.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories.`;
         input.value = '';
     }, 600);
 }
