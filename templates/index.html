@@ -198,6 +198,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -220,8 +221,8 @@ function generateDailyDigest() {
             .slice(0, 3);
             
         let bullets = headlines.length > 0 
-            ? headlines.map(h => `• <strong>${h}</strong>: Comprehensive monitoring indicates substantial long-term strategic and market-wide repercussions.`).join('<br>')
-            : "• Global market stability remains robust amid ongoing regulatory adaptations.<br>• Critical technological deployments continue to accelerate across major sectors.";
+            ? headlines.map(h => `• <strong>${h}</strong>: Comprehensive monitoring indicates substantial long-term strategic impact.`).join('<br>')
+            : "• Global market stability remains robust.<br>• Critical technological deployments continue to accelerate.";
             
         box.innerHTML = `<strong>⚡ AI Key Takeaways:</strong><br>${bullets}`;
     }, 500);
@@ -248,7 +249,7 @@ function getBrief(btn, title) {
     let briefBox = card.querySelector('.ai-brief-box');
     
     const pEl = card.querySelector('p');
-    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant structural developments.";
+    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant developments.";
     
     if (!briefBox) {
         briefBox = document.createElement('div');
@@ -259,7 +260,7 @@ function getBrief(btn, title) {
             <p style="margin: 6px 0 6px 0; color: #8b949e;"><strong>Subject:</strong> ${title}</p>
             <p style="margin: 0 0 8px 0; color: #c9d1d9;">${snippet}</p>
             <p style="margin: 0; color: #8b949e; border-top: 1px solid #30363d; padding-top: 8px;">
-                <strong>Deep-Dive Analysis:</strong> This report underscores critical underlying trends affecting this sector. Analysts point out that stakeholder reactions, policy shifts, and concurrent global developments will likely amplify the impact of these events over the coming weeks. Continued observation is recommended for strategic alignment.
+                <strong>Deep-Dive Analysis:</strong> This report underscores critical underlying trends affecting this sector. Analysts point out that stakeholder reactions, policy shifts, and concurrent global developments will likely amplify the impact over the coming weeks.
             </p>
         `;
         card.appendChild(briefBox);
@@ -275,7 +276,7 @@ function toggleAskBox(btn) {
     if (!askBox) {
         askBox = document.createElement('div');
         askBox.className = 'ask-box';
-        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;';
+        askBox.style.cssText = 'margin-top: 10px; padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d; display: block;';
         askBox.innerHTML = `
             <div style="display: flex; gap: 6px;">
                 <input type="text" class="ask-input" placeholder="Ask AI about this article..." style="flex: 1; padding: 6px 10px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 0.8rem;">
@@ -304,29 +305,24 @@ function submitAskAI(btn) {
     responseDiv.innerHTML = "🤖 Generating detailed AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), our analysis reveals direct alignment with broader geopolitical and industrial trajectories currently tracked across international feeds. Key indicators suggest sustained momentum in this area.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories.`;
         input.value = '';
     }, 600);
 }
 
-function saveArticle(title, link) {
-    let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
-    if (!saved.some(item => item.link === link)) {
-        saved.push({ title, link });
-        localStorage.setItem('kaivor_saved', JSON.stringify(saved));
-        alert("Article bookmarked successfully!");
-    } else {
-        alert("Article already saved.");
-    }
-}
-
 function importCustomRSS() {
-    const url = document.getElementById('rssUrlInput').value;
-    const cat = document.getElementById('rssCategorySelect').value;
+    const urlInput = document.getElementById('rssUrlInput');
+    const catSelect = document.getElementById('rssCategorySelect');
+    
+    const url = urlInput ? urlInput.value.trim() : '';
+    const cat = catSelect ? catSelect.value : 'World';
+    
     if (!url) {
-        alert("Please enter an RSS URL.");
+        alert("Please enter a valid RSS Feed URL.");
         return;
     }
+    
+    // Redirect to backend with custom feed parameters
     window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
 }
 
