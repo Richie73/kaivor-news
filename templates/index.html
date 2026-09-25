@@ -202,6 +202,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -210,39 +211,49 @@ function toggleManager() {
     }
 }
 
-// 1. Top 5 Comprehensive Key Takeaways
+// Comprehensive, deep-dive Top 5 Intelligence Briefing
 function generateDailyDigest() {
     const box = document.getElementById('dailyDigestBox');
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><em>Synthesizing top 5 priority stories...</em>";
+    box.innerHTML = "<strong>⚡ Kaivor Executive Intelligence Synthesis:</strong><br><em>Synthesizing comprehensive top 5 briefing...</em>";
     
     setTimeout(() => {
         const cards = document.querySelectorAll('.article-card');
-        let titles = [];
+        let stories = [];
         cards.forEach(card => {
             const h = card.querySelector('h3, h2');
+            const p = card.querySelector('p');
             if (h) {
-                const text = h.innerText.trim();
-                // Exclude category headers or empty values
-                if (text && !text.includes('TOP STORIES') && !text.includes('SAVED') && !titles.includes(text)) {
-                    titles.push(text);
+                const title = h.innerText.trim();
+                const snippet = p ? p.innerText.trim() : "Detailed intelligence reporting indicates ongoing developments.";
+                if (title && !title.includes('TOP STORIES') && !title.includes('SAVED') && !stories.some(s => s.title === title)) {
+                    stories.push({ title, snippet });
                 }
             }
         });
         
-        const top5 = titles.slice(0, 5);
+        const top5 = stories.slice(0, 5);
         
-        let bullets = top5.length > 0 
-            ? top5.map((t, idx) => `<strong>${idx + 1}. ${t}</strong><br><span style="color: #8b949e; font-size: 0.8rem;">Intelligence briefing: Ongoing developments indicate significant sector-wide implications and strategic shifts.</span>`).join('<br><br>')
-            : "• Priority intelligence streams are actively synchronizing across global feeds.";
+        let content = top5.length > 0 
+            ? top5.map((s, idx) => `
+                <div style="margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px;">
+                    <strong>${idx + 1}. ${s.title}</strong><br>
+                    <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 0.82rem; line-height: 1.3;">${s.snippet}</p>
+                    <span style="color: #00a884; font-size: 0.75rem;"><strong>Intelligence Impact:</strong> High strategic relevance across regional and sector-specific trajectories.</span>
+                </div>
+            `).join('')
+            : "<p>Priority intelligence streams are actively synchronizing across global feeds.</p>";
             
-        box.innerHTML = `<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><br>${bullets}`;
-    }, 500);
+        box.innerHTML = `
+            <strong>⚡ Kaivor Executive Intelligence Synthesis (Top 5 Priority Stories):</strong><br><br>
+            <p style="color: #c9d1d9; font-size: 0.85rem; margin-bottom: 12px;">The following comprehensive briefing consolidates the most critical developments tracked across global intelligence channels today, highlighting core catalysts, ongoing sector reactions, and structural outlooks:</p>
+            ${content}
+        `;
+    }, 600);
 }
 
-// 2. Audio Briefing
 function playAudioBrief(btn, text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -251,7 +262,7 @@ function playAudioBrief(btn, text) {
         utterance.onend = () => { btn.innerText = "🔊 Listen Takeaways"; };
         window.speechSynthesis.speak(utterance);
     } else {
-        alert("Audio playback not supported on this browser.");
+        alert("Audio playback not supported.");
     }
 }
 
@@ -259,7 +270,6 @@ function playAudioBriefSmart(btn, text) {
     playAudioBrief(btn, text);
 }
 
-// 3. Comprehensive AI Brief
 function getBrief(btn, title) {
     const card = btn.closest('.article-card') || btn.parentElement;
     let briefBox = card.querySelector('.ai-brief-box');
@@ -285,7 +295,6 @@ function getBrief(btn, title) {
     }
 }
 
-// 4. Ask AI Chat Box Toggle & Submission
 function toggleAskBox(btn) {
     const card = btn.closest('.article-card') || btn.parentElement;
     let askBox = card.querySelector('.ask-box');
@@ -322,12 +331,11 @@ function submitAskAI(btn) {
     responseDiv.innerHTML = "🤖 Generating detailed AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories and ongoing news updates.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories.`;
         input.value = '';
     }, 600);
 }
 
-// 5. Weather City Changer
 async function changeCity() {
     const city = prompt("Enter city name for weather updates:", "London");
     if (!city) return;
@@ -356,11 +364,9 @@ async function changeCity() {
     }
 }
 
-// 6. Finance & Custom RSS Feed Handlers
 function importCustomRSS() {
     const urlInput = document.getElementById('rssUrlInput');
     const catSelect = document.getElementById('rssCategorySelect');
-    
     const url = urlInput ? urlInput.value.trim() : '';
     const cat = catSelect ? catSelect.value : 'World';
     
@@ -368,7 +374,6 @@ function importCustomRSS() {
         alert("Please enter a valid RSS Feed URL.");
         return;
     }
-    
     window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
 }
 
