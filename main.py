@@ -65,45 +65,49 @@ CATEGORY_FEEDS = {
     "Politics": [
         "https://www.foreignaffairs.com/rss.xml",
         "https://feeds.bbci.co.uk/news/politics/rss.xml",
-        "https://rss.politico.com/politics-news.xml"
+        "https://rss.politico.com/politics-news.xml",
+        "https://www.theguardian.com/politics/rss",
+        "https://thehill.com/policy/internal/feed/",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+        "https://feeds.npr.org/1014/rss.xml"
     ],
     "Science": [
         "https://www.newscientist.com/feed/home/",
         "https://www.sciencedaily.com/rss/top.xml",
-        "https://www.nature.com/nature.rss"
+        "https://www.nature.com/nature.rss",
+        "https://rss.sciencedirect.com/publication/science/00368075",
+        "https://feeds.feedburner.com/sciencedaily/most_recent",
+        "https://www.physorg.com/rss-feed/",
+        "https://feeds.npr.org/1007/rss.xml"
     ],
     "UK": [
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
+        "https://www.theguardian.com/uk-news/rss",
+        "https://www.telegraph.co.uk/news/rss.xml",
         "https://www.independent.co.uk/news/uk/rss",
-        "https://www.standard.co.uk/rss"
+        "https://news.sky.com/rss/uk-10993"
     ],
-    "Tech": [
-        "https://www.theverge.com/rss/index.xml",
-        "https://techcrunch.com/feed/",
-        "https://feeds.arstechnica.com/arstechnica/index",
-        "https://www.wired.com/feed/rss"
+    "Sport": [
+        "https://feeds.bbci.co.uk/sport/rss.xml",
+        "https://www.theguardian.com/sport/rss",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml",
+        "https://www.skysports.com/rss/12040"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
-        "https://www.cnbc.com/id/10001147/device/rss/rss.html",
-        "https://feeds.feedburner.com/reuters/businessNews"
+        "https://www.economist.com/finance-and-economics/rss.xml",
+        "https://rss.cnn.com/rss/edition_business.rss",
+        "https://www.theguardian.com/business/rss",
+        "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml"
     ],
-    "Sport": [
-        "https://feeds.bbci.co.uk/sport/football/rss.xml",
-        "https://www.skysports.com/rss/12110",
-        "https://www.espn.com/espn/rss/football/news"
-    ],
-    "Music": [
-        "https://pitchfork.com/feed/feed-news/rss",
-        "https://www.rollingstone.com/music/music-news/feed/",
-        "https://NME.com/feed"
-    ],
-    "Android": [
-        "https://9to5google.com/feed/",
-        "https://www.androidcentral.com/rss.xml",
-        "https://www.androidpolice.com/feed/"
-    ],
-    "Puzzles": []
+    "Tech": [
+        "https://techcrunch.com/feed/",
+        "https://www.theverge.com/rss/index.xml",
+        "https://feeds.feedburner.com/oreilly/radar/atom",
+        "https://www.wired.com/feed/rss",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+        "https://feeds.bbci.co.uk/news/technology/rss.xml"
+    ]
 }
 
 FEED_CACHE = {}
