@@ -224,7 +224,9 @@ def parse_single_feed(url, category, used_photos):
 
     feed_articles = []
     try:
-        parsed_feed = feedparser.parse(url)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) KaivorNewsReader/1.2"}
+        response = requests.get(url, headers=headers, timeout=10)
+        parsed_feed = feedparser.parse(response.content)
         for entry in parsed_feed.entries[:8]:
             summary_text = entry.get("summary", "")
             clean_summary = BeautifulSoup(summary_text, "html.parser").get_text()
