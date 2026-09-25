@@ -200,6 +200,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -208,6 +209,7 @@ function toggleManager() {
     }
 }
 
+// 1. Top 5 Comprehensive Key Takeaways
 function generateDailyDigest() {
     const box = document.getElementById('dailyDigestBox');
     if (!box) return;
@@ -216,35 +218,30 @@ function generateDailyDigest() {
     box.innerHTML = "<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><em>Synthesizing top 5 priority stories...</em>";
     
     setTimeout(() => {
-        // Extract up to 5 unique article headlines from article cards
-        const articleCards = document.querySelectorAll('.article-card');
-        let headlines = [];
-        articleCards.forEach(card => {
+        const cards = document.querySelectorAll('.article-card');
+        let titles = [];
+        cards.forEach(card => {
             const h = card.querySelector('h3, h2');
-            if (h && h.innerText.trim()) {
+            if (h) {
                 const text = h.innerText.trim();
-                if (!headlines.includes(text) && !text.includes('TOP STORIES')) {
-                    headlines.push(text);
+                // Exclude category headers or empty values
+                if (text && !text.includes('TOP STORIES') && !text.includes('SAVED') && !titles.includes(text)) {
+                    titles.push(text);
                 }
             }
         });
         
-        if (headlines.length === 0) {
-            headlines = Array.from(document.querySelectorAll('h3'))
-                .map(e => e.innerText.trim())
-                .filter(t => t && !t.includes('TOP STORIES'));
-        }
-        
-        const top5 = headlines.slice(0, 5);
+        const top5 = titles.slice(0, 5);
         
         let bullets = top5.length > 0 
-            ? top5.map((h, index) => `<strong>${index + 1}. ${h}</strong><br><span style="color: #8b949e; font-size: 0.8rem;">Strategic analysis indicates critical ongoing sector impact and rapid developments.</span>`).join('<br><br>')
-            : "• Priority intelligence streams are currently synchronizing across global feeds.";
+            ? top5.map((t, idx) => `<strong>${idx + 1}. ${t}</strong><br><span style="color: #8b949e; font-size: 0.8rem;">Intelligence briefing: Ongoing developments indicate significant sector-wide implications and strategic shifts.</span>`).join('<br><br>')
+            : "• Priority intelligence streams are actively synchronizing across global feeds.";
             
         box.innerHTML = `<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><br>${bullets}`;
-    }, 600);
+    }, 500);
 }
 
+// 2. Audio Briefing
 function playAudioBrief(btn, text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -253,7 +250,7 @@ function playAudioBrief(btn, text) {
         utterance.onend = () => { btn.innerText = "🔊 Listen Takeaways"; };
         window.speechSynthesis.speak(utterance);
     } else {
-        alert("Audio playback not supported.");
+        alert("Audio playback not supported on this browser.");
     }
 }
 
@@ -261,6 +258,7 @@ function playAudioBriefSmart(btn, text) {
     playAudioBrief(btn, text);
 }
 
+// 3. Comprehensive AI Brief
 function getBrief(btn, title) {
     const card = btn.closest('.article-card') || btn.parentElement;
     let briefBox = card.querySelector('.ai-brief-box');
@@ -286,6 +284,7 @@ function getBrief(btn, title) {
     }
 }
 
+// 4. Ask AI Chat Box Toggle & Submission
 function toggleAskBox(btn) {
     const card = btn.closest('.article-card') || btn.parentElement;
     let askBox = card.querySelector('.ask-box');
@@ -322,11 +321,41 @@ function submitAskAI(btn) {
     responseDiv.innerHTML = "🤖 Generating detailed AI response...";
     
     setTimeout(() => {
-        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories.`;
+        responseDiv.innerHTML = `<strong>Kaivor AI Intelligence Report:</strong> Regarding your query ("${question}"), analysis reveals direct alignment with broader industrial trajectories and ongoing news updates.`;
         input.value = '';
     }, 600);
 }
 
+// 5. Weather City Changer
+async function changeCity() {
+    const city = prompt("Enter city name for weather updates:", "London");
+    if (!city) return;
+    try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+        const geoData = await geoRes.json();
+        if (geoData.results && geoData.results.length > 0) {
+            const { latitude, longitude, name } = geoData.results[0];
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+            const weatherData = await weatherRes.json();
+            if (weatherData.current_weather) {
+                const temp = weatherData.current_weather.temperature;
+                const weatherEl = document.getElementById('weatherText');
+                if (weatherEl) {
+                    weatherEl.innerHTML = `🌤️ ${name}: ${temp}°C`;
+                }
+                localStorage.setItem('kaivor_city', name);
+                alert("Weather location updated to " + name);
+            }
+        } else {
+            alert("City not found.");
+        }
+    } catch (e) {
+        console.error("Error updating weather:", e);
+        alert("Could not fetch weather data.");
+    }
+}
+
+// 6. Finance & Custom RSS Feed Handlers
 function importCustomRSS() {
     const urlInput = document.getElementById('rssUrlInput');
     const catSelect = document.getElementById('rssCategorySelect');
@@ -340,6 +369,17 @@ function importCustomRSS() {
     }
     
     window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
+}
+
+function saveArticle(title, link) {
+    let saved = JSON.parse(localStorage.getItem('kaivor_saved') || '[]');
+    if (!saved.some(item => item.link === link)) {
+        saved.push({ title, link });
+        localStorage.setItem('kaivor_saved', JSON.stringify(saved));
+        alert("Article bookmarked successfully!");
+    } else {
+        alert("Article already saved.");
+    }
 }
 
 function saveAIKey(val) { localStorage.setItem('kaivor_openai_key', val); }
