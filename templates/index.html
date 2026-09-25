@@ -205,6 +205,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -227,12 +228,20 @@ function generateDailyDigest() {
         
         cards.forEach(card => {
             const aTag = card.querySelector('.card-content a');
-            const summaryDiv = card.querySelector('.card-content div');
+            // Select the summary div specifically (the one containing article summary text, usually after date/read time)
+            const divs = card.querySelectorAll('.card-content div');
+            let snippet = "Detailed intelligence reporting indicates significant structural developments.";
+            for (let d of divs) {
+                const text = d.innerText.trim();
+                // Pick the div that looks like a summary (longer text, not containing date/read time or buttons)
+                if (text.length > 25 && !text.includes('min read') && !text.includes('Fri,') && !text.includes('Brief')) {
+                    snippet = text;
+                    break;
+                }
+            }
             
             if (aTag) {
                 const title = aTag.innerText.trim();
-                const snippet = summaryDiv ? summaryDiv.innerText.trim() : "Detailed intelligence reporting indicates significant structural developments.";
-                
                 if (title && !stories.some(s => s.title === title)) {
                     stories.push({ title, snippet });
                 }
@@ -275,14 +284,23 @@ function playAudioBriefSmart(btn, text) {
     playAudioBrief(btn, text);
 }
 
-// 2. Comprehensive AI Brief targeting exact .card structure
+// 2. Comprehensive AI Brief targeting exact summary text div
 function getBrief(btn, title) {
     const card = btn.closest('.card');
     if (!card) return;
     
     let briefBox = card.querySelector('.ai-brief-box');
-    const summaryDiv = card.querySelector('.card-content div');
-    const snippet = summaryDiv ? summaryDiv.innerText.trim() : "Core intelligence reporting indicates significant developments regarding this headline.";
+    
+    // Find the correct summary text div inside card-content
+    const divs = card.querySelectorAll('.card-content div');
+    let snippet = "Core intelligence reporting indicates significant developments regarding this headline.";
+    for (let d of divs) {
+        const text = d.innerText.trim();
+        if (text.length > 25 && !text.includes('min read') && !text.includes('Fri,') && !text.includes('Brief') && !text.includes('Intelligence Brief')) {
+            snippet = text;
+            break;
+        }
+    }
     
     if (!briefBox) {
         briefBox = document.createElement('div');
@@ -302,7 +320,7 @@ function getBrief(btn, title) {
     }
 }
 
-// 3. Ask AI Toggle & Submission targeting exact .card structure
+// 3. Ask AI Toggle & Submission
 function toggleAskBox(btn) {
     const card = btn.closest('.card');
     if (!card) return;
