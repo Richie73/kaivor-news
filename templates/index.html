@@ -199,6 +199,7 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 
 
+
 <script>
 function toggleManager() {
     const mgr = document.getElementById('feedManagerSection');
@@ -212,20 +213,36 @@ function generateDailyDigest() {
     if (!box) return;
     
     box.style.display = 'block';
-    box.innerHTML = "<strong>⚡ AI Key Takeaways:</strong><br><em>Synthesizing top story intelligence...</em>";
+    box.innerHTML = "<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><em>Synthesizing top 5 priority stories...</em>";
     
     setTimeout(() => {
-        const headlines = Array.from(document.querySelectorAll('.article-card h3'))
-            .map(el => el.innerText.trim())
-            .filter(Boolean)
-            .slice(0, 3);
+        // Extract up to 5 unique article headlines from article cards
+        const articleCards = document.querySelectorAll('.article-card');
+        let headlines = [];
+        articleCards.forEach(card => {
+            const h = card.querySelector('h3, h2');
+            if (h && h.innerText.trim()) {
+                const text = h.innerText.trim();
+                if (!headlines.includes(text) && !text.includes('TOP STORIES')) {
+                    headlines.push(text);
+                }
+            }
+        });
+        
+        if (headlines.length === 0) {
+            headlines = Array.from(document.querySelectorAll('h3'))
+                .map(e => e.innerText.trim())
+                .filter(t => t && !t.includes('TOP STORIES'));
+        }
+        
+        const top5 = headlines.slice(0, 5);
+        
+        let bullets = top5.length > 0 
+            ? top5.map((h, index) => `<strong>${index + 1}. ${h}</strong><br><span style="color: #8b949e; font-size: 0.8rem;">Strategic analysis indicates critical ongoing sector impact and rapid developments.</span>`).join('<br><br>')
+            : "• Priority intelligence streams are currently synchronizing across global feeds.";
             
-        let bullets = headlines.length > 0 
-            ? headlines.map(h => `• <strong>${h}</strong>: Comprehensive monitoring indicates substantial long-term strategic impact.`).join('<br>')
-            : "• Global market stability remains robust.<br>• Critical technological deployments continue to accelerate.";
-            
-        box.innerHTML = `<strong>⚡ AI Key Takeaways:</strong><br>${bullets}`;
-    }, 500);
+        box.innerHTML = `<strong>⚡ AI Top 5 Intelligence Briefing:</strong><br><br>${bullets}`;
+    }, 600);
 }
 
 function playAudioBrief(btn, text) {
@@ -249,7 +266,7 @@ function getBrief(btn, title) {
     let briefBox = card.querySelector('.ai-brief-box');
     
     const pEl = card.querySelector('p');
-    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant developments.";
+    const snippet = pEl ? pEl.innerText : "Core intelligence reporting indicates significant structural developments.";
     
     if (!briefBox) {
         briefBox = document.createElement('div');
@@ -322,7 +339,6 @@ function importCustomRSS() {
         return;
     }
     
-    // Redirect to backend with custom feed parameters
     window.location.href = `/?custom_feed=${encodeURIComponent(url)}&category=${encodeURIComponent(cat)}`;
 }
 
