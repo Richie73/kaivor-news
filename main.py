@@ -514,19 +514,43 @@ def add_rss():
 
 
 
+
+# Global in-memory store for instant zero-delay category switching
+CATEGORY_STORE = {}
+
+def background_feed_loader():
+    global CATEGORY_STORE
+    while True:
+        print("Refreshing category store in background...")
+        used_photos = set()
+        new_store = {}
+        for cat, urls in CATEGORY_FEEDS.items():
+            cat_articles = []
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = {executor.submit(parse_single_feed, url, cat, used_photos): url for url in urls}
+                for future in as_completed(futures):
+                    res = future.result()
+                    if res:
+                        cat_articles.extend(res)
+            new_store[cat] = cat_articles
+        CATEGORY_STORE = new_store
+        print("Category store refreshed successfully!")
+        time.sleep(600) # Refresh every 10 minutes
+
 @app.route("/api/articles")
 def api_articles():
     category = request.args.get("category", "World")
-    used_photos = set()
-    feed_urls = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
-    if isinstance(feed_urls, str):
-        feed_urls = [feed_urls]
-    
-    articles = []
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = {executor.submit(parse_single_feed, url, category, used_photos): url for url in feed_urls}
-        for future in as_completed(futures):
-            res = future.result()
+    if category in CATEGORY_STORE and CATEGORY_STORE[category]:
+        articles = CATEGORY_STORE[category]
+    else:
+        # Fallback if store isn't populated yet
+        articles = []
+        used_photos = set()
+        feed_urls = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
+        if isinstance(feed_urls, str):
+            feed_urls = [feed_urls]
+        for url in feed_urls:
+            res = parse_single_feed(url, category, used_photos)
             if res:
                 articles.extend(res)
                 
