@@ -114,26 +114,8 @@ def parse_single_feed(url, category, used_photos):
         print(f"Handled feed error for {url}: {e}")
     return articles
 
-CATEGORY_STORE = {}
 
-def background_feed_loader():
-    global CATEGORY_STORE
-    while True:
-        used_photos = set()
-        new_store = {}
-        for cat, urls in CATEGORY_FEEDS.items():
-            cat_articles = []
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                futures = {executor.submit(parse_single_feed, url, cat, used_photos): url for url in urls}
-                for future in as_completed(futures):
-                    res = future.result()
-                    if res:
-                        cat_articles.extend(res)
-            new_store[cat] = cat_articles
-        CATEGORY_STORE = new_store
-        time.sleep(600)
-
-threading.Thread(target=background_feed_loader, daemon=True).start()
+FEED_CACHE = {}
 
 @app.route("/")
 def index():
@@ -142,28 +124,32 @@ def index():
     guardian_key = request.args.get("guardian_key", "")
     market_data = get_live_market_data()
 
-    if category in CATEGORY_STORE and CATEGORY_STORE[category] and not custom_feed:
-        articles = CATEGORY_STORE[category]
+    if category in FEED_CACHE and not custom_feed:
+        articles = FEED_CACHE[category]
     else:
         articles = []
         used_photos = set()
         feed_urls = [custom_feed] if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
+            
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(parse_single_feed, url, category, used_photos): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
                 if res:
                     articles.extend(res)
+        
+        if not custom_feed:
+            FEED_CACHE[category] = articles
 
     return render_template("index.html", market=market_data, category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
 
 @app.route("/api/articles")
 def api_articles():
     category = request.args.get("category", "World")
-    if category in CATEGORY_STORE and CATEGORY_STORE[category]:
-        articles = CATEGORY_STORE[category]
+    if category in FEED_CACHE:
+        articles = FEED_CACHE[category]
     else:
         articles = []
         used_photos = set()
@@ -174,7 +160,5 @@ def api_articles():
             res = parse_single_feed(url, category, used_photos)
             if res:
                 articles.extend(res)
+        FEED_CACHE[category] = articles
     return jsonify({"category": category, "articles": articles})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
