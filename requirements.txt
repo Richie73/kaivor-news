@@ -1,5 +1,4 @@
 Flask==3.0.2
-feedparser==6.0.11
-beautifulsoup4==4.12.3
-requests==2.31.0
 gunicorn==21.2.0
+requests==2.31.0
+feedparser==6.0.10
