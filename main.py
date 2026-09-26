@@ -512,3 +512,21 @@ def add_rss():
 
 
 
+
+@app.route("/api/articles")
+def api_articles():
+    category = request.args.get("category", "World")
+    used_photos = set()
+    feed_urls = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
+    if isinstance(feed_urls, str):
+        feed_urls = [feed_urls]
+    
+    articles = []
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(parse_single_feed, url, category, used_photos): url for url in feed_urls}
+        for future in as_completed(futures):
+            res = future.result()
+            if res:
+                articles.extend(res)
+                
+    return jsonify({"category": category, "articles": articles})
