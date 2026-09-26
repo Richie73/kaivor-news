@@ -117,33 +117,33 @@ def parse_single_feed(url, category, used_photos):
 
 FEED_CACHE = {}
 
+
 @app.route("/")
 def index():
-    category = request.args.get("category", "World")
-    custom_feed = request.args.get("custom_feed", "")
-    guardian_key = request.args.get("guardian_key", "")
-    market_data = get_live_market_data()
+    try:
+        category = request.args.get("category", "World")
+        custom_feed = request.args.get("custom_feed", "")
+        guardian_key = request.args.get("guardian_key", "")
+        market_data = get_live_market_data()
 
-    if category in FEED_CACHE and not custom_feed:
-        articles = FEED_CACHE[category]
-    else:
         articles = []
         used_photos = set()
         feed_urls = [custom_feed] if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
         if isinstance(feed_urls, str):
             feed_urls = [feed_urls]
             
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {executor.submit(parse_single_feed, url, category, used_photos): url for url in feed_urls}
             for future in as_completed(futures):
                 res = future.result()
                 if res:
                     articles.extend(res)
-        
-        if not custom_feed:
-            FEED_CACHE[category] = articles
 
-    return render_template("index.html", market=market_data, category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
+        return render_template("index.html", market=market_data, category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed=custom_feed, guardian_key=guardian_key)
+    except Exception as e:
+        import traceback
+        err_msg = traceback.format_exc()
+        return f"<h3>Application Error:</h3><pre>{err_msg}</pre>", 500
 
 @app.route("/api/articles")
 def api_articles():
