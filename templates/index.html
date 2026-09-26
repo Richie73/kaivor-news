@@ -211,10 +211,11 @@ OpenAI API Key (For HD Audio Briefings / TTS):</label>
 
 <script>
 function toggleManager() {
-    const mgr = document.getElementById('feedManagerSection');
-    if (mgr) {
-        mgr.style.display = mgr.style.display === 'none' ? 'block' : 'none';
+    const panel = document.getElementById('managerPanel');
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
     }
+}
 }
 
 // 1. Top 5 Key Takeaways parsing exact .card structure
