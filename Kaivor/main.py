@@ -1,3 +1,10 @@
+import sys
+from types import ModuleType
+
+# Mock obsolete 'sgi' module removed in Python 3.14 so feedparser can load
+if 'sgi' not in sys.modules:
+    sys.modules['sgi'] = ModuleType('sgi')
+
 import os
 import requests
 import feedparser
