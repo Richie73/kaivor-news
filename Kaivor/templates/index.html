@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaivor News Aggregator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #38bdf8; font-size: 1.5rem; }
+        .market-bar { background: #1e293b; padding: 10px 15px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; }
+        .categories { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .categories a { background: #334155; color: #f8fafc; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; }
+        .categories a:hover, .categories a.active { background: #38bdf8; color: #0f172a; font-weight: bold; }
+        .article-card { background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
+        .article-card h3 { margin-top: 0; margin-bottom: 8px; }
+        .article-card h3 a { color: #38bdf8; text-decoration: none; }
+        .article-card h3 a:hover { text-decoration: underline; }
+        .meta { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; }
+        .summary { font-size: 0.9rem; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kaivor News</h1>
+            <span style="font-size: 0.85rem; color: #94a3b8;">v1.3 Live</span>
+        </header>
+
+        <div class="market-bar">
+            {% for key, val in market.items() %}
+            <span><strong>{{ key.capitalize() }}:</strong> {{ val }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="categories">
+            {% for cat in categories %}
+            <a href="/?category={{ cat }}" class="{% if category == cat %}active{% endif %}">{{ cat }}</a>
+            {% endfor %}
+        </div>
+
+        <main>
+            <h2>{{ category }} Headlines</h2>
+            {% if articles %}
+                {% for art in articles %}
+                <div class="article-card">
+                    <div class="meta">{{ art.published }}</div>
+                    <h3><a href="{{ art.link }}" target="_blank">{{ art.title }}</a></h3>
+                    <div class="summary">{{ art.summary }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No articles currently available for this feed.</p>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>
