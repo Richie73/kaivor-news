@@ -18,56 +18,30 @@ CATEGORY_FEEDS = {
 def fetch_rss(url, category):
     articles = []
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        headers = {"User-Agent": "Mozilla/5.0"}
         resp = requests.get(url, headers=headers, timeout=5)
         if resp.status_code == 200:
             root = ET.fromstring(resp.content)
             channel = root.find('channel')
             if channel is not None:
                 for item in channel.findall('item')[:6]:
-                    title = item.find('title')
-                    link = item.find('link')
-                    pubDate = item.find('pubDate')
-                    description = item.find('description')
-                    
                     articles.append({
-                        'title': title.text if title is not None else 'No Title',
-                        'link': link.text if link is not None else '#',
-                        'published': pubDate.text if pubDate is not None else 'Recent',
-                        'summary': description.text[:180] + "..." if description is not None and description.text else '',
+                        'title': item.find('title').text if item.find('title') is not None else 'No Title',
+                        'link': item.find('link').text if item.find('link') is not None else '#',
+                        'published': item.find('pubDate').text if item.find('pubDate') is not None else 'Recent',
+                        'summary': item.find('description').text[:180] + "..." if item.find('description') is not None and item.find('description').text else '',
                         'category': category
                     })
     except Exception as e:
-        print(f"Feed parse error: {e}")
+        print(f"Error: {e}")
     return articles
 
 @app.route("/")
 def index():
     category = request.args.get("category", "World")
-    custom_feed = request.args.get("custom_feed", "")
-    guardian_key = request.args.get("guardian_key", "")
-    
-    market_data = {
-        "weather": "13.6°C",
-        "gold": "$4,125.00",
-        "bitcoin": "$92,500",
-        "ethereum": "$3,420.00",
-        "oil": "$74.20"
-    }
-    
-    feed_url = custom_feed if custom_feed else CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
+    feed_url = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
     articles = fetch_rss(feed_url, category)
-
-    return render_template(
-        "index.html", 
-        market=market_data, 
-        category=category, 
-        categories=CATEGORY_FEEDS.keys(), 
-        articles=articles, 
-        custom_feed=custom_feed, 
-        guardian_key=guardian_key
-    )
+    return render_template("index.html", market={"weather": "13.6°C", "gold": "$4,125.00", "bitcoin": "$92,500"}, category=category, categories=CATEGORY_FEEDS.keys(), articles=articles, custom_feed="", guardian_key="")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
