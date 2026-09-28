@@ -46,7 +46,7 @@ def fetch_rss_native(url, category):
                     pub_date = item.find('pubDate')
                     desc = item.find('description')
                     articles.append({
-                        'title': item.find('title').text if item.find('title'] is not None else 'No Title',
+                        'title': item.find('title').text if item.find('title') is not None else 'No Title',
                         'link': item.find('link').text if item.find('link') is not None else '#',
                         'published': pub_date.text if pub_date is not None else 'Recent',
                         'summary': desc.text[:180] + "..." if desc is not None and desc.text else '',
@@ -71,7 +71,6 @@ def index():
         category = request.args.get("category", "World")
         custom_feed_url = request.args.get("custom_feed")
         
-        # Build news_grouped for all categories as expected by the v1.3 template
         news_grouped = {}
         for cat_name, cat_url in CATEGORY_FEEDS.items():
             news_grouped[cat_name] = fetch_rss_native(cat_url, cat_name)
@@ -84,7 +83,6 @@ def index():
             articles = news_grouped.get(category, news_grouped["World"])
             current_cat = category
 
-        # Also include any custom user feeds stored in database
         custom_feeds_db = Feed.query.all()
         for f in custom_feeds_db:
             news_grouped[f.name] = fetch_rss_native(f.url, f.name)
