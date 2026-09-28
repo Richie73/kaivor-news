@@ -65,7 +65,7 @@ def index():
         return redirect(url_for("index"))
 
     category = request.args.get("category", "World")
-    custom_feed_url = request.args.get("custom_url")
+    custom_feed_url = request.args.get("custom_feed")
     
     if custom_feed_url:
         articles = fetch_rss_native(custom_feed_url, "Custom Feed")
@@ -84,7 +84,27 @@ def index():
                            categories=CATEGORY_FEEDS.keys(), 
                            articles=articles, 
                            custom_feeds=custom_feeds, 
-                           saved_articles=saved_articles)
+                           saved_articles=saved_articles,
+                           custom_feed=custom_feed_url or "",
+                           guardian_key="")
+
+@app.route("/save", methods=["POST"])
+def save_article():
+    title = request.form.get("title")
+    link = request.form.get("link")
+    if title and link:
+        if not Saved.query.filter_by(link=link).first():
+            db.session.add(Saved(title=title, link=link))
+            db.session.commit()
+    return redirect(request.referrer or url_for("index"))
+
+@app.route("/delete/<int:id>")
+def delete_feed(id):
+    feed = Feed.query.get(id)
+    if feed:
+        db.session.delete(feed)
+        db.session.commit()
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
