@@ -1,6 +1,8 @@
 import os
 import requests
-import xml.etree.ElementTree as ET
+import feedparser
+import urllib.parse
+from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
@@ -19,92 +21,91 @@ class Saved(db.Model):
     title = db.Column(db.String(200), nullable=False)
     link = db.Column(db.String(300), nullable=False)
 
-with app.app_context():
-    db.create_all()
-
-CATEGORY_FEEDS = {
-    "World": "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "Politics": "https://rss.politico.com/politics-news.xml",
-    "Science": "https://www.sciencedaily.com/rss/top.xml",
-    "UK": "https://feeds.bbci.co.uk/news/uk/rss.xml",
-    "Sport": "https://feeds.bbci.co.uk/sport/rss.xml",
-    "Business": "https://feeds.bbci.co.uk/news/business/rss.xml",
-    "Tech": "https://techcrunch.com/feed/"
-}
-
-def fetch_rss_native(url, category):
-    articles = []
+def discover_rss(url):
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers, timeout=5)
-        if resp.status_code == 200:
-            root = ET.fromstring(resp.content)
-            channel = root.find('channel')
-            if channel is not None:
-                for item in channel.findall('item')[:8]:
-                    articles.append({
-                        'title': item.find('title').text if item.find('title') is not None else 'No Title',
-                        'link': item.find('link').text if item.find('link') is not None else '#',
-                        'published': item.find('pubDate').text if item.find('pubDate') is not None else 'Recent',
-                        'summary': item.find('description').text[:180] + "..." if item.find('description') is not None and item.find('description').text else '',
-                        'category': category
-                    })
-    except Exception as e:
-        print(f"RSS Error: {e}")
-    return articles
+        if not url.startswith('http'):
+            url = 'https://' + url
+        res = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        if res.status_code != 200:
+            return url
+        soup = BeautifulSoup(res.text, 'html.parser')
+        rss_link = soup.find('link', type='application/rss+xml') or soup.find('link', type='application/atom+xml')
+        if rss_link and rss_link.get('href'):
+            href = rss_link['href']
+            return urllib.parse.urljoin(url, href)
+    except:
+        pass
+    return url
 
-@app.route("/", methods=["GET", "POST"])
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    if request.method == "POST":
-        feed_name = request.form.get("name")
-        feed_url = request.form.get("url")
-        if feed_name and feed_url:
-            if not Feed.query.filter_by(url=feed_url).first():
-                db.session.add(Feed(name=feed_name, url=feed_url))
+    if request.method == 'POST':
+        input_url = request.form.get('url')
+        if input_url:
+            actual_feed_url = discover_rss(input_url)
+            parsed = feedparser.parse(actual_feed_url)
+            feed_name = parsed.feed.title if hasattr(parsed, 'feed') and hasattr(parsed.feed, 'title') else input_url
+            if not Feed.query.filter_by(url=actual_feed_url).first():
+                new_feed = Feed(name=feed_name, url=actual_feed_url)
+                db.session.add(new_feed)
                 db.session.commit()
-        return redirect(url_for("index"))
+        return redirect(url_for('index'))
 
-    category = request.args.get("category", "World")
-    custom_feed_url = request.args.get("custom_feed")
+    try:
+        feeds = Feed.query.all()
+    except:
+        feeds = []
+
+    try:
+        saved = Saved.query.order_by(Saved.id.desc()).all()
+    except:
+        saved = []
+
+    news_grouped = {}
     
-    if custom_feed_url:
-        articles = fetch_rss_native(custom_feed_url, "Custom Feed")
-        current_cat = "Custom Feed"
-    else:
-        feed_url = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
-        articles = fetch_rss_native(feed_url, category)
-        current_cat = category
+    try:
+        market_parsed = feedparser.parse("https://feeds.finance.yahoo.com/rss/2.0/headline?s=^IXIC,AAPL,MSFT")
+        items = []
+        for e in market_parsed.entries[:6]:
+            t = e.title if hasattr(e, 'title') else "Market Update"
+            if not t.startswith("[$]"):
+                t = f"[$] {t}"
+            items.append({'title': t, 'link': e.link, 'img': None})
+        news_grouped['Markets'] = items
+    except: 
+        news_grouped['Markets'] = [{'title': '[$] Market data temporarily unavailable', 'link': '#', 'img': None}]
 
-    custom_feeds = Feed.query.all()
-    saved_articles = Saved.query.all()
+    for feed in feeds:
+        try:
+            parsed = feedparser.parse(feed.url)
+            news_grouped[feed.name] = [{
+                'title': f"[$] {e.title}" if not e.title.startswith("[$]") else e.title,
+                'link': e.link,
+                'img': None
+            } for e in parsed.entries[:6]]
+        except: continue
+            
+    return render_template('index.html', news_grouped=news_grouped, feeds=feeds, saved=saved)
 
-    return render_template("index.html", 
-                           market={"weather": "13.6°C", "gold": "$4,125.00", "bitcoin": "$92,500"}, 
-                           category=current_cat, 
-                           categories=CATEGORY_FEEDS.keys(), 
-                           articles=articles, 
-                           custom_feeds=custom_feeds, 
-                           saved_articles=saved_articles,
-                           custom_feed=custom_feed_url or "",
-                           guardian_key="")
+@app.route('/delete/<int:feed_id>', methods=['POST'])
+def delete_feed(feed_id):
+    feed = Feed.query.get_or_404(feed_id)
+    db.session.delete(feed)
+    db.session.commit()
+    return redirect(url_for('index'))
 
-@app.route("/save", methods=["POST"])
-def save_article():
-    title = request.form.get("title")
-    link = request.form.get("link")
-    if title and link:
-        if not Saved.query.filter_by(link=link).first():
-            db.session.add(Saved(title=title, link=link))
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+        if Feed.query.count() == 0:
+            default_feeds = [
+                Feed(name="BBC World", url="http://feeds.bbci.co.uk/news/world/rss.xml"),
+                Feed(name="TechCrunch", url="https://techcrunch.com/feed/"),
+                Feed(name="Hacker News", url="https://news.ycombinator.com/rss"),
+                Feed(name="Reuters", url="https://news.google.com/rss/search?q=Reuters"),
+                Feed(name="The Verge", url="https://www.theverge.com/rss/index.xml")
+            ]
+            db.session.add_all(default_feeds)
             db.session.commit()
-    return redirect(request.referrer or url_for("index"))
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
-@app.route("/delete/<int:id>")
-def delete_feed(id):
-    feed = Feed.query.get(id)
-    if feed:
-        db.session.delete(feed)
-        db.session.commit()
-    return redirect(url_for("index"))
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
