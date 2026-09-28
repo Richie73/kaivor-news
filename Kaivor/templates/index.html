@@ -8,52 +8,56 @@
         body { background-color: #0b0b0b; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding-top: 70px; }
         header { position: fixed; top: 0; left: 0; right: 0; background: #0b0b0b; z-index: 1000; padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; }
         .container { padding: 16px; max-width: 600px; margin: 0 auto; }
-        .market-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; font-size: 14px; background: #161616; padding: 12px; border-radius: 8px; white-space: nowrap; }
-        .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        .chips::-webkit-scrollbar { display: none; }
-        .chip { padding: 6px 14px; background: #222; border-radius: 20px; color: #fff; text-decoration: none; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
-        .chip.active { background: #3b82f6; }
-        .card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-        .card-title { color: #60a5fa; font-size: 18px; font-weight: bold; text-decoration: none; display: block; margin-bottom: 8px; }
-        .card-desc { font-size: 14px; color: #9ca3af; line-height: 1.5; }
-        .feed-form { display: flex; gap: 8px; margin-bottom: 20px; }
-        .feed-form input { flex: 1; padding: 10px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #fff; }
-        .feed-form button { padding: 10px 16px; background: #3b82f6; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
+        .card img { width: 100%; height: auto; border-radius: 8px; margin-bottom: 12px; object-fit: cover; image-rendering: -webkit-optimize-contrast; }
+        .card h3 { font-size: 16px; margin: 0; line-height: 1.4; }
+        .card h3 a { color: #f3f4f6; text-decoration: none; }
+        .source-tag { font-size: 11px; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
+        .input-form { display: flex; gap: 8px; padding: 12px 16px; background: #141414; border-bottom: 1px solid #222; }
+        .input-form input { flex: 1; background: #1f2937; border: 1px solid #374151; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+        .input-form button { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .feed-manager { background: #121214; padding: 12px 16px; border-bottom: 1px solid #222; font-size: 13px; }
+        .feed-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .feed-chip { background: #1f2937; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .feed-chip a { color: #ef4444; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
-    <header>KAIVOR <span style="font-size: 12px; color: #666; font-weight: normal;">v1.3 Live</span></header>
+    <header>KAIVOR</header>
+    
+    <form class="input-form" method="POST" action="{{ url_for('index') }}">
+        <input type="text" name="url" placeholder="Paste news site or RSS URL to add source..." required>
+        <button type="submit">Add Feed</button>
+    </form>
+
+    <div class="feed-manager">
+        <strong>Active Sources:</strong>
+        <div class="feed-list">
+            {% for feed in feeds %}
+                <span class="feed-chip">
+                    {{ feed.name }}
+                    <form action="{{ url_for('delete_feed', feed_id=feed.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0; font-size:12px;">&times;</button>
+                    </form>
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+
     <div class="container">
-        <div class="market-bar">
-            <span>🌦️ Weather: {{ market.weather }}</span>
-            <span>🪙 Gold: {{ market.gold }}</span>
-            <span>₿ Bitcoin: {{ market.bitcoin }}</span>
-        </div>
-
-        <form method="POST" class="feed-form">
-            <input type="text" name="name" placeholder="Source Name" style="max-width: 110px;" required>
-            <input type="url" name="url" placeholder="RSS URL..." required>
-            <button type="submit">Add Feed</button>
-        </form>
-
-        <div class="chips">
-            {% for cat in categories %}
-            <a href="/?category={{ cat }}" class="chip {% if category == cat %}active{% endif %}">{{ cat }}</a>
+        {% for source, articles in news_grouped.items() %}
+            <h2 style="font-size: 18px; border-bottom: 1px solid #333; padding-bottom: 6px; margin-top: 24px;">{{ source }}</h2>
+            {% for item in articles %}
+                <div class="card">
+                    <span class="source-tag">{{ source }}</span>
+                    {% if item.img %}
+                        <img src="{{ item.img }}" alt="News image">
+                    {% endif %}
+                    <h3><a href="{{ item.link }}" target="_blank">{{ item.title }}</a></h3>
+                </div>
             {% endfor %}
-            {% for feed in custom_feeds %}
-            <a href="/?custom_feed={{ feed.url }}" class="chip {% if custom_feed == feed.url %}active{% endif %}">{{ feed.name }}</a>
-            {% endfor %}
-        </div>
-
-        <h2>{{ category }} Headlines</h2>
-
-        {% for article in articles %}
-        <div class="card">
-            <div style="font-size: 11px; color: #888; margin-bottom: 4px;">{{ article.published }}</div>
-            <a href="{{ article.link }}" target="_blank" class="card-title">{{ article.title }}</a>
-            <div class="card-desc">{{ article.summary }}</div>
-        </div>
         {% endfor %}
     </div>
 </body>
 </html>
+
