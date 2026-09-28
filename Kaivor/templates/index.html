@@ -9,20 +9,23 @@
         header { position: fixed; top: 0; left: 0; right: 0; background: #0b0b0b; z-index: 1000; padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; color: #fff; }
         .sub-header { font-size: 11px; color: #10b981; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
         .container { padding: 16px; max-width: 600px; margin: 0 auto; }
-        .market-bar { display: flex; gap: 12px; overflow-x: auto; padding: 12px; margin-bottom: 16px; font-size: 13px; background: #161618; border-radius: 12px; border: 1px solid #26262a; white-space: nowrap; }
+        .market-bar { display: flex; gap: 12px; overflow-x: auto; padding: 12px; margin-bottom: 16px; font-size: 13px; background: #161618; border-radius: 12px; border: 1px solid #26262a; white-space: nowrap; scrollbar-width: none; }
+        .market-bar::-webkit-scrollbar { display: none; }
         .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
         .card img { width: 100%; height: auto; border-radius: 8px; margin-bottom: 12px; object-fit: cover; }
         .card h3 { font-size: 16px; margin: 0; line-height: 1.4; }
         .card h3 a { color: #f3f4f6; text-decoration: none; }
-        .source-tag { font-size: 11px; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
+        .source-tag { font-size: 11px; color: #10b981; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
         .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
         .chips::-webkit-scrollbar { display: none; }
         .chip { padding: 6px 14px; background: #222; border-radius: 20px; color: #fff; text-decoration: none; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
         .chip.active { background: #10b981; color: #0b0b0b; font-weight: bold; }
-        .btn-primary { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; width: 100%; text-align: center; display: block; text-decoration: none; margin-bottom: 12px; }
         .btn-secondary { background: #1f2937; color: #f3f4f6; font-weight: bold; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; margin-right: 6px; margin-top: 8px; }
-        .feed-form { display: flex; gap: 8px; margin-bottom: 16px; }
-        .feed-form input { flex: 1; padding: 10px; background: #161618; border: 1px solid #333; border-radius: 8px; color: #fff; }
+        .feed-form { display: flex; gap: 6px; margin-bottom: 16px; }
+        .feed-form input { padding: 10px; background: #161618; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 13px; }
+        .feed-form input[name="name"] { width: 90px; flex-shrink: 0; }
+        .feed-form input[name="url"] { flex: 1; min-width: 0; }
+        .feed-form button { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 13px; flex-shrink: 0; }
         .digest-box { background: #111827; border: 1px solid #10b981; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
     </style>
 </head>
@@ -40,9 +43,9 @@
         </div>
 
         <form method="POST" class="feed-form">
-            <input type="text" name="name" placeholder="Source Name" style="max-width: 110px;" required>
+            <input type="text" name="name" placeholder="Name" required>
             <input type="url" name="url" placeholder="RSS URL..." required>
-            <button type="submit" class="btn-primary" style="width: auto; margin: 0;">Add Feed</button>
+            <button type="submit">Add Feed</button>
         </form>
 
         <div class="chips">
