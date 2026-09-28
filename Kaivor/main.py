@@ -1,4 +1,5 @@
 import os
+import traceback
 import requests
 import xml.etree.ElementTree as ET
 from flask import Flask, render_template, request, redirect, url_for
@@ -57,38 +58,42 @@ def fetch_rss_native(url, category):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "POST":
-        feed_name = request.form.get("name")
-        feed_url = request.form.get("url")
-        if feed_name and feed_url:
-            if not Feed.query.filter_by(url=feed_url).first():
-                db.session.add(Feed(name=feed_name, url=feed_url))
-                db.session.commit()
-        return redirect(url_for("index"))
+    try:
+        if request.method == "POST":
+            feed_name = request.form.get("name")
+            feed_url = request.form.get("url")
+            if feed_name and feed_url:
+                if not Feed.query.filter_by(url=feed_url).first():
+                    db.session.add(Feed(name=feed_name, url=feed_url))
+                    db.session.commit()
+            return redirect(url_for("index"))
 
-    category = request.args.get("category", "World")
-    custom_feed_url = request.args.get("custom_feed")
-    
-    if custom_feed_url:
-        articles = fetch_rss_native(custom_feed_url, "Custom Feed")
-        current_cat = "Custom Feed"
-    else:
-        feed_url = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
-        articles = fetch_rss_native(feed_url, category)
-        current_cat = category
+        category = request.args.get("category", "World")
+        custom_feed_url = request.args.get("custom_feed")
+        
+        if custom_feed_url:
+            articles = fetch_rss_native(custom_feed_url, "Custom Feed")
+            current_cat = "Custom Feed"
+        else:
+            feed_url = CATEGORY_FEEDS.get(category, CATEGORY_FEEDS["World"])
+            articles = fetch_rss_native(feed_url, category)
+            current_cat = category
 
-    custom_feeds = Feed.query.all()
-    saved_articles = Saved.query.all()
+        custom_feeds = Feed.query.all()
+        saved_articles = Saved.query.all()
 
-    return render_template("index.html", 
-                           market={"weather": "13.6°C", "gold": "$4,125.00", "bitcoin": "$92,500"}, 
-                           category=current_cat, 
-                           categories=CATEGORY_FEEDS.keys(), 
-                           articles=articles, 
-                           custom_feeds=custom_feeds, 
-                           saved_articles=saved_articles,
-                           custom_feed=custom_feed_url or "",
-                           guardian_key="")
+        return render_template("index.html", 
+                               market={"weather": "13.6°C", "gold": "$4,125.00", "bitcoin": "$92,500"}, 
+                               category=current_cat, 
+                               categories=CATEGORY_FEEDS.keys(), 
+                               articles=articles, 
+                               custom_feeds=custom_feeds, 
+                               saved_articles=saved_articles,
+                               custom_feed=custom_feed_url or "",
+                               guardian_key="",
+                               guardian_articles=[])
+    except Exception as e:
+        return f"<pre style='color: red; font-size: 1rem; padding: 20px;'>{traceback.format_exc()}</pre>", 500
 
 @app.route("/save", methods=["POST"])
 def save_article():
