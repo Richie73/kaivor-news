@@ -21,6 +21,7 @@
         .chip.active { background: #10b981; color: #0b0b0b; font-weight: bold; }
         .btn-primary { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-align: center; display: block; text-decoration: none; margin-bottom: 12px; width: 100%; }
         .btn-secondary { background: #1f2937; color: #f3f4f6; font-weight: bold; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; margin-right: 6px; margin-top: 8px; }
+        .btn-ai { background: #1f2937; color: #10b981; border: 1px solid #10b981; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
         .feed-form { display: flex; gap: 6px; margin-bottom: 16px; }
         .feed-form input { padding: 10px; background: #161618; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 13px; }
         .feed-form input[name="name"] { width: 90px; flex-shrink: 0; }
@@ -43,6 +44,8 @@
             <span>₿ Bitcoin: {{ market.bitcoin }}</span>
         </div>
 
+        <button class="btn-primary" onclick="toggleManager()">⚙️ Feed & API Key Manager</button>
+
         <form method="POST" class="feed-form">
             <input type="text" name="name" placeholder="Name" required>
             <input type="url" name="url" placeholder="RSS URL..." required>
@@ -58,17 +61,10 @@
             {% endfor %}
         </div>
 
-        {% if custom_feeds %}
-        <div class="manager-section">
-            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #10b981;">Manage Custom Feeds:</h4>
-            {% for feed in custom_feeds %}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;">
-                <span style="color: #ccc;">{{ feed.name }}</span>
-                <a href="/delete/{{ feed.id }}" style="color: #ef4444; text-decoration: none; font-size: 12px;">Delete</a>
-            </div>
-            {% endfor %}
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button class="btn-primary" style="margin: 0; flex: 1;">⚡ Key Takeaways</button>
+            <button class="btn-primary" style="margin: 0; flex: 1; background: #1f2937; color: #10b981; border: 1px solid #10b981;">🎧 Listen Takeaways</button>
         </div>
-        {% endif %}
 
         <div class="digest-box">
             <h4 style="margin: 0 0 8px 0; color: #10b981;">⚡ AI Top 5 Intelligence Briefing:</h4>
@@ -83,12 +79,14 @@
             <h3><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></h3>
             <div style="font-size: 12px; color: #888; margin: 6px 0 10px 0;">{{ article.published }}</div>
             <div style="font-size: 14px; color: #9ca3af; line-height: 1.5;">{{ article.summary }}</div>
-            <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+            <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                 <a href="{{ article.link }}" target="_blank" class="btn-secondary" style="margin: 0;">Open in Chrome</a>
-                <form action="/save" method="POST" style="display: inline; margin: 0;">
+                <a href="#" class="btn-ai">AI Brief</a>
+                <a href="#" class="btn-ai">Ask AI</a>
+                <form action="/save" method="POST" style="display: inline; margin: 0; margin-left: auto;">
                     <input type="hidden" name="title" value="{{ article.title }}">
                     <input type="hidden" name="link" value="{{ article.link }}">
-                    <button type="submit" class="btn-secondary" style="background: #10b981; color: #0b0b0b; border: none; margin: 0; cursor: pointer;">Save</button>
+                    <button type="submit" class="btn-ai" style="background: #10b981; color: #0b0b0b; border: none; cursor: pointer;">Save</button>
                 </form>
             </div>
         </div>
