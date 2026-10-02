@@ -6,7 +6,6 @@ from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
-# --- FINANCE CACHE & WORKER ---
 _finance_cache = {'data': {}, 'last_updated': 0}
 _cache_lock = threading.Lock()
 
@@ -60,6 +59,16 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
+SAMPLE_ARTICLES = [
+    {
+        "title": "Global Markets React to New Economic Data and Commodities Shift",
+        "description": "Live financial tickers refresh dynamically via automated backend workers every 30 seconds.",
+        "category": "World",
+        "published": "Fri, 02 Oct 2026 17:43:10 GMT",
+        "link": "#"
+    }
+]
+
 @app.route('/')
 def index():
     with _cache_lock:
@@ -73,7 +82,17 @@ def index():
             'GBP_EUR': 'Loading...',
             'EUR_USD': 'Loading...'
         })
-    return render_template('index.html', market=market_data)
+    
+    news_grouped = {
+        "World": SAMPLE_ARTICLES,
+        "Technology": [],
+        "Business": [],
+        "Science": [],
+        "UK": [],
+        "Sport": [],
+        "Puzzles": []
+    }
+    return render_template('index.html', market=market_data, news_grouped=news_grouped, articles=SAMPLE_ARTICLES)
 
 @app.route('/api/ticker', methods=['GET'])
 def api_ticker():
