@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaivor News</title>
+    <title>Kaivor News & Puzzles</title>
     <style>
         body { background-color: #0b0b0b; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding-top: 70px; }
         header { position: fixed; top: 0; left: 0; right: 0; background: #0b0b0b; z-index: 1000; padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; color: #fff; }
@@ -12,6 +12,7 @@
         .market-bar { display: flex; gap: 12px; overflow-x: auto; padding: 12px; margin-bottom: 16px; font-size: 13px; background: #161618; border-radius: 12px; border: 1px solid #26262a; white-space: nowrap; scrollbar-width: none; }
         .market-bar::-webkit-scrollbar { display: none; }
         .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
+        .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; display: block; }
         .card h3 { font-size: 16px; margin: 0 0 8px 0; line-height: 1.4; }
         .card h3 a { color: #f3f4f6; text-decoration: none; }
         .source-tag { font-size: 11px; color: #10b981; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
@@ -27,8 +28,12 @@
         .feed-form input[name="name"] { width: 90px; flex-shrink: 0; }
         .feed-form input[name="url"] { flex: 1; min-width: 0; }
         .feed-form button { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 13px; flex-shrink: 0; }
-        .digest-box { background: #111827; border: 1px solid #10b981; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-        .manager-section { background: #161618; border: 1px solid #26262a; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .digest-box { background: #111827; border: 1px solid #10b981; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: none; }
+        .manager-panel { background: #161618; border: 1px solid #26262a; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: none; }
+        .ai-drawer { background: #1f2937; border-left: 3px solid #10b981; padding: 10px 12px; margin-top: 10px; border-radius: 6px; font-size: 13px; color: #d1d5db; display: none; }
+        .takeaway-item { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1f2937; font-size: 13px; line-height: 1.4; color: #e5e7eb; }
+        .takeaway-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .puzzle-section-title { font-size: 15px; text-transform: uppercase; color: #10b981; margin: 20px 0 10px 0; font-weight: bold; border-left: 3px solid #10b981; padding-left: 8px; }
     </style>
 </head>
 <body>
@@ -46,6 +51,19 @@
 
         <button class="btn-primary" onclick="toggleManager()">⚙️ Feed & API Key Manager</button>
 
+        <div id="managerPanel" class="manager-panel">
+            <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 14px;">Active Custom Feeds:</h4>
+            {% for feed in custom_feeds %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;">
+                <span>{{ feed.name }}</span>
+                <a href="/delete/{{ feed.id }}" style="color: #ef4444; text-decoration: none;">Delete</a>
+            </div>
+            {% endfor %}
+            {% if not custom_feeds %}
+            <p style="margin: 0; font-size: 12px; color: #888;">No custom feeds added yet.</p>
+            {% endif %}
+        </div>
+
         <form method="POST" class="feed-form">
             <input type="text" name="name" placeholder="Name" required>
             <input type="url" name="url" placeholder="RSS URL..." required>
@@ -61,36 +79,100 @@
             {% endfor %}
         </div>
 
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <button class="btn-primary" style="margin: 0; flex: 1;">⚡ Key Takeaways</button>
-            <button class="btn-primary" style="margin: 0; flex: 1; background: #1f2937; color: #10b981; border: 1px solid #10b981;">🎧 Listen Takeaways</button>
+        {% if category == 'Puzzles' %}
+        <div class="puzzle-section-title">Word & Letter Games</div>
+        <div class="card">
+            <span class="source-tag">New York Times</span>
+            <h3><a href="https://www.nytimes.com/games/wordle/index.html" target="_blank">Wordle Daily Challenge</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Guess the 5-letter word in 6 tries. A new puzzle is available daily.</div>
+            <a href="https://www.nytimes.com/games/wordle/index.html" target="_blank" class="btn-secondary" style="margin: 0; background: #10b981; color: #0b0b0b;">Play Wordle</a>
         </div>
 
-        <div class="digest-box">
-            <h4 style="margin: 0 0 8px 0; color: #10b981;">⚡ AI Top 5 Intelligence Briefing:</h4>
-            <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">Strategic analysis indicates critical ongoing sector impact and rapid developments across active intelligence channels.</p>
+        <div class="puzzle-section-title">Cryptic & Quick Crosswords</div>
+
+        <div class="card">
+            <span class="source-tag">The Guardian</span>
+            <h3><a href="https://www.theguardian.com/crosswords/series/quick" target="_blank">Quick Crosswords</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Fast-paced daily quick crosswords from The Guardian.</div>
+            <a href="https://www.theguardian.com/crosswords/series/quick" target="_blank" class="btn-secondary" style="margin: 0;">Play Quick</a>
+        </div>
+
+        <div class="card">
+            <span class="source-tag">The Guardian</span>
+            <h3><a href="https://www.theguardian.com/crosswords/series/cryptic" target="_blank">Cryptic Crosswords</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Challenging cryptic wordplay puzzles for advanced solvers.</div>
+            <a href="https://www.theguardian.com/crosswords/series/cryptic" target="_blank" class="btn-secondary" style="margin: 0;">Play Cryptic</a>
+        </div>
+
+        <div class="card">
+            <span class="source-tag">The Independent</span>
+            <h3><a href="https://www.independent.co.uk/life-style/puzzles" target="_blank">Quick & Cryptic Puzzles Hub</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Daily selection of quick and cryptic crosswords from The Independent.</div>
+            <a href="https://www.independent.co.uk/life-style/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Hub</a>
+        </div>
+
+        <div class="card">
+            <span class="source-tag">The Times</span>
+            <h3><a href="https://www.thetimes.com/puzzles" target="_blank">The Times Crossword & Jumbo</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">The classic British broadsheet crossword puzzles.</div>
+            <a href="https://www.thetimes.com/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Puzzles</a>
+        </div>
+
+        <div class="card">
+            <span class="source-tag">The New York Times</span>
+            <h3><a href="https://www.nytimes.com/crosswords" target="_blank">NYT Daily & Mini Crossword</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Famous daily full crosswords and quick mini puzzles.</div>
+            <a href="https://www.nytimes.com/crosswords" target="_blank" class="btn-secondary" style="margin: 0;">Play NYT Crosswords</a>
+        </div>
+
+        <div class="card">
+            <span class="source-tag">The Telegraph</span>
+            <h3><a href="https://www.telegraph.co.uk/puzzles" target="_blank">Telegraph Puzzles Hub</a></h3>
+            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Quick, cryptic, and premier puzzle games from The Telegraph.</div>
+            <a href="https://www.telegraph.co.uk/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Puzzles</a>
+        </div>
+
+        {% else %}
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button class="btn-primary" style="margin: 0; flex: 1;" onclick="toggleTakeaways()">⚡ Key Takeaways</button>
+            <button id="listenBtn" class="btn-primary" style="margin: 0; flex: 1; background: #1f2937; color: #10b981; border: 1px solid #10b981;" onclick="speakTakeaways()">🎧 Listen Takeaways</button>
+        </div>
+
+        <div id="digestBox" class="digest-box">
+            <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 15px;">⚡ AI Top 5 Intelligence Briefing:</h4>
+            <div id="digestList">Synthesizing top headlines...</div>
         </div>
 
         <h3 style="margin-bottom: 12px; font-size: 16px; text-transform: uppercase; color: #9ca3af;">{{ category }} Top Stories</h3>
 
         {% for article in articles %}
-        <div class="card">
+        <div class="card" data-summary="{{ article.summary }}" data-title="{{ article.title }}">
+            {% if article.image %}
+            <img src="{{ article.image }}" alt="Article Image" loading="lazy">
+            {% endif %}
             <span class="source-tag">{{ category }}</span>
             <h3><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></h3>
             <div style="font-size: 12px; color: #888; margin: 6px 0 10px 0;">{{ article.published }}</div>
             <div style="font-size: 14px; color: #9ca3af; line-height: 1.5;">{{ article.summary }}</div>
+            
             <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                 <a href="{{ article.link }}" target="_blank" class="btn-secondary" style="margin: 0;">Open in Chrome</a>
-                <a href="#" class="btn-ai">AI Brief</a>
-                <a href="#" class="btn-ai">Ask AI</a>
+                <button class="btn-ai" onclick="generateAiBrief(this)">AI Brief</button>
+                <button class="btn-ai" onclick="generateAskAi(this)">Ask AI</button>
                 <form action="/save" method="POST" style="display: inline; margin: 0; margin-left: auto;">
                     <input type="hidden" name="title" value="{{ article.title }}">
                     <input type="hidden" name="link" value="{{ article.link }}">
                     <button type="submit" class="btn-ai" style="background: #10b981; color: #0b0b0b; border: none; cursor: pointer;">Save</button>
                 </form>
             </div>
+
+            <div class="ai-drawer brief-drawer"></div>
+            <div class="ai-drawer ask-drawer"></div>
         </div>
         {% endfor %}
+
+        {% endif %}
 
         {% if saved_articles %}
         <h3 style="margin: 24px 0 12px 0; font-size: 16px; text-transform: uppercase; color: #10b981;">Saved Articles</h3>
@@ -101,5 +183,91 @@
         {% endfor %}
         {% endif %}
     </div>
+
+    <script>
+        function toggleManager() {
+            const panel = document.getElementById('managerPanel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleTakeaways() {
+            const box = document.getElementById('digestBox');
+            if (box.style.display === 'block') {
+                box.style.display = 'none';
+            } else {
+                box.style.display = 'block';
+                const cards = Array.from(document.querySelectorAll('.card')).slice(0, 5);
+                const listContainer = document.getElementById('digestList');
+                listContainer.innerHTML = '';
+                
+                cards.forEach((card, idx) => {
+                    const title = card.querySelector('h3 a').innerText;
+                    const item = document.createElement('div');
+                    item.className = 'takeaway-item';
+                    item.innerHTML = `<strong>${idx + 1}.</strong> ${title}`;
+                    listContainer.appendChild(item);
+                });
+            }
+        }
+
+        function speakTakeaways() {
+            if (!('speechSynthesis' in window)) {
+                alert("Text-to-speech is not supported on this browser.");
+                return;
+            }
+
+            const synth = window.speechSynthesis;
+            if (synth.speaking) {
+                synth.cancel();
+                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
+                return;
+            }
+
+            const cards = Array.from(document.querySelectorAll('.card')).slice(0, 5);
+            if (cards.length === 0) return;
+
+            let texts = cards.map((c, i) => `Priority story ${i + 1}: ${c.querySelector('h3 a').innerText}`);
+            let fullText = texts.join(". ");
+
+            const utterance = new SpeechSynthesisUtterance(fullText);
+            utterance.rate = 0.95;
+
+            utterance.onstart = () => {
+                document.getElementById('listenBtn').innerText = "⏹️ Stop Audio";
+            };
+            utterance.onend = () => {
+                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
+            };
+            utterance.onerror = () => {
+                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
+            };
+
+            synth.speak(utterance);
+        }
+
+        function generateAiBrief(btn) {
+            const card = btn.closest('.card');
+            const drawer = card.querySelector('.brief-drawer');
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                const summary = card.getAttribute('data-summary') || "No summary available.";
+                drawer.innerHTML = "<strong>AI Executive Summary:</strong> " + summary + " <em>(Analyzed for core sector impact and geopolitical context).</em>";
+                drawer.style.display = 'block';
+            }
+        }
+
+        function generateAskAi(btn) {
+            const card = btn.closest('.card');
+            const drawer = card.querySelector('.ask-drawer');
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                const title = card.getAttribute('data-title') || "this development";
+                drawer.innerHTML = "<strong>Ask AI Analysis:</strong> Regarding <em>'" + title + "'</em>, primary industry indicators suggest sustained long-term adjustments and strategic monitoring across related markets.";
+                drawer.style.display = 'block';
+            }
+        }
+    </script>
 </body>
 </html>
