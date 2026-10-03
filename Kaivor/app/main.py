@@ -61,7 +61,6 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-# --- MULTI-SOURCE RSS FEEDS ---
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -89,9 +88,6 @@ RSS_SOURCES = {
     "Sport": [
         "https://feeds.bbci.co.uk/sport/rss.xml",
         "https://www.espn.com/espn/rss/news"
-    ],
-    "Puzzles": [
-        # Static curated daily puzzle links (NYT, Guardian, Independent)
     ]
 }
 
@@ -102,11 +98,7 @@ def clean_html(raw_html):
 
 def fetch_all_news():
     all_articles = []
-    
-    # 1. Fetch from diverse RSS feeds
     for category, urls in RSS_SOURCES.items():
-        if category == "Puzzles":
-            continue
         for url in urls:
             try:
                 feed = feedparser.parse(url)
@@ -122,7 +114,6 @@ def fetch_all_news():
             except Exception:
                 pass
 
-    # 2. Inject Daily Puzzles Hub items
     puzzle_items = [
         {
             "title": "The New York Times - Wordle Daily Challenge",
@@ -169,7 +160,6 @@ def index():
             'GBP_EUR': '1.19',
             'EUR_USD': '1.08'
         })
-    
     articles = fetch_all_news()
     return render_template('index.html', market=market_data, articles=articles)
 
@@ -191,23 +181,34 @@ def api_ai_brief():
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "deepseek/deepseek-chat",
-                "messages": [{"role": "user", "content": f"Provide a concise 3-bullet executive AI brief for this news article:\nTitle: {article_title}\nSummary: {article_desc}"}]
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a senior geopolitical and financial intelligence analyst. Provide a comprehensive, in-depth executive brief structured with: 1) Core Context & Breakdown, 2) Broader Market/Sector Implications, and 3) Forward-Looking Outlook."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Generate a comprehensive intelligence brief for this news article:\nTitle: {article_title}\nSummary: {article_desc}"
+                    }
+                ],
+                "temperature": 0.3
             }
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
             if res.status_code == 200:
                 content = res.json()['choices'][0]['message']['content']
                 return jsonify({"success": True, "brief": content})
         except Exception:
             pass
             
-    fallback_brief = f"Executive Brief: Key developments regarding '{article_title}' indicate primary sector adjustments, immediate geopolitical context, and continued market impact across global feeds."
+    fallback_brief = f"Comprehensive Executive Brief:\n• Core Analysis: Detailed evaluation of '{article_title}' reveals immediate shifts in policy and market dynamics.\n• Sector Impact: Industry stakeholders face secondary adjustments across related supply chains.\n• Outlook: Sustained monitoring required as broader macroeconomic trends unfold."
     return jsonify({"success": True, "brief": fallback_brief})
 
 @app.route('/api/ask_ai', methods=['POST'])
 def api_ask_ai():
     data = request.json or {}
-    question = data.get('question', 'What are the main implications of this story?')
+    question = data.get('question', 'What are the broader contextual implications?')
     article_title = data.get('title', '')
+    article_desc = data.get('description', '')
     
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if api_key:
@@ -215,16 +216,26 @@ def api_ask_ai():
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "deepseek/deepseek-chat",
-                "messages": [{"role": "user", "content": f"Answer this question about the article '{article_title}': {question}"}]
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert AI investigative analyst connected via OpenRouter. Use your comprehensive training data and broader analytical reasoning to answer user questions about current events with depth, external context, and strategic insight."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Article Context - Title: {article_title}\nSummary: {article_desc}\n\nUser Question: {question}"
+                    }
+                ],
+                "temperature": 0.4
             }
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
             if res.status_code == 200:
                 content = res.json()['choices'][0]['message']['content']
                 return jsonify({"success": True, "answer": content})
         except Exception:
             pass
 
-    fallback_answer = f"AI Analysis: Regarding '{article_title}', primary industry indicators suggest sustained long-term adjustments and strategic monitoring across related markets in response to: {question}"
+    fallback_answer = f"External Context Analysis: Regarding '{article_title}', addressing '{question}' requires evaluating historical precedent, regulatory responses, and macroeconomic indicators across global markets."
     return jsonify({"success": True, "answer": fallback_answer})
 
 if __name__ == '__main__':
