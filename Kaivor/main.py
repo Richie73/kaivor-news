@@ -8,7 +8,6 @@ from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
-# --- FINANCE CACHE & WORKER ---
 _finance_cache = {'data': {}, 'last_updated': 0}
 _cache_lock = threading.Lock()
 
@@ -62,16 +61,16 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-
-# --- NEWS FETCHING & CACHING ---
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        "https://rss.cnn.com/rss/edition_world.rss"
+        "https://rss.cnn.com/rss/edition_world.rss",
+        "https://www.theguardian.com/world/rss"
     ],
     "Technology": [
         "https://feeds.feedburner.com/TechCrunch/",
-        "https://www.theverge.com/rss/index.xml"
+        "https://www.theverge.com/rss/index.xml",
+        "https://feeds.arstechnica.com/arstechnica/index"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
@@ -93,7 +92,11 @@ RSS_SOURCES = {
 def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     cleansed = re.sub(cleanr, '', raw_html)
-    return cleansed.replace('&nbsp;', ' ').strip()
+    text = cleansed.replace('&nbsp;', ' ').strip()
+    # Truncate overly long blog/article body snippets to a clean summary length
+    if len(text) > 160:
+        text = text[:157] + '...'
+    return text
 
 def fetch_fresh_news():
     all_articles = []
@@ -101,13 +104,13 @@ def fetch_fresh_news():
         for url in urls:
             try:
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:4]:
+                for entry in feed.entries[:5]:
                     raw_desc = entry.get('summary', entry.get('description', ''))
                     all_articles.append({
                         "title": entry.get('title', 'No Title'),
                         "description": clean_html(raw_desc),
                         "category": category,
-                        "published": entry.get('published', 'Recent'),
+                        "published": entry.get('published', 'Recent')[:16],
                         "link": entry.get('link', '#')
                     })
             except Exception:
@@ -159,7 +162,6 @@ def background_news_worker():
                 _news_cache['last_updated'] = time.time()
 
 threading.Thread(target=background_news_worker, daemon=True).start()
-
 
 @app.route('/')
 def index():
