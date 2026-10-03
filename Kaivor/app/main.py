@@ -2,10 +2,12 @@ import os
 import time
 import threading
 import requests
+import feedparser
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
+# --- FINANCE CACHE & WORKER ---
 _finance_cache = {'data': {}, 'last_updated': 0}
 _cache_lock = threading.Lock()
 
@@ -59,15 +61,32 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-SAMPLE_ARTICLES = [
-    {
-        "title": "Global Markets React to New Economic Data and Commodities Shift",
-        "description": "Live financial tickers refresh dynamically via automated backend workers every 30 seconds.",
-        "category": "World",
-        "published": "Fri, 02 Oct 2026 17:43:10 GMT",
-        "link": "#"
-    }
-]
+# --- RSS FEEDS PARSING ---
+RSS_FEEDS = {
+    "World": "https://news.google.com/rss/search?q=world&hl=en-US&gl=US&ceid=US:en",
+    "Technology": "https://news.google.com/rss/search?q=technology&hl=en-US&gl=US&ceid=US:en",
+    "Business": "https://news.google.com/rss/search?q=business&hl=en-US&gl=US&ceid=US:en",
+    "Science": "https://news.google.com/rss/search?q=science&hl=en-US&gl=US&ceid=US:en",
+    "UK": "https://news.google.com/rss/search?q=UK+news&hl=en-GB&gl=GB&ceid=GB:en",
+    "Sport": "https://news.google.com/rss/search?q=sport&hl=en-US&gl=US&ceid=US:en"
+}
+
+def fetch_all_news():
+    all_articles = []
+    for category, url in RSS_FEEDS.items():
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:8]: # Grab top 8 per category
+                all_articles.append({
+                    "title": entry.get('title', 'No Title'),
+                    "description": entry.get('summary', entry.get('description', '')),
+                    "category": category,
+                    "published": entry.get('published', 'Recent'),
+                    "link": entry.get('link', '#')
+                })
+        except Exception:
+            pass
+    return all_articles
 
 @app.route('/')
 def index():
@@ -83,16 +102,17 @@ def index():
             'EUR_USD': 'Loading...'
         })
     
-    news_grouped = {
-        "World": SAMPLE_ARTICLES,
-        "Technology": [],
-        "Business": [],
-        "Science": [],
-        "UK": [],
-        "Sport": [],
-        "Puzzles": []
-    }
-    return render_template('index.html', market=market_data, news_grouped=news_grouped, articles=SAMPLE_ARTICLES)
+    articles = fetch_all_news()
+    if not articles:
+        articles = [{
+            "title": "Global Markets React to New Economic Data",
+            "description": "Live tickers update automatically.",
+            "category": "World",
+            "published": "Recent",
+            "link": "#"
+        }]
+
+    return render_template('index.html', market=market_data, articles=articles)
 
 @app.route('/api/ticker', methods=['GET'])
 def api_ticker():
