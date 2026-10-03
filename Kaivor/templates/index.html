@@ -46,7 +46,7 @@
             <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
         </div>
 
-        <!-- Category Chips Including Puzzles -->
+        <!-- Category Chips -->
         <div class="chips">
             <a href="#" class="chip active">Top Stories</a>
             <a href="#" class="chip">World</a>
@@ -55,12 +55,12 @@
             <a href="#" class="chip">Science</a>
             <a href="#" class="chip">UK</a>
             <a href="#" class="chip">Sport</a>
-            <a href="#" class="chip">🧩 Puzzles (Wordle/Crosswords)</a>
+            <a href="#" class="chip">🧩 Puzzles</a>
         </div>
 
         <h3 style="font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Top Stories</h3>
 
-        <!-- Article Feed Loop (Completely Image-Free) -->
+        <!-- Article Feed Loop -->
         {% for article in articles %}
         <div class="card">
             <span class="source-tag">{{ article.category }}</span>
@@ -148,10 +148,10 @@
                 if (data.success) {
                     drawer.innerHTML = `<strong>AI Analysis:</strong> ${data.answer}`;
                 } else {
-                    drawer.innerHTML = '⚠️ Failed to get answer.';
+                    drawer.innerHTML = '⚠️️ Failed to get answer.';
                 }
             } catch (e) {
-                drawer.innerHTML = '⚠️ Error connecting to AI service.';
+                drawer.innerHTML = '⚠️️ Error connecting to AI service.';
             }
         }
     </script>

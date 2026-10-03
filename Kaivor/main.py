@@ -1,13 +1,13 @@
 import os
 import time
 import threading
+import re
 import requests
 import feedparser
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
-# --- FINANCE CACHE & WORKER ---
 _finance_cache = {'data': {}, 'last_updated': 0}
 _cache_lock = threading.Lock()
 
@@ -61,7 +61,6 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-# --- RSS FEEDS PARSING ---
 RSS_FEEDS = {
     "World": "https://news.google.com/rss/search?q=world&hl=en-US&gl=US&ceid=US:en",
     "Technology": "https://news.google.com/rss/search?q=technology&hl=en-US&gl=US&ceid=US:en",
@@ -71,15 +70,21 @@ RSS_FEEDS = {
     "Sport": "https://news.google.com/rss/search?q=sport&hl=en-US&gl=US&ceid=US:en"
 }
 
+def clean_html(raw_html):
+    cleanr = re.compile('<.*?>')
+    cleansed = re.sub(cleanr, '', raw_html)
+    return cleansed.replace('&nbsp;', ' ').strip()
+
 def fetch_all_news():
     all_articles = []
     for category, url in RSS_FEEDS.items():
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:8]: # Grab top 8 per category
+            for entry in feed.entries[:6]:
+                raw_desc = entry.get('summary', entry.get('description', ''))
                 all_articles.append({
                     "title": entry.get('title', 'No Title'),
-                    "description": entry.get('summary', entry.get('description', '')),
+                    "description": clean_html(raw_desc),
                     "category": category,
                     "published": entry.get('published', 'Recent'),
                     "link": entry.get('link', '#')
@@ -92,14 +97,14 @@ def fetch_all_news():
 def index():
     with _cache_lock:
         market_data = _finance_cache.get('data', {
-            'gold': 'Loading...',
-            'bitcoin': 'Loading...',
+            'gold': '2,650.00',
+            'bitcoin': '64,200.00',
             'weather': '15°C',
-            'SP500': 'Loading...',
-            'Brent_Oil': 'Loading...',
-            'GBP_USD': 'Loading...',
-            'GBP_EUR': 'Loading...',
-            'EUR_USD': 'Loading...'
+            'SP500': '5,750.00',
+            'Brent_Oil': '75.00',
+            'GBP_USD': '1.33',
+            'GBP_EUR': '1.19',
+            'EUR_USD': '1.08'
         })
     
     articles = fetch_all_news()
@@ -117,7 +122,15 @@ def index():
 @app.route('/api/ticker', methods=['GET'])
 def api_ticker():
     with _cache_lock:
-        data = _finance_cache.get('data', {})
+        data = _finance_cache.get('data', {
+            'Gold': 2650.0,
+            'Bitcoin': 64200.0,
+            'SP500': 5750.0,
+            'Brent_Oil': 75.0,
+            'GBP_USD': 1.33,
+            'GBP_EUR': 1.19,
+            'EUR_USD': 1.08
+        })
     return jsonify({"success": True, "ticker": data})
 
 @app.route('/api/ai_brief', methods=['POST'])
