@@ -8,6 +8,7 @@ from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
+# --- FINANCE CACHE & WORKER ---
 _finance_cache = {'data': {}, 'last_updated': 0}
 _cache_lock = threading.Lock()
 
@@ -61,25 +62,26 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
+
+# --- NEWS CACHE & BACKGROUND WORKER (Prevents Hanging) ---
+_news_cache = {'articles': [], 'last_updated': 0}
+_news_lock = threading.Lock()
+
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        "https://rss.cnn.com/rss/edition_world.rss",
-        "https://www.theguardian.com/world/rss"
+        "https://rss.cnn.com/rss/edition_world.rss"
     ],
     "Technology": [
         "https://feeds.feedburner.com/TechCrunch/",
-        "https://www.theverge.com/rss/index.xml",
-        "https://feeds.arstechnica.com/arstechnica/index"
+        "https://www.theverge.com/rss/index.xml"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
-        "https://www.cnbc.com/id/10001147/device/rss/rss.html",
-        "https://www.theguardian.com/business/rss"
+        "https://www.cnbc.com/id/10001147/device/rss/rss.html"
     ],
     "Science": [
-        "https://www.sciencedaily.com/rss/top/science.xml",
-        "https://feeds.feedburner.com/NewScientistSpace"
+        "https://www.sciencedaily.com/rss/top/science.xml"
     ],
     "UK": [
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
@@ -96,56 +98,67 @@ def clean_html(raw_html):
     cleansed = re.sub(cleanr, '', raw_html)
     return cleansed.replace('&nbsp;', ' ').strip()
 
-def fetch_all_news():
-    all_articles = []
-    for category, urls in RSS_SOURCES.items():
-        for url in urls:
-            try:
-                feed = feedparser.parse(url)
-                for entry in feed.entries[:5]:
-                    raw_desc = entry.get('summary', entry.get('description', ''))
-                    all_articles.append({
-                        "title": entry.get('title', 'No Title'),
-                        "description": clean_html(raw_desc),
-                        "category": category,
-                        "published": entry.get('published', 'Recent'),
-                        "link": entry.get('link', '#')
-                    })
-            except Exception:
-                pass
+def background_news_worker():
+    while True:
+        all_articles = []
+        for category, urls in RSS_SOURCES.items():
+            for url in urls:
+                try:
+                    feed = feedparser.parse(url)
+                    for entry in feed.entries[:4]:
+                        raw_desc = entry.get('summary', entry.get('description', ''))
+                        all_articles.append({
+                            "title": entry.get('title', 'No Title'),
+                            "description": clean_html(raw_desc),
+                            "category": category,
+                            "published": entry.get('published', 'Recent'),
+                            "link": entry.get('link', '#')
+                        })
+                except Exception:
+                    pass
 
-    puzzle_items = [
-        {
-            "title": "The New York Times - Wordle Daily Challenge",
-            "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
-            "category": "Puzzles",
-            "published": "Daily",
-            "link": "https://www.nytimes.com/games/wordle/index.html"
-        },
-        {
-            "title": "The Guardian - Daily Crossword Hub",
-            "description": "Access quick, cryptic, and prize crosswords directly from major UK publishers.",
-            "category": "Puzzles",
-            "published": "Daily",
-            "link": "https://www.theguardian.com/crosswords"
-        },
-        {
-            "title": "The Independent - Daily Crosswords & Sudoku",
-            "description": "Enjoy interactive daily crosswords and number puzzles from UK journalism.",
-            "category": "Puzzles",
-            "published": "Daily",
-            "link": "https://www.independent.co.uk/extras/puzzles"
-        },
-        {
-            "title": "The New York Times - Mini Crossword",
-            "description": "A quick and snappy crossword puzzle updated every morning.",
-            "category": "Puzzles",
-            "published": "Daily",
-            "link": "https://www.nytimes.com/crosswords/game/mini"
-        }
-    ]
-    all_articles.extend(puzzle_items)
-    return all_articles
+        # Add Puzzles Hub items
+        puzzle_items = [
+            {
+                "title": "The New York Times - Wordle Daily Challenge",
+                "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
+                "category": "Puzzles",
+                "published": "Daily",
+                "link": "https://www.nytimes.com/games/wordle/index.html"
+            },
+            {
+                "title": "The Guardian - Daily Crossword Hub",
+                "description": "Access quick, cryptic, and prize crosswords directly from major UK publishers.",
+                "category": "Puzzles",
+                "published": "Daily",
+                "link": "https://www.theguardian.com/crosswords"
+            },
+            {
+                "title": "The Independent - Daily Crosswords & Sudoku",
+                "description": "Enjoy interactive daily crosswords and number puzzles from UK journalism.",
+                "category": "Puzzles",
+                "published": "Daily",
+                "link": "https://www.independent.co.uk/extras/puzzles"
+            },
+            {
+                "title": "The New York Times - Mini Crossword",
+                "description": "A quick and snappy crossword puzzle updated every morning.",
+                "category": "Puzzles",
+                "published": "Daily",
+                "link": "https://www.nytimes.com/crosswords/game/mini"
+            }
+        ]
+        all_articles.extend(puzzle_items)
+
+        if all_articles:
+            with _news_lock:
+                _news_cache['articles'] = all_articles
+                _news_cache['last_updated'] = time.time()
+
+        time.sleep(1800) # Refresh news every 30 mins in background
+
+threading.Thread(target=background_news_worker, daemon=True).start()
+
 
 @app.route('/')
 def index():
@@ -160,7 +173,19 @@ def index():
             'GBP_EUR': '1.19',
             'EUR_USD': '1.08'
         })
-    articles = fetch_all_news()
+    
+    with _news_lock:
+        articles = _news_cache.get('articles', [])
+    
+    if not articles:
+        articles = [{
+            "title": "Global Markets React to New Economic Data",
+            "description": "Live tickers update automatically.",
+            "category": "World",
+            "published": "Recent",
+            "link": "#"
+        }]
+
     return render_template('index.html', market=market_data, articles=articles)
 
 @app.route('/api/ticker', methods=['GET'])
