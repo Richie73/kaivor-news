@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaivor News & Puzzles</title>
+    <title>Kaivor News</title>
     <style>
         body { background-color: #0b0b0b; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding-top: 70px; }
         header { position: fixed; top: 0; left: 0; right: 0; background: #0b0b0b; z-index: 1000; padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; text-align: center; letter-spacing: 1px; color: #fff; }
@@ -12,260 +12,146 @@
         .market-bar { display: flex; gap: 12px; overflow-x: auto; padding: 12px; margin-bottom: 16px; font-size: 13px; background: #161618; border-radius: 12px; border: 1px solid #26262a; white-space: nowrap; scrollbar-width: none; }
         .market-bar::-webkit-scrollbar { display: none; }
         .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
-        .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; display: block; }
         .card h3 { font-size: 16px; margin: 0 0 8px 0; line-height: 1.4; }
         .card h3 a { color: #f3f4f6; text-decoration: none; }
         .source-tag { font-size: 11px; color: #10b981; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
         .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
         .chips::-webkit-scrollbar { display: none; }
-        .chip { padding: 6px 14px; background: #222; border-radius: 20px; color: #fff; text-decoration: none; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
-        .chip.active { background: #10b981; color: #0b0b0b; font-weight: bold; }
-        .btn-primary { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; text-align: center; display: block; text-decoration: none; margin-bottom: 12px; width: 100%; }
-        .btn-secondary { background: #1f2937; color: #f3f4f6; font-weight: bold; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; margin-right: 6px; margin-top: 8px; }
-        .btn-ai { background: #1f2937; color: #10b981; border: 1px solid #10b981; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
-        .feed-form { display: flex; gap: 6px; margin-bottom: 16px; }
-        .feed-form input { padding: 10px; background: #161618; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 13px; }
-        .feed-form input[name="name"] { width: 90px; flex-shrink: 0; }
-        .feed-form input[name="url"] { flex: 1; min-width: 0; }
-        .feed-form button { background: #10b981; color: #0b0b0b; font-weight: bold; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 13px; flex-shrink: 0; }
-        .digest-box { background: #111827; border: 1px solid #10b981; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: none; }
-        .manager-panel { background: #161618; border: 1px solid #26262a; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: none; }
-        .ai-drawer { background: #1f2937; border-left: 3px solid #10b981; padding: 10px 12px; margin-top: 10px; border-radius: 6px; font-size: 13px; color: #d1d5db; display: none; }
-        .takeaway-item { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1f2937; font-size: 13px; line-height: 1.4; color: #e5e7eb; }
-        .takeaway-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .puzzle-section-title { font-size: 15px; text-transform: uppercase; color: #10b981; margin: 20px 0 10px 0; font-weight: bold; border-left: 3px solid #10b981; padding-left: 8px; }
+        .chip { background: #1f1f23; color: #9ca3af; padding: 6px 14px; border-radius: 20px; font-size: 13px; white-space: nowrap; border: 1px solid #2f2f36; text-decoration: none; }
+        .chip.active { background: #10b981; color: #000; font-weight: 600; border-color: #10b981; }
+        .btn-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        button, .btn-link { background: #1f2f2a; color: #10b981; border: 1px solid #2a473b; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: 500; }
+        button:hover, .btn-link:hover { background: #2a473b; }
+        .btn-save { background: #059669; color: #fff; border: none; }
+        .ai-drawer { margin-top: 12px; background: #111816; border: 1px solid #1a332a; padding: 12px; border-radius: 8px; font-size: 13px; color: #d1fae5; display: none; line-height: 1.5; }
     </style>
 </head>
 <body>
+
     <header>
         KAIVOR NEWS
         <div class="sub-header">Global Intelligence & Puzzles</div>
     </header>
 
     <div class="container">
+        <!-- Live Financial Ticker Bar -->
         <div class="market-bar">
-            <span>🌦️ London: {{ market.weather }}</span>
-            <span>🪙 Gold: {{ market.gold }}</span>
-            <span>₿ Bitcoin: {{ market.bitcoin }}</span>
+            <span>🌦️ London: <span id="london-weather">{{ market.weather }}</span></span>
+            <span>🪙 Gold: <span id="gold-price">{{ market.gold }}</span></span>
+            <span>₿ Bitcoin: <span id="bitcoin-price">{{ market.bitcoin }}</span></span>
+            <span>📈 S&P 500: <span id="sp500-price">{{ market.SP500 }}</span></span>
+            <span>🛢️ Brent Oil: <span id="brent-oil-price">{{ market.Brent_Oil }}</span></span>
+            <span>💷 GBP/USD: <span id="gbp-usd-rate">{{ market.GBP_USD }}</span></span>
+            <span>💶 GBP/EUR: <span id="gbp-eur-rate">{{ market.GBP_EUR }}</span></span>
+            <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
         </div>
 
-        <button class="btn-primary" onclick="toggleManager()">⚙️ Feed & API Key Manager</button>
-
-        <div id="managerPanel" class="manager-panel">
-            <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 14px;">Active Custom Feeds:</h4>
-            {% for feed in custom_feeds %}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;">
-                <span>{{ feed.name }}</span>
-                <a href="/delete/{{ feed.id }}" style="color: #ef4444; text-decoration: none;">Delete</a>
-            </div>
-            {% endfor %}
-            {% if not custom_feeds %}
-            <p style="margin: 0; font-size: 12px; color: #888;">No custom feeds added yet.</p>
-            {% endif %}
-        </div>
-
-        <form method="POST" class="feed-form">
-            <input type="text" name="name" placeholder="Name" required>
-            <input type="url" name="url" placeholder="RSS URL..." required>
-            <button type="submit">Add Feed</button>
-        </form>
-
+        <!-- Category Chips Including Puzzles -->
         <div class="chips">
-            {% for cat in categories %}
-            <a href="/?category={{ cat }}" class="chip {% if category == cat %}active{% endif %}">{{ cat }}</a>
-            {% endfor %}
-            {% for feed in custom_feeds %}
-            <a href="/?custom_feed={{ feed.url }}" class="chip {% if custom_feed == feed.url %}active{% endif %}">{{ feed.name }}</a>
-            {% endfor %}
+            <a href="#" class="chip active">Top Stories</a>
+            <a href="#" class="chip">World</a>
+            <a href="#" class="chip">Technology</a>
+            <a href="#" class="chip">Business</a>
+            <a href="#" class="chip">Science</a>
+            <a href="#" class="chip">UK</a>
+            <a href="#" class="chip">Sport</a>
+            <a href="#" class="chip">🧩 Puzzles (Wordle/Crosswords)</a>
         </div>
 
-        {% if category == 'Puzzles' %}
-        <div class="puzzle-section-title">Word & Letter Games</div>
-        <div class="card">
-            <span class="source-tag">New York Times</span>
-            <h3><a href="https://www.nytimes.com/games/wordle/index.html" target="_blank">Wordle Daily Challenge</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Guess the 5-letter word in 6 tries. A new puzzle is available daily.</div>
-            <a href="https://www.nytimes.com/games/wordle/index.html" target="_blank" class="btn-secondary" style="margin: 0; background: #10b981; color: #0b0b0b;">Play Wordle</a>
-        </div>
+        <h3 style="font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Top Stories</h3>
 
-        <div class="puzzle-section-title">Cryptic & Quick Crosswords</div>
-
-        <div class="card">
-            <span class="source-tag">The Guardian</span>
-            <h3><a href="https://www.theguardian.com/crosswords/series/quick" target="_blank">Quick Crosswords</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Fast-paced daily quick crosswords from The Guardian.</div>
-            <a href="https://www.theguardian.com/crosswords/series/quick" target="_blank" class="btn-secondary" style="margin: 0;">Play Quick</a>
-        </div>
-
-        <div class="card">
-            <span class="source-tag">The Guardian</span>
-            <h3><a href="https://www.theguardian.com/crosswords/series/cryptic" target="_blank">Cryptic Crosswords</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Challenging cryptic wordplay puzzles for advanced solvers.</div>
-            <a href="https://www.theguardian.com/crosswords/series/cryptic" target="_blank" class="btn-secondary" style="margin: 0;">Play Cryptic</a>
-        </div>
-
-        <div class="card">
-            <span class="source-tag">The Independent</span>
-            <h3><a href="https://www.independent.co.uk/life-style/puzzles" target="_blank">Quick & Cryptic Puzzles Hub</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Daily selection of quick and cryptic crosswords from The Independent.</div>
-            <a href="https://www.independent.co.uk/life-style/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Hub</a>
-        </div>
-
-        <div class="card">
-            <span class="source-tag">The Times</span>
-            <h3><a href="https://www.thetimes.com/puzzles" target="_blank">The Times Crossword & Jumbo</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">The classic British broadsheet crossword puzzles.</div>
-            <a href="https://www.thetimes.com/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Puzzles</a>
-        </div>
-
-        <div class="card">
-            <span class="source-tag">The New York Times</span>
-            <h3><a href="https://www.nytimes.com/crosswords" target="_blank">NYT Daily & Mini Crossword</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Famous daily full crosswords and quick mini puzzles.</div>
-            <a href="https://www.nytimes.com/crosswords" target="_blank" class="btn-secondary" style="margin: 0;">Play NYT Crosswords</a>
-        </div>
-
-        <div class="card">
-            <span class="source-tag">The Telegraph</span>
-            <h3><a href="https://www.telegraph.co.uk/puzzles" target="_blank">Telegraph Puzzles Hub</a></h3>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-bottom: 12px;">Quick, cryptic, and premier puzzle games from The Telegraph.</div>
-            <a href="https://www.telegraph.co.uk/puzzles" target="_blank" class="btn-secondary" style="margin: 0;">Access Puzzles</a>
-        </div>
-
-        {% else %}
-
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <button class="btn-primary" style="margin: 0; flex: 1;" onclick="toggleTakeaways()">⚡ Key Takeaways</button>
-            <button id="listenBtn" class="btn-primary" style="margin: 0; flex: 1; background: #1f2937; color: #10b981; border: 1px solid #10b981;" onclick="speakTakeaways()">🎧 Listen Takeaways</button>
-        </div>
-
-        <div id="digestBox" class="digest-box">
-            <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 15px;">⚡ AI Top 5 Intelligence Briefing:</h4>
-            <div id="digestList">Synthesizing top headlines...</div>
-        </div>
-
-        <h3 style="margin-bottom: 12px; font-size: 16px; text-transform: uppercase; color: #9ca3af;">{{ category }} Top Stories</h3>
-
+        <!-- Article Feed Loop (Completely Image-Free) -->
         {% for article in articles %}
-        <div class="card" data-summary="{{ article.summary }}" data-title="{{ article.title }}">
-            {% if article.image %}
-            <img src="{{ article.image }}" alt="Article Image" loading="lazy">
-            {% endif %}
-            <span class="source-tag">{{ category }}</span>
+        <div class="card">
+            <span class="source-tag">{{ article.category }}</span>
             <h3><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></h3>
-            <div style="font-size: 12px; color: #888; margin: 6px 0 10px 0;">{{ article.published }}</div>
-            <div style="font-size: 14px; color: #9ca3af; line-height: 1.5;">{{ article.summary }}</div>
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">{{ article.published }}</div>
+            <p style="font-size: 13px; color: #9ca3af; line-height: 1.4; margin-bottom: 12px;">{{ article.description }}</p>
             
-            <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                <a href="{{ article.link }}" target="_blank" class="btn-secondary" style="margin: 0;">Open in Chrome</a>
-                <button class="btn-ai" onclick="generateAiBrief(this)">AI Brief</button>
-                <button class="btn-ai" onclick="generateAskAi(this)">Ask AI</button>
-                <form action="/save" method="POST" style="display: inline; margin: 0; margin-left: auto;">
-                    <input type="hidden" name="title" value="{{ article.title }}">
-                    <input type="hidden" name="link" value="{{ article.link }}">
-                    <button type="submit" class="btn-ai" style="background: #10b981; color: #0b0b0b; border: none; cursor: pointer;">Save</button>
-                </form>
+            <div class="btn-group">
+                <a href="{{ article.link }}" target="_blank" class="btn-link">Open in Chrome</a>
+                <button onclick="triggerAiBrief(this, '{{ article.title | escape }}', '{{ article.description | escape }}')">AI Brief</button>
+                <button onclick="triggerAskAi(this, '{{ article.title | escape }}')">Ask AI</button>
+                <button class="btn-save" onclick="alert('Article saved!')">Save</button>
             </div>
 
-            <div class="ai-drawer brief-drawer"></div>
-            <div class="ai-drawer ask-drawer"></div>
+            <div class="ai-drawer" id="brief-drawer"></div>
+            <div class="ai-drawer" id="ask-drawer"></div>
         </div>
         {% endfor %}
-
-        {% endif %}
-
-        {% if saved_articles %}
-        <h3 style="margin: 24px 0 12px 0; font-size: 16px; text-transform: uppercase; color: #10b981;">Saved Articles</h3>
-        {% for saved in saved_articles %}
-        <div class="card" style="border-color: #10b981;">
-            <h3><a href="{{ saved.link }}" target="_blank">{{ saved.title }}</a></h3>
-        </div>
-        {% endfor %}
-        {% endif %}
     </div>
 
     <script>
-        function toggleManager() {
-            const panel = document.getElementById('managerPanel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        async function updateFinanceTicker() {
+            try {
+                const response = await fetch('/api/ticker', { cache: 'no-store' });
+                const result = await response.json();
+                if (result.success && result.ticker) {
+                    const data = result.ticker;
+                    if (data.Gold) document.getElementById('gold-price').textContent = `$${Number(data.Gold).toLocaleString()}`;
+                    if (data.Bitcoin) document.getElementById('bitcoin-price').textContent = `$${Number(data.Bitcoin).toLocaleString()}`;
+                    if (data.SP500) document.getElementById('sp500-price').textContent = `$${Number(data.SP500).toLocaleString()}`;
+                    if (data.Brent_Oil) document.getElementById('brent-oil-price').textContent = `$${Number(data.Brent_Oil).toFixed(2)}`;
+                    if (data.GBP_USD) document.getElementById('gbp-usd-rate').textContent = Number(data.GBP_USD).toFixed(2);
+                    if (data.GBP_EUR) document.getElementById('gbp-eur-rate').textContent = Number(data.GBP_EUR).toFixed(2);
+                    if (data.EUR_USD) document.getElementById('eur-usd-rate').textContent = Number(data.EUR_USD).toFixed(2);
+                }
+            } catch (e) {
+                console.error("Ticker fetch error:", e);
+            }
         }
 
-        function toggleTakeaways() {
-            const box = document.getElementById('digestBox');
-            if (box.style.display === 'block') {
-                box.style.display = 'none';
-            } else {
-                box.style.display = 'block';
-                const cards = Array.from(document.querySelectorAll('.card')).slice(0, 5);
-                const listContainer = document.getElementById('digestList');
-                listContainer.innerHTML = '';
-                
-                cards.forEach((card, idx) => {
-                    const title = card.querySelector('h3 a').innerText;
-                    const item = document.createElement('div');
-                    item.className = 'takeaway-item';
-                    item.innerHTML = `<strong>${idx + 1}.</strong> ${title}`;
-                    listContainer.appendChild(item);
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFinanceTicker();
+            setInterval(updateFinanceTicker, 30000);
+        });
+
+        async function triggerAiBrief(btn, title, desc) {
+            const card = btn.closest('.card');
+            const drawer = card.querySelector('#brief-drawer');
+            drawer.style.display = 'block';
+            drawer.innerHTML = '⏳ Generating AI Executive Brief...';
+            
+            try {
+                const res = await fetch('/api/ai_brief', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: title, description: desc})
                 });
+                const data = await res.json();
+                if (data.success) {
+                    drawer.innerHTML = `<strong>AI Executive Summary:</strong> ${data.brief}`;
+                } else {
+                    drawer.innerHTML = '⚠️ Failed to generate brief.';
+                }
+            } catch (e) {
+                drawer.innerHTML = '⚠️ Error connecting to AI service.';
             }
         }
 
-        function speakTakeaways() {
-            if (!('speechSynthesis' in window)) {
-                alert("Text-to-speech is not supported on this browser.");
-                return;
-            }
-
-            const synth = window.speechSynthesis;
-            if (synth.speaking) {
-                synth.cancel();
-                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
-                return;
-            }
-
-            const cards = Array.from(document.querySelectorAll('.card')).slice(0, 5);
-            if (cards.length === 0) return;
-
-            let texts = cards.map((c, i) => `Priority story ${i + 1}: ${c.querySelector('h3 a').innerText}`);
-            let fullText = texts.join(". ");
-
-            const utterance = new SpeechSynthesisUtterance(fullText);
-            utterance.rate = 0.95;
-
-            utterance.onstart = () => {
-                document.getElementById('listenBtn').innerText = "⏹️ Stop Audio";
-            };
-            utterance.onend = () => {
-                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
-            };
-            utterance.onerror = () => {
-                document.getElementById('listenBtn').innerText = "🎧 Listen Takeaways";
-            };
-
-            synth.speak(utterance);
-        }
-
-        function generateAiBrief(btn) {
+        async function triggerAskAi(btn, title) {
             const card = btn.closest('.card');
-            const drawer = card.querySelector('.brief-drawer');
-            if (drawer.style.display === 'block') {
-                drawer.style.display = 'none';
-            } else {
-                const summary = card.getAttribute('data-summary') || "No summary available.";
-                drawer.innerHTML = "<strong>AI Executive Summary:</strong> " + summary + " <em>(Analyzed for core sector impact and geopolitical context).</em>";
-                drawer.style.display = 'block';
-            }
-        }
+            const drawer = card.querySelector('#ask-drawer');
+            const question = prompt("Ask AI about this story:", "What are the core economic implications?");
+            if (!question) return;
 
-        function generateAskAi(btn) {
-            const card = btn.closest('.card');
-            const drawer = card.querySelector('.ask-drawer');
-            if (drawer.style.display === 'block') {
-                drawer.style.display = 'none';
-            } else {
-                const title = card.getAttribute('data-title') || "this development";
-                drawer.innerHTML = "<strong>Ask AI Analysis:</strong> Regarding <em>'" + title + "'</em>, primary industry indicators suggest sustained long-term adjustments and strategic monitoring across related markets.";
-                drawer.style.display = 'block';
+            drawer.style.display = 'block';
+            drawer.innerHTML = '⏳ Analyzing question...';
+
+            try {
+                const res = await fetch('/api/ask_ai', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: title, question: question})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    drawer.innerHTML = `<strong>AI Analysis:</strong> ${data.answer}`;
+                } else {
+                    drawer.innerHTML = '⚠️ Failed to get answer.';
+                }
+            } catch (e) {
+                drawer.innerHTML = '⚠️ Error connecting to AI service.';
             }
         }
     </script>
