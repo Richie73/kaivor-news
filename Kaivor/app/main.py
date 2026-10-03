@@ -61,13 +61,38 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-RSS_FEEDS = {
-    "World": "https://news.google.com/rss/search?q=world&hl=en-US&gl=US&ceid=US:en",
-    "Technology": "https://news.google.com/rss/search?q=technology&hl=en-US&gl=US&ceid=US:en",
-    "Business": "https://news.google.com/rss/search?q=business&hl=en-US&gl=US&ceid=US:en",
-    "Science": "https://news.google.com/rss/search?q=science&hl=en-US&gl=US&ceid=US:en",
-    "UK": "https://news.google.com/rss/search?q=UK+news&hl=en-GB&gl=GB&ceid=GB:en",
-    "Sport": "https://news.google.com/rss/search?q=sport&hl=en-US&gl=US&ceid=US:en"
+# --- MULTI-SOURCE RSS FEEDS ---
+RSS_SOURCES = {
+    "World": [
+        "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "https://rss.cnn.com/rss/edition_world.rss",
+        "https://www.theguardian.com/world/rss"
+    ],
+    "Technology": [
+        "https://feeds.feedburner.com/TechCrunch/",
+        "https://www.theverge.com/rss/index.xml",
+        "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "Business": [
+        "https://feeds.bbci.co.uk/news/business/rss.xml",
+        "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "https://www.theguardian.com/business/rss"
+    ],
+    "Science": [
+        "https://www.sciencedaily.com/rss/top/science.xml",
+        "https://feeds.feedburner.com/NewScientistSpace"
+    ],
+    "UK": [
+        "https://feeds.bbci.co.uk/news/uk/rss.xml",
+        "https://www.theguardian.com/uk-news/rss"
+    ],
+    "Sport": [
+        "https://feeds.bbci.co.uk/sport/rss.xml",
+        "https://www.espn.com/espn/rss/news"
+    ],
+    "Puzzles": [
+        # Static curated daily puzzle links (NYT, Guardian, Independent)
+    ]
 }
 
 def clean_html(raw_html):
@@ -77,20 +102,58 @@ def clean_html(raw_html):
 
 def fetch_all_news():
     all_articles = []
-    for category, url in RSS_FEEDS.items():
-        try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries[:6]:
-                raw_desc = entry.get('summary', entry.get('description', ''))
-                all_articles.append({
-                    "title": entry.get('title', 'No Title'),
-                    "description": clean_html(raw_desc),
-                    "category": category,
-                    "published": entry.get('published', 'Recent'),
-                    "link": entry.get('link', '#')
-                })
-        except Exception:
-            pass
+    
+    # 1. Fetch from diverse RSS feeds
+    for category, urls in RSS_SOURCES.items():
+        if category == "Puzzles":
+            continue
+        for url in urls:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:5]:
+                    raw_desc = entry.get('summary', entry.get('description', ''))
+                    all_articles.append({
+                        "title": entry.get('title', 'No Title'),
+                        "description": clean_html(raw_desc),
+                        "category": category,
+                        "published": entry.get('published', 'Recent'),
+                        "link": entry.get('link', '#')
+                    })
+            except Exception:
+                pass
+
+    # 2. Inject Daily Puzzles Hub items
+    puzzle_items = [
+        {
+            "title": "The New York Times - Wordle Daily Challenge",
+            "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/games/wordle/index.html"
+        },
+        {
+            "title": "The Guardian - Daily Crossword Hub",
+            "description": "Access quick, cryptic, and prize crosswords directly from major UK publishers.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.theguardian.com/crosswords"
+        },
+        {
+            "title": "The Independent - Daily Crosswords & Sudoku",
+            "description": "Enjoy interactive daily crosswords and number puzzles from UK journalism.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.independent.co.uk/extras/puzzles"
+        },
+        {
+            "title": "The New York Times - Mini Crossword",
+            "description": "A quick and snappy crossword puzzle updated every morning.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/crosswords/game/mini"
+        }
+    ]
+    all_articles.extend(puzzle_items)
     return all_articles
 
 @app.route('/')
@@ -108,29 +171,12 @@ def index():
         })
     
     articles = fetch_all_news()
-    if not articles:
-        articles = [{
-            "title": "Global Markets React to New Economic Data",
-            "description": "Live tickers update automatically.",
-            "category": "World",
-            "published": "Recent",
-            "link": "#"
-        }]
-
     return render_template('index.html', market=market_data, articles=articles)
 
 @app.route('/api/ticker', methods=['GET'])
 def api_ticker():
     with _cache_lock:
-        data = _finance_cache.get('data', {
-            'Gold': 2650.0,
-            'Bitcoin': 64200.0,
-            'SP500': 5750.0,
-            'Brent_Oil': 75.0,
-            'GBP_USD': 1.33,
-            'GBP_EUR': 1.19,
-            'EUR_USD': 1.08
-        })
+        data = _finance_cache.get('data', {})
     return jsonify({"success": True, "ticker": data})
 
 @app.route('/api/ai_brief', methods=['POST'])
