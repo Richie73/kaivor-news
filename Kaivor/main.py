@@ -113,7 +113,6 @@ def fetch_fresh_news():
             except Exception:
                 pass
 
-    # Include Puzzles Hub items
     puzzle_items = [
         {
             "title": "The New York Times - Wordle Daily Challenge",
@@ -147,7 +146,6 @@ def fetch_fresh_news():
     all_articles.extend(puzzle_items)
     return all_articles
 
-# Pre-populate cache immediately on startup so it's never empty
 _news_cache = {'articles': fetch_fresh_news(), 'last_updated': time.time()}
 _news_lock = threading.Lock()
 
@@ -203,29 +201,29 @@ def api_ai_brief():
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a senior geopolitical and financial intelligence analyst. Provide a comprehensive, in-depth executive brief structured with: 1) Core Context & Breakdown, 2) Broader Market/Sector Implications, and 3) Forward-Looking Outlook."
+                        "content": "You are a concise executive news analyst. Provide a short, punchy 3-bullet summary focusing strictly on: 1) What happened, 2) Why it matters, and 3) Next outlook. Keep total response under 3 sentences/bullets."
                     },
                     {
                         "role": "user",
-                        "content": f"Generate a comprehensive intelligence brief for this news article:\nTitle: {article_title}\nSummary: {article_desc}"
+                        "content": f"Summarize concisely:\nTitle: {article_title}\nSummary: {article_desc}"
                     }
                 ],
                 "temperature": 0.3
             }
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if res.status_code == 200:
                 content = res.json()['choices'][0]['message']['content']
                 return jsonify({"success": True, "brief": content})
         except Exception:
             pass
             
-    fallback_brief = f"Comprehensive Executive Brief:\n• Core Analysis: Detailed evaluation of '{article_title}' reveals immediate shifts in policy and market dynamics.\n• Sector Impact: Industry stakeholders face secondary adjustments across related supply chains.\n• Outlook: Sustained monitoring required as broader macroeconomic trends unfold."
+    fallback_brief = f"• What happened: Key updates regarding '{article_title}'.\n• Significance: Immediate operational and market adjustments.\n• Outlook: Continued monitoring advised."
     return jsonify({"success": True, "brief": fallback_brief})
 
 @app.route('/api/ask_ai', methods=['POST'])
 def api_ask_ai():
     data = request.json or {}
-    question = data.get('question', 'What are the broader contextual implications?')
+    question = data.get('question', 'What are the implications?')
     article_title = data.get('title', '')
     article_desc = data.get('description', '')
     
@@ -238,23 +236,23 @@ def api_ask_ai():
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert AI investigative analyst connected via OpenRouter. Use your comprehensive training data and broader analytical reasoning to answer user questions about current events with depth, external context, and strategic insight."
+                        "content": "You are an expert AI analyst connected via OpenRouter. Answer the user's question directly and concisely using the article context and external knowledge."
                     },
                     {
                         "role": "user",
-                        "content": f"Article Context - Title: {article_title}\nSummary: {article_desc}\n\nUser Question: {question}"
+                        "content": f"Article: {article_title} - {article_desc}\n\nQuestion: {question}"
                     }
                 ],
                 "temperature": 0.4
             }
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=15)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if res.status_code == 200:
                 content = res.json()['choices'][0]['message']['content']
                 return jsonify({"success": True, "answer": content})
         except Exception:
             pass
 
-    fallback_answer = f"External Context Analysis: Regarding '{article_title}', addressing '{question}' requires evaluating historical precedent, regulatory responses, and macroeconomic indicators across global markets."
+    fallback_answer = f"Analysis: Regarding '{article_title}', addressing '{question}' points to standard industry trends and strategic adjustments."
     return jsonify({"success": True, "answer": fallback_answer})
 
 if __name__ == '__main__':
