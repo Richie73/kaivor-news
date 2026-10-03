@@ -17,7 +17,7 @@
         .source-tag { font-size: 11px; color: #10b981; text-transform: uppercase; margin-bottom: 6px; display: block; font-weight: bold; }
         .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
         .chips::-webkit-scrollbar { display: none; }
-        .chip { background: #1f1f23; color: #9ca3af; padding: 6px 14px; border-radius: 20px; font-size: 13px; white-space: nowrap; border: 1px solid #2f2f36; text-decoration: none; }
+        .chip { background: #1f1f23; color: #9ca3af; padding: 6px 14px; border-radius: 20px; font-size: 13px; white-space: nowrap; border: 1px solid #2f2f36; text-decoration: none; cursor: pointer; }
         .chip.active { background: #10b981; color: #000; font-weight: 600; border-color: #10b981; }
         .btn-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         button, .btn-link { background: #1f2f2a; color: #10b981; border: 1px solid #2a473b; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: 500; }
@@ -46,42 +46,63 @@
             <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
         </div>
 
-        <!-- Category Chips -->
+        <!-- Category Chips with Filter Attributes -->
         <div class="chips">
-            <a href="#" class="chip active">Top Stories</a>
-            <a href="#" class="chip">World</a>
-            <a href="#" class="chip">Technology</a>
-            <a href="#" class="chip">Business</a>
-            <a href="#" class="chip">Science</a>
-            <a href="#" class="chip">UK</a>
-            <a href="#" class="chip">Sport</a>
-            <a href="#" class="chip">🧩 Puzzles</a>
+            <div class="chip active" onclick="filterCategory('All', this)">Top Stories</div>
+            <div class="chip" onclick="filterCategory('World', this)">World</div>
+            <div class="chip" onclick="filterCategory('Technology', this)">Technology</div>
+            <div class="chip" onclick="filterCategory('Business', this)">Business</div>
+            <div class="chip" onclick="filterCategory('Science', this)">Science</div>
+            <div class="chip" onclick="filterCategory('UK', this)">UK</div>
+            <div class="chip" onclick="filterCategory('Sport', this)">Sport</div>
+            <div class="chip" onclick="filterCategory('Puzzles', this)">🧩 Puzzles</div>
         </div>
 
-        <h3 style="font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Top Stories</h3>
+        <h3 id="section-title" style="font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Top Stories</h3>
 
         <!-- Article Feed Loop -->
-        {% for article in articles %}
-        <div class="card">
-            <span class="source-tag">{{ article.category }}</span>
-            <h3><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></h3>
-            <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">{{ article.published }}</div>
-            <p style="font-size: 13px; color: #9ca3af; line-height: 1.4; margin-bottom: 12px;">{{ article.description }}</p>
-            
-            <div class="btn-group">
-                <a href="{{ article.link }}" target="_blank" class="btn-link">Open in Chrome</a>
-                <button onclick="triggerAiBrief(this, '{{ article.title | escape }}', '{{ article.description | escape }}')">AI Brief</button>
-                <button onclick="triggerAskAi(this, '{{ article.title | escape }}')">Ask AI</button>
-                <button class="btn-save" onclick="alert('Article saved!')">Save</button>
-            </div>
+        <div id="articles-container">
+            {% for article in articles %}
+            <div class="card" data-category="{{ article.category }}">
+                <span class="source-tag">{{ article.category }}</span>
+                <h3><a href="{{ article.link }}" target="_blank">{{ article.title }}</a></h3>
+                <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">{{ article.published }}</div>
+                <p style="font-size: 13px; color: #9ca3af; line-height: 1.4; margin-bottom: 12px;">{{ article.description }}</p>
+                
+                <div class="btn-group">
+                    <a href="{{ article.link }}" target="_blank" class="btn-link">Open in Chrome</a>
+                    <button onclick="triggerAiBrief(this, '{{ article.title | escape }}', '{{ article.description | escape }}')">AI Brief</button>
+                    <button onclick="triggerAskAi(this, '{{ article.title | escape }}')">Ask AI</button>
+                    <button class="btn-save" onclick="alert('Article saved!')">Save</button>
+                </div>
 
-            <div class="ai-drawer" id="brief-drawer"></div>
-            <div class="ai-drawer" id="ask-drawer"></div>
+                <div class="ai-drawer" id="brief-drawer"></div>
+                <div class="ai-drawer" id="ask-drawer"></div>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
 
     <script>
+        // Category Filtering Function
+        function filterCategory(category, element) {
+            document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
+            
+            document.getElementById('section-title').textContent = category === 'All' ? 'Top Stories' : category + ' Stories';
+
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                const cardCat = card.getAttribute('data-category');
+                if (category === 'All' || cardCat.toLowerCase() === category.toLowerCase()) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Automated Live Ticker Polling
         async function updateFinanceTicker() {
             try {
                 const response = await fetch('/api/ticker', { cache: 'no-store' });
@@ -148,10 +169,10 @@
                 if (data.success) {
                     drawer.innerHTML = `<strong>AI Analysis:</strong> ${data.answer}`;
                 } else {
-                    drawer.innerHTML = '⚠️️ Failed to get answer.';
+                    drawer.innerHTML = '⚠️ Failed to get answer.';
                 }
             } catch (e) {
-                drawer.innerHTML = '⚠️️ Error connecting to AI service.';
+                drawer.innerHTML = '⚠️ Error connecting to AI service.';
             }
         }
     </script>
