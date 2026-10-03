@@ -63,10 +63,7 @@ def background_finance_worker():
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
 
-# --- NEWS CACHE & BACKGROUND WORKER (Prevents Hanging) ---
-_news_cache = {'articles': [], 'last_updated': 0}
-_news_lock = threading.Lock()
-
+# --- NEWS FETCHING & CACHING ---
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -98,64 +95,70 @@ def clean_html(raw_html):
     cleansed = re.sub(cleanr, '', raw_html)
     return cleansed.replace('&nbsp;', ' ').strip()
 
+def fetch_fresh_news():
+    all_articles = []
+    for category, urls in RSS_SOURCES.items():
+        for url in urls:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:4]:
+                    raw_desc = entry.get('summary', entry.get('description', ''))
+                    all_articles.append({
+                        "title": entry.get('title', 'No Title'),
+                        "description": clean_html(raw_desc),
+                        "category": category,
+                        "published": entry.get('published', 'Recent'),
+                        "link": entry.get('link', '#')
+                    })
+            except Exception:
+                pass
+
+    # Include Puzzles Hub items
+    puzzle_items = [
+        {
+            "title": "The New York Times - Wordle Daily Challenge",
+            "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/games/wordle/index.html"
+        },
+        {
+            "title": "The Guardian - Daily Crossword Hub",
+            "description": "Access quick, cryptic, and prize crosswords directly from major UK publishers.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.theguardian.com/crosswords"
+        },
+        {
+            "title": "The Independent - Daily Crosswords & Sudoku",
+            "description": "Enjoy interactive daily crosswords and number puzzles from UK journalism.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.independent.co.uk/extras/puzzles"
+        },
+        {
+            "title": "The New York Times - Mini Crossword",
+            "description": "A quick and snappy crossword puzzle updated every morning.",
+            "category": "Puzzles",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/crosswords/game/mini"
+        }
+    ]
+    all_articles.extend(puzzle_items)
+    return all_articles
+
+# Pre-populate cache immediately on startup so it's never empty
+_news_cache = {'articles': fetch_fresh_news(), 'last_updated': time.time()}
+_news_lock = threading.Lock()
+
 def background_news_worker():
     while True:
-        all_articles = []
-        for category, urls in RSS_SOURCES.items():
-            for url in urls:
-                try:
-                    feed = feedparser.parse(url)
-                    for entry in feed.entries[:4]:
-                        raw_desc = entry.get('summary', entry.get('description', ''))
-                        all_articles.append({
-                            "title": entry.get('title', 'No Title'),
-                            "description": clean_html(raw_desc),
-                            "category": category,
-                            "published": entry.get('published', 'Recent'),
-                            "link": entry.get('link', '#')
-                        })
-                except Exception:
-                    pass
-
-        # Add Puzzles Hub items
-        puzzle_items = [
-            {
-                "title": "The New York Times - Wordle Daily Challenge",
-                "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
-                "category": "Puzzles",
-                "published": "Daily",
-                "link": "https://www.nytimes.com/games/wordle/index.html"
-            },
-            {
-                "title": "The Guardian - Daily Crossword Hub",
-                "description": "Access quick, cryptic, and prize crosswords directly from major UK publishers.",
-                "category": "Puzzles",
-                "published": "Daily",
-                "link": "https://www.theguardian.com/crosswords"
-            },
-            {
-                "title": "The Independent - Daily Crosswords & Sudoku",
-                "description": "Enjoy interactive daily crosswords and number puzzles from UK journalism.",
-                "category": "Puzzles",
-                "published": "Daily",
-                "link": "https://www.independent.co.uk/extras/puzzles"
-            },
-            {
-                "title": "The New York Times - Mini Crossword",
-                "description": "A quick and snappy crossword puzzle updated every morning.",
-                "category": "Puzzles",
-                "published": "Daily",
-                "link": "https://www.nytimes.com/crosswords/game/mini"
-            }
-        ]
-        all_articles.extend(puzzle_items)
-
-        if all_articles:
+        time.sleep(1800)
+        new_articles = fetch_fresh_news()
+        if new_articles:
             with _news_lock:
-                _news_cache['articles'] = all_articles
+                _news_cache['articles'] = new_articles
                 _news_cache['last_updated'] = time.time()
-
-        time.sleep(1800) # Refresh news every 30 mins in background
 
 threading.Thread(target=background_news_worker, daemon=True).start()
 
@@ -176,15 +179,6 @@ def index():
     
     with _news_lock:
         articles = _news_cache.get('articles', [])
-    
-    if not articles:
-        articles = [{
-            "title": "Global Markets React to New Economic Data",
-            "description": "Live tickers update automatically.",
-            "category": "World",
-            "published": "Recent",
-            "link": "#"
-        }]
 
     return render_template('index.html', market=market_data, articles=articles)
 
