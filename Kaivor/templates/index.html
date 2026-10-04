@@ -50,9 +50,9 @@
 
         <!-- Feed & API Key Manager Card -->
         <div class="manager-card">
-            <div style="font-size: 14px; font-weight: bold; color: #10b981; margin-bottom: 10px;">⚙️️ Feed & API Key Manager</div>
+            <div style="font-size: 14px; font-weight: bold; color: #10b981; margin-bottom: 10px;">⚙ Feed & API Key Manager</div>
             <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
-            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name...">
+            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)...">
             <button onclick="addCustomFeed()">Add Source</button>
             
             <div style="margin-top: 14px; border-top: 1px solid #26262a; padding-top: 12px;">
@@ -61,8 +61,18 @@
             </div>
 
             <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 12px;">
+                <input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key...">
+                <button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button>
+            </div>
+
+            <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 12px;">
                 <input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key...">
                 <button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button>
+            </div>
+
+            <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 12px;">
+                <input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key...">
+                <button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button>
             </div>
         </div>
 
@@ -135,7 +145,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('Source added successfully! Refreshing...');
+                alert('Source added successfully! If you typed a name like "The Athletic" and saved Brave API key, Kaivor searched and found its RSS feed.');
                 location.reload();
             } else {
                 alert('Failed to add source.');
@@ -143,7 +153,7 @@
         }
 
         async function saveApiKey(type) {
-            const inputId = type === 'guardian' ? 'guardian-key-input' : 'openrouter-key-input';
+            const inputId = type + '-key-input';
             const key = document.getElementById(inputId).value;
             if (!key) {
                 alert('Please enter a valid API key.');
@@ -156,7 +166,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert(`${type === 'guardian' ? 'Guardian' : 'OpenRouter'} API Key saved successfully!`);
+                alert(`${type.toUpperCase()} API Key saved successfully!`);
                 document.getElementById(inputId).value = '';
             } else {
                 alert('Failed to save key.');

@@ -94,6 +94,25 @@ def clean_html(raw_html):
         text = text[:157] + '...'
     return text
 
+def find_rss_via_brave(query):
+    brave_key = os.environ.get('BRAVE_API_KEY')
+    if not brave_key:
+        return None
+    try:
+        headers = {"X-Subscription-Token": brave_key}
+        res = requests.get(f"https://api.search.brave.com/res/v1/web/search?q={query} RSS feed URL", headers=headers, timeout=5)
+        if res.status_code == 200:
+            results = res.json().get('web', {}).get('results', [])
+            for r in results:
+                link = r.get('url', '')
+                if 'rss' in link or 'feed' in link or '.xml' in link:
+                    return link
+            if results:
+                return results[0].get('url')
+    except Exception:
+        pass
+    return None
+
 def fetch_guardian_articles(category):
     articles = []
     guardian_key = os.environ.get('GUARDIAN_API_KEY')
@@ -120,8 +139,6 @@ def fetch_guardian_articles(category):
 
 def fetch_fresh_news():
     all_articles = []
-    
-    # 1. Fetch Standard RSS Feeds
     for category, urls in RSS_SOURCES.items():
         for url in urls:
             try:
@@ -138,11 +155,9 @@ def fetch_fresh_news():
             except Exception:
                 pass
         
-        # 2. Fetch Guardian API for categories if key is present
         guardian_items = fetch_guardian_articles(category)
         all_articles.extend(guardian_items)
 
-    # 3. Puzzles Hub items
     puzzle_items = [
         {
             "title": "The New York Times - Wordle Daily Challenge",
@@ -208,14 +223,23 @@ def api_ticker():
 def api_add_feed():
     data = request.json or {}
     name = data.get('name', '').strip()
-    url = data.get('url', '').strip()
-    if name and url:
+    url_input = data.get('url', '').strip()
+    
+    if name and url_input:
+        target_url = url_input
+        # If user typed a publication name instead of a URL, use Brave Search API to find it!
+        if not url_input.startswith('http'):
+            found_url = find_rss_via_brave(url_input)
+            if found_url:
+                target_url = found_url
+
         if name not in RSS_SOURCES:
             RSS_SOURCES[name] = []
-        RSS_SOURCES[name].append(url)
+        RSS_SOURCES[name].append(target_url)
+        
         with _news_lock:
             _news_cache['articles'] = fetch_fresh_news()
-        return jsonify({"success": True})
+        return jsonify({"success": True, "resolved_url": target_url})
     return jsonify({"success": False}), 400
 
 @app.route('/api/set_key', methods=['POST'])
@@ -226,10 +250,13 @@ def api_set_key():
     if api_key:
         if key_type == 'guardian':
             os.environ['GUARDIAN_API_KEY'] = api_key
+        elif key_type == 'openai':
+            os.environ['OPENAI_API_KEY'] = api_key
+        elif key_type == 'brave':
+            os.environ['BRAVE_API_KEY'] = api_key
         else:
             os.environ['OPENROUTER_API_KEY'] = api_key
         
-        # Refresh news cache immediately to pull Guardian articles if key was added
         with _news_lock:
             _news_cache['articles'] = fetch_fresh_news()
         return jsonify({"success": True})
@@ -241,28 +268,41 @@ def api_ai_brief():
     article_title = data.get('title', '')
     article_desc = data.get('description', '')
     
+    # Try OpenRouter first, then OpenAI as fallback
     api_key = os.environ.get('OPENROUTER_API_KEY')
+    openai_key = os.environ.get('OPENAI_API_KEY')
+    
     if api_key:
         try:
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "deepseek/deepseek-chat",
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a concise executive news analyst. Provide a short 3-bullet summary focusing on: 1) What happened, 2) Why it matters, and 3) Next outlook."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Summarize concisely:\nTitle: {article_title}\nSummary: {article_desc}"
-                    }
+                    {"role": "system", "content": "Provide a short 3-bullet summary: 1) What happened, 2) Why it matters, 3) Next outlook."},
+                    {"role": "user", "content": f"Summarize:\nTitle: {article_title}\nSummary: {article_desc}"}
                 ],
                 "temperature": 0.3
             }
             res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if res.status_code == 200:
-                content = res.json()['choices'][0]['message']['content']
-                return jsonify({"success": True, "brief": content})
+                return jsonify({"success": True, "brief": res.json()['choices'][0]['message']['content']})
+        except Exception:
+            pass
+
+    if openai_key:
+        try:
+            headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "Provide a short 3-bullet summary: 1) What happened, 2) Why it matters, 3) Next outlook."},
+                    {"role": "user", "content": f"Summarize:\nTitle: {article_title}\nSummary: {article_desc}"}
+                ],
+                "temperature": 0.3
+            }
+            res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=10)
+            if res.status_code == 200:
+                return jsonify({"success": True, "brief": res.json()['choices'][0]['message']['content']})
         except Exception:
             pass
             
@@ -277,27 +317,39 @@ def api_ask_ai():
     article_desc = data.get('description', '')
     
     api_key = os.environ.get('OPENROUTER_API_KEY')
+    openai_key = os.environ.get('OPENAI_API_KEY')
+    
     if api_key:
         try:
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "deepseek/deepseek-chat",
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are an expert AI analyst connected via OpenRouter. Answer the user's question directly and concisely using context."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Article: {article_title} - {article_desc}\n\nQuestion: {question}"
-                    }
+                    {"role": "system", "content": "Answer the question concisely using context."},
+                    {"role": "user", "content": f"Article: {article_title} - {article_desc}\n\nQuestion: {question}"}
                 ],
                 "temperature": 0.4
             }
             res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if res.status_code == 200:
-                content = res.json()['choices'][0]['message']['content']
-                return jsonify({"success": True, "answer": content})
+                return jsonify({"success": True, "answer": res.json()['choices'][0]['message']['content']})
+        except Exception:
+            pass
+
+    if openai_key:
+        try:
+            headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "Answer the question concisely using context."},
+                    {"role": "user", "content": f"Article: {article_title} - {article_desc}\n\nQuestion: {question}"}
+                ],
+                "temperature": 0.4
+            }
+            res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=10)
+            if res.status_code == 200:
+                return jsonify({"success": True, "answer": res.json()['choices'][0]['message']['content']})
         except Exception:
             pass
 
