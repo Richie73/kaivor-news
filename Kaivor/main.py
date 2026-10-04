@@ -61,7 +61,6 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
-# --- DYNAMIC RSS SOURCES ---
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -79,8 +78,7 @@ RSS_SOURCES = {
         "https://www.sciencedaily.com/rss/top/science.xml"
     ],
     "UK": [
-        "https://feeds.bbci.co.uk/news/uk/rss.xml",
-        "https://www.theguardian.com/uk-news/rss"
+        "https://feeds.bbci.co.uk/news/uk/rss.xml"
     ],
     "Sport": [
         "https://feeds.bbci.co.uk/sport/rss.xml",
@@ -96,13 +94,39 @@ def clean_html(raw_html):
         text = text[:157] + '...'
     return text
 
+def fetch_guardian_articles(category):
+    articles = []
+    guardian_key = os.environ.get('GUARDIAN_API_KEY')
+    if not guardian_key:
+        return articles
+    try:
+        url = f"https://content.guardianapis.com/search?section={category.lower()}&api-key={guardian_key}&show-fields=trailText"
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            results = res.json().get('response', {}).get('results', [])
+            for item in results[:5]:
+                fields = item.get('fields', {})
+                desc = fields.get('trailText', 'Guardian coverage update.')
+                articles.append({
+                    "title": item.get('webTitle', 'Guardian Article'),
+                    "description": clean_html(desc),
+                    "category": category,
+                    "published": item.get('webPublicationDate', 'Recent')[:10],
+                    "link": item.get('webUrl', '#')
+                })
+    except Exception:
+        pass
+    return articles
+
 def fetch_fresh_news():
     all_articles = []
+    
+    # 1. Fetch Standard RSS Feeds
     for category, urls in RSS_SOURCES.items():
         for url in urls:
             try:
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:4]:
+                for entry in feed.entries[:3]:
                     raw_desc = entry.get('summary', entry.get('description', ''))
                     all_articles.append({
                         "title": entry.get('title', 'No Title'),
@@ -113,7 +137,12 @@ def fetch_fresh_news():
                     })
             except Exception:
                 pass
+        
+        # 2. Fetch Guardian API for categories if key is present
+        guardian_items = fetch_guardian_articles(category)
+        all_articles.extend(guardian_items)
 
+    # 3. Puzzles Hub items
     puzzle_items = [
         {
             "title": "The New York Times - Wordle Daily Challenge",
@@ -184,7 +213,6 @@ def api_add_feed():
         if name not in RSS_SOURCES:
             RSS_SOURCES[name] = []
         RSS_SOURCES[name].append(url)
-        # Refresh cache immediately
         with _news_lock:
             _news_cache['articles'] = fetch_fresh_news()
         return jsonify({"success": True})
@@ -193,9 +221,17 @@ def api_add_feed():
 @app.route('/api/set_key', methods=['POST'])
 def api_set_key():
     data = request.json or {}
+    key_type = data.get('type', '').strip()
     api_key = data.get('api_key', '').strip()
     if api_key:
-        os.environ['OPENROUTER_API_KEY'] = api_key
+        if key_type == 'guardian':
+            os.environ['GUARDIAN_API_KEY'] = api_key
+        else:
+            os.environ['OPENROUTER_API_KEY'] = api_key
+        
+        # Refresh news cache immediately to pull Guardian articles if key was added
+        with _news_lock:
+            _news_cache['articles'] = fetch_fresh_news()
         return jsonify({"success": True})
     return jsonify({"success": False}), 400
 

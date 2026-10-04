@@ -50,13 +50,19 @@
 
         <!-- Feed & API Key Manager Card -->
         <div class="manager-card">
-            <div style="font-size: 14px; font-weight: bold; color: #10b981; margin-bottom: 10px;">⚙️ Feed & API Key Manager</div>
+            <div style="font-size: 14px; font-weight: bold; color: #10b981; margin-bottom: 10px;">⚙️️ Feed & API Key Manager</div>
             <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
-            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL...">
-            <button onclick="addCustomFeed()">Add RSS Feed</button>
-            <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 10px;">
-                <input type="password" id="api-key-input" class="manager-input" placeholder="Set OpenRouter API Key...">
-                <button onclick="saveApiKey()" class="btn-save">Save API Key</button>
+            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name...">
+            <button onclick="addCustomFeed()">Add Source</button>
+            
+            <div style="margin-top: 14px; border-top: 1px solid #26262a; padding-top: 12px;">
+                <input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key...">
+                <button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button>
+            </div>
+
+            <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 12px;">
+                <input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key...">
+                <button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button>
             </div>
         </div>
 
@@ -119,7 +125,7 @@
             const name = document.getElementById('feed-name').value;
             const url = document.getElementById('feed-url').value;
             if (!name || !url) {
-                alert('Please provide both feed name and RSS URL.');
+                alert('Please provide both feed name and URL/publication.');
                 return;
             }
             const res = await fetch('/api/add_feed', {
@@ -129,15 +135,16 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('Feed added successfully! Refreshing...');
+                alert('Source added successfully! Refreshing...');
                 location.reload();
             } else {
-                alert('Failed to add feed.');
+                alert('Failed to add source.');
             }
         }
 
-        async function saveApiKey() {
-            const key = document.getElementById('api-key-input').value;
+        async function saveApiKey(type) {
+            const inputId = type === 'guardian' ? 'guardian-key-input' : 'openrouter-key-input';
+            const key = document.getElementById(inputId).value;
             if (!key) {
                 alert('Please enter a valid API key.');
                 return;
@@ -145,12 +152,12 @@
             const res = await fetch('/api/set_key', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({api_key: key})
+                body: JSON.stringify({type: type, api_key: key})
             });
             const data = await res.json();
             if (data.success) {
-                alert('OpenRouter API Key saved successfully!');
-                document.getElementById('api-key-input').value = '';
+                alert(`${type === 'guardian' ? 'Guardian' : 'OpenRouter'} API Key saved successfully!`);
+                document.getElementById(inputId).value = '';
             } else {
                 alert('Failed to save key.');
             }
