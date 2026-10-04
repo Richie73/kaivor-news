@@ -61,16 +61,15 @@ def background_finance_worker():
 
 threading.Thread(target=background_finance_worker, daemon=True).start()
 
+# --- DYNAMIC RSS SOURCES ---
 RSS_SOURCES = {
     "World": [
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        "https://rss.cnn.com/rss/edition_world.rss",
-        "https://www.theguardian.com/world/rss"
+        "https://rss.cnn.com/rss/edition_world.rss"
     ],
     "Technology": [
         "https://feeds.feedburner.com/TechCrunch/",
-        "https://www.theverge.com/rss/index.xml",
-        "https://feeds.arstechnica.com/arstechnica/index"
+        "https://www.theverge.com/rss/index.xml"
     ],
     "Business": [
         "https://feeds.bbci.co.uk/news/business/rss.xml",
@@ -93,7 +92,6 @@ def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     cleansed = re.sub(cleanr, '', raw_html)
     text = cleansed.replace('&nbsp;', ' ').strip()
-    # Truncate overly long blog/article body snippets to a clean summary length
     if len(text) > 160:
         text = text[:157] + '...'
     return text
@@ -104,7 +102,7 @@ def fetch_fresh_news():
         for url in urls:
             try:
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:5]:
+                for entry in feed.entries[:4]:
                     raw_desc = entry.get('summary', entry.get('description', ''))
                     all_articles.append({
                         "title": entry.get('title', 'No Title'),
@@ -152,17 +150,6 @@ def fetch_fresh_news():
 _news_cache = {'articles': fetch_fresh_news(), 'last_updated': time.time()}
 _news_lock = threading.Lock()
 
-def background_news_worker():
-    while True:
-        time.sleep(1800)
-        new_articles = fetch_fresh_news()
-        if new_articles:
-            with _news_lock:
-                _news_cache['articles'] = new_articles
-                _news_cache['last_updated'] = time.time()
-
-threading.Thread(target=background_news_worker, daemon=True).start()
-
 @app.route('/')
 def index():
     with _cache_lock:
@@ -188,6 +175,30 @@ def api_ticker():
         data = _finance_cache.get('data', {})
     return jsonify({"success": True, "ticker": data})
 
+@app.route('/api/add_feed', methods=['POST'])
+def api_add_feed():
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    url = data.get('url', '').strip()
+    if name and url:
+        if name not in RSS_SOURCES:
+            RSS_SOURCES[name] = []
+        RSS_SOURCES[name].append(url)
+        # Refresh cache immediately
+        with _news_lock:
+            _news_cache['articles'] = fetch_fresh_news()
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 400
+
+@app.route('/api/set_key', methods=['POST'])
+def api_set_key():
+    data = request.json or {}
+    api_key = data.get('api_key', '').strip()
+    if api_key:
+        os.environ['OPENROUTER_API_KEY'] = api_key
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 400
+
 @app.route('/api/ai_brief', methods=['POST'])
 def api_ai_brief():
     data = request.json or {}
@@ -203,7 +214,7 @@ def api_ai_brief():
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a concise executive news analyst. Provide a short, punchy 3-bullet summary focusing strictly on: 1) What happened, 2) Why it matters, and 3) Next outlook. Keep total response under 3 sentences/bullets."
+                        "content": "You are a concise executive news analyst. Provide a short 3-bullet summary focusing on: 1) What happened, 2) Why it matters, and 3) Next outlook."
                     },
                     {
                         "role": "user",
@@ -238,7 +249,7 @@ def api_ask_ai():
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert AI analyst connected via OpenRouter. Answer the user's question directly and concisely using the article context and external knowledge."
+                        "content": "You are an expert AI analyst connected via OpenRouter. Answer the user's question directly and concisely using context."
                     },
                     {
                         "role": "user",
@@ -254,7 +265,7 @@ def api_ask_ai():
         except Exception:
             pass
 
-    fallback_answer = f"Analysis: Regarding '{article_title}', addressing '{question}' points to standard industry trends and strategic adjustments."
+    fallback_answer = f"Analysis: Regarding '{article_title}', addressing '{question}' points to standard industry trends."
     return jsonify({"success": True, "answer": fallback_answer})
 
 if __name__ == '__main__':

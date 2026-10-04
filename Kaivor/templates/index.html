@@ -11,6 +11,8 @@
         .container { padding: 16px; max-width: 600px; margin: 0 auto; }
         .market-bar { display: flex; gap: 12px; overflow-x: auto; padding: 12px; margin-bottom: 16px; font-size: 13px; background: #161618; border-radius: 12px; border: 1px solid #26262a; white-space: nowrap; scrollbar-width: none; }
         .market-bar::-webkit-scrollbar { display: none; }
+        .manager-card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
+        .manager-input { width: 100%; padding: 8px 12px; margin-bottom: 8px; background: #1f1f23; border: 1px solid #2f2f36; color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
         .card { background: #161618; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #26262a; }
         .card h3 { font-size: 16px; margin: 0 0 8px 0; line-height: 1.4; }
         .card h3 a { color: #f3f4f6; text-decoration: none; }
@@ -46,7 +48,19 @@
             <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
         </div>
 
-        <!-- Category Chips with Filter Attributes -->
+        <!-- Feed & API Key Manager Card -->
+        <div class="manager-card">
+            <div style="font-size: 14px; font-weight: bold; color: #10b981; margin-bottom: 10px;">⚙️ Feed & API Key Manager</div>
+            <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
+            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL...">
+            <button onclick="addCustomFeed()">Add RSS Feed</button>
+            <div style="margin-top: 12px; border-top: 1px solid #26262a; padding-top: 10px;">
+                <input type="password" id="api-key-input" class="manager-input" placeholder="Set OpenRouter API Key...">
+                <button onclick="saveApiKey()" class="btn-save">Save API Key</button>
+            </div>
+        </div>
+
+        <!-- Category Chips -->
         <div class="chips">
             <div class="chip active" onclick="filterCategory('All', this)">Top Stories</div>
             <div class="chip" onclick="filterCategory('World', this)">World</div>
@@ -84,7 +98,6 @@
     </div>
 
     <script>
-        // Category Filtering Function
         function filterCategory(category, element) {
             document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
@@ -94,7 +107,7 @@
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 const cardCat = card.getAttribute('data-category');
-                if (category === 'All' || cardCat.toLowerCase() === category.toLowerCase()) {
+                if (category === 'All' || (cardCat && cardCat.toLowerCase() === category.toLowerCase())) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
@@ -102,7 +115,47 @@
             });
         }
 
-        // Automated Live Ticker Polling
+        async function addCustomFeed() {
+            const name = document.getElementById('feed-name').value;
+            const url = document.getElementById('feed-url').value;
+            if (!name || !url) {
+                alert('Please provide both feed name and RSS URL.');
+                return;
+            }
+            const res = await fetch('/api/add_feed', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name, url: url})
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Feed added successfully! Refreshing...');
+                location.reload();
+            } else {
+                alert('Failed to add feed.');
+            }
+        }
+
+        async function saveApiKey() {
+            const key = document.getElementById('api-key-input').value;
+            if (!key) {
+                alert('Please enter a valid API key.');
+                return;
+            }
+            const res = await fetch('/api/set_key', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({api_key: key})
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('OpenRouter API Key saved successfully!');
+                document.getElementById('api-key-input').value = '';
+            } else {
+                alert('Failed to save key.');
+            }
+        }
+
         async function updateFinanceTicker() {
             try {
                 const response = await fetch('/api/ticker', { cache: 'no-store' });
@@ -141,7 +194,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    drawer.innerHTML = `<strong>AI Executive Summary:</strong> ${data.brief}`;
+                    drawer.innerHTML = `<strong>AI Executive Summary:</strong><br>${data.brief.replace(/\n/g, '<br>')}`;
                 } else {
                     drawer.innerHTML = '⚠️ Failed to generate brief.';
                 }
@@ -153,7 +206,7 @@
         async function triggerAskAi(btn, title) {
             const card = btn.closest('.card');
             const drawer = card.querySelector('#ask-drawer');
-            const question = prompt("Ask AI about this story:", "What are the core economic implications?");
+            const question = prompt("Ask AI about this story:", "What are the broader implications?");
             if (!question) return;
 
             drawer.style.display = 'block';
@@ -167,7 +220,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    drawer.innerHTML = `<strong>AI Analysis:</strong> ${data.answer}`;
+                    drawer.innerHTML = `<strong>AI Analysis:</strong><br>${data.answer.replace(/\n/g, '<br>')}`;
                 } else {
                     drawer.innerHTML = '⚠️ Failed to get answer.';
                 }
