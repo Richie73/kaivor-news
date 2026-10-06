@@ -382,7 +382,7 @@ def api_cron_refresh():
             "refreshed_at": datetime.now(timezone.utc).isoformat(),
         })
     except Exception as exc:
-        return jsonify({"success": False, "error": "Refresh failed", "detail": type(exc).__name__}), 500
+        return jsonify({"success": False, "error": "Refresh failed", "detail": type(exc).__name__, "message": str(exc)}), 500
 
 
 @app.route("/")
