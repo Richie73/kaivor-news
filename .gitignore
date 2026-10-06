@@ -42,3 +42,20 @@ backups/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Kaivor News secrets and local runtime data
+config/news_secrets.json
+data/news_saved.json
+data/provider_stats.json
+config/*secrets*.json
+*.sqlite3
+
+# Kaivor News secrets and local runtime data
+config/news_secrets.json
+data/news_saved.json
+data/provider_stats.json
+config/*secrets*.json
+*.sqlite3
+
+# Local Kaivor runtime data
+data/*

@@ -1,0 +1,22 @@
+{
+  "categories": {
+    "Technology": 5,
+    "Business": 4,
+    "Science": 4,
+    "UK": 4,
+    "World": 3,
+    "Sport": 2
+  },
+  "keywords": [
+    "AI",
+    "artificial intelligence",
+    "construction",
+    "finance",
+    "business",
+    "technology"
+  ],
+  "regions": [
+    "UK",
+    "United Kingdom"
+  ]
+}

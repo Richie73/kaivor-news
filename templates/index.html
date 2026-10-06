@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b0b0b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/icon-192.png" type="image/png">
+    <title>Kaivor News</title>
+    <style>
+        body { background:#0b0b0b; color:#f3f4f6; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:70px; }
+        header { position:fixed; top:0; left:0; right:0; background:#0b0b0b; z-index:1000; padding:16px; font-size:20px; font-weight:bold; border-bottom:1px solid #222; text-align:center; letter-spacing:1px; color:#fff; }
+        .install-app { margin-top:7px; padding:5px 10px; font-size:11px; border-radius:999px; }
+        .sub-header { font-size:11px; color:#10b981; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+        .container { padding:16px; max-width:600px; margin:0 auto; }
+        .market-bar { display:flex; gap:12px; overflow-x:auto; padding:12px; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; scrollbar-width:none; }
+        .market-bar::-webkit-scrollbar,.chips::-webkit-scrollbar { display:none; }
+        .manager-card,.card { background:#161618; border-radius:16px; padding:16px; margin-bottom:16px; border:1px solid #26262a; }
+        .manager-settings { padding:0; overflow:hidden; }
+        .manager-settings summary { list-style:none; cursor:pointer; padding:12px 14px; color:#10b981; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
+        .manager-settings summary::-webkit-details-marker { display:none; }
+        .manager-settings summary::after { content:'+'; color:#9ca3af; font-size:18px; line-height:1; }
+        .manager-settings[open] summary::after { content:'−'; }
+        .manager-settings summary span { margin-left:auto; margin-right:10px; color:#6b7280; font-size:11px; font-weight:400; }
+        .settings-body { padding:0 14px 14px; }
+        .settings-label { color:#9ca3af; font-size:11px; margin:2px 0 8px; text-transform:uppercase; letter-spacing:.6px; }
+        .api-key-row { margin-top:12px; padding-top:12px; border-top:1px solid #26262a; }
+        .manager-input { width:100%; padding:8px 12px; margin-bottom:8px; background:#1f1f23; border:1px solid #2f2f36; color:#fff; border-radius:8px; box-sizing:border-box; font-size:13px; }
+        .card h3 { font-size:16px; margin:0 0 8px; line-height:1.4; }
+        .card h3 a { color:#f3f4f6; text-decoration:none; }
+        .source-tag { font-size:11px; color:#10b981; text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
+        .source-name { font-size:11px; color:#6b7280; margin-bottom:8px; }
+        .chips { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:16px; scrollbar-width:none; }
+        .chip { background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
+        .chip.active { background:#10b981; color:#000; font-weight:600; border-color:#10b981; }
+        .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+        button,.btn-link { background:#1f2f2a; color:#10b981; border:1px solid #2a473b; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
+        button:hover,.btn-link:hover { background:#2a473b; }
+        .btn-save { background:#059669; color:#fff; border:none; }
+        .btn-save.saved { background:#064e3b; border:1px solid #10b981; }
+        .ai-drawer { margin-top:14px; background:linear-gradient(180deg,#111816 0%,#0f1513 100%); border:1px solid #214537; padding:15px; border-radius:12px; font-size:13px; color:#d7eee5; display:none; line-height:1.6; box-shadow:inset 0 1px 0 rgba(255,255,255,.02); }
+         .ai-card-head { display:flex; align-items:center; gap:9px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #20362e; }
+         .ai-card-icon { width:28px; height:28px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:#123126; color:#34d399; font-size:14px; }
+         .ai-card-title { color:#d1fae5; font-weight:700; font-size:14px; }
+         .ai-card-subtitle { color:#71847c; font-size:10px; margin-top:1px; }
+         .ai-content { color:#c9d8d2; }
+         .ai-content p { margin:0 0 10px; }
+         .ai-content p:last-child { margin-bottom:0; }
+         .ai-content strong { color:#e4fff3; font-weight:700; }
+         .ai-content em { color:#a9beb6; }
+         .ai-content .ai-number { display:flex; gap:9px; margin:8px 0; }
+         .ai-content .ai-number span { color:#34d399; font-weight:700; min-width:18px; }
+         .ai-content .ai-bullet { margin:7px 0 7px 2px; padding-left:14px; position:relative; }
+         .ai-content .ai-bullet::before { content:'•'; position:absolute; left:0; color:#34d399; }
+         .ai-source-note { margin-top:12px; padding-top:9px; border-top:1px solid #1e3029; color:#70827b; font-size:10px; }
+         .ai-loading { color:#9ab5aa; }
+         .ai-error { color:#f0b6b6; background:#251718; border:1px solid #4a282b; padding:9px 10px; border-radius:8px; }
+        .status { color:#9ca3af; font-size:12px; margin:-6px 0 14px; }
+        .intel-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 10px; }
+        .intel-badge { font-size:10px; color:#a7f3d0; background:#10231c; border:1px solid #1f4d3b; border-radius:999px; padding:4px 7px; }
+        .importance-badge,.confidence-badge { font-weight:600; }
+        .intel-hint { font-size:12px; color:#b7c8c0; line-height:1.45; margin:0 0 10px; }
+        .evidence-note { font-size:12px; color:#9ca3af; line-height:1.45; margin:0 0 10px; }
+        .ai-drawer strong { color:#a7f3d0; }
+         .ai-heading { color:#a7f3d0; font-weight:700; margin:0 0 6px; }
+         .ai-bullet { margin:5px 0 5px 16px; }
+         .ask-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; align-items:flex-end; justify-content:center; z-index:2000; }
+         .ask-modal { width:min(600px,100%); background:#161618; border:1px solid #2f2f36; border-radius:18px 18px 0 0; padding:18px; box-sizing:border-box; box-shadow:0 -12px 40px rgba(0,0,0,.45); }
+         .ask-modal h3 { margin:0 0 12px; font-size:17px; }
+         .ask-modal textarea { width:100%; min-height:92px; box-sizing:border-box; resize:vertical; background:#1f1f23; color:#fff; border:1px solid #383842; border-radius:10px; padding:12px; font:inherit; }
+         .ask-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+         .btn-secondary { background:#1f1f23; color:#d1d5db; border-color:#383842; }
+        .timeline-event { padding:10px 0; border-top:1px solid #20342c; }
+        .timeline-event:first-child { border-top:none; padding-top:0; }
+        .timeline-meta { font-size:11px; color:#7f918a; margin-bottom:4px; }
+        .timeline-title { font-size:13px; color:#d1fae5; line-height:1.4; }
+        .timeline-type { font-size:10px; color:#a7f3d0; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+        .timeline-note { font-size:11px; color:#9ca3af; margin-top:10px; line-height:1.45; }
+    </style>
+</head>
+<body>
+<header><div>KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button></header>
+<div class="container">
+    <div class="market-bar">
+        <span>🌦️ London: <span id="london-weather">{{ market.weather }}</span></span>
+        <span>🪙 Gold: <span id="gold-price">{{ market.gold }}</span></span>
+        <span>₿ Bitcoin: <span id="bitcoin-price">{{ market.bitcoin }}</span></span>
+        <span>📈 S&amp;P 500: <span id="sp500-price">{{ market.SP500 }}</span></span>
+        <span>🛢️ Brent Oil: <span id="brent-oil-price">{{ market.Brent_Oil }}</span></span>
+        <span>💷 GBP/USD: <span id="gbp-usd-rate">{{ market.GBP_USD }}</span></span>
+        <span>💶 GBP/EUR: <span id="gbp-eur-rate">{{ market.GBP_EUR }}</span></span>
+        <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
+    </div>
+
+    <details class="manager-card manager-settings">
+        <summary>⚙ Sources &amp; API Settings <span>Tap to configure</span></summary>
+        <div class="settings-body">
+            <div class="settings-label">Custom RSS source</div>
+            <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
+            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)...">
+            <button onclick="addCustomFeed()">Add Source</button>
+            <div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div>
+            <div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div>
+            <div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div>
+            <div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div>
+        </div>
+    </details>
+
+    <div class="chips">
+        <div class="chip active" onclick="filterCategory('All',this)">Top Stories</div>
+        <div class="chip" onclick="filterCategory('World',this)">World</div>
+        <div class="chip" onclick="filterCategory('Technology',this)">Technology</div>
+        <div class="chip" onclick="filterCategory('Business',this)">Business</div>
+        <div class="chip" onclick="filterCategory('Science',this)">Science</div>
+        <div class="chip" onclick="filterCategory('UK',this)">UK</div>
+        <div class="chip" onclick="filterCategory('Sport',this)">Sport</div>
+        <div class="chip" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
+        <div class="chip" onclick="showSaved(this)">★ Saved</div>
+        <div class="chip" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
+    </div>
+
+    <h3 id="section-title" style="font-size:14px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Top Stories</h3>
+    <div id="status" class="status">Stories are deduplicated and saved locally on this device.</div>
+
+    <div id="articles-container">
+    {% for article in articles %}
+        <div class="card" data-category="{{ article.category }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
+            <span class="source-tag">{{ article.category }}</span>
+            <div class="source-name">{{ article.source }}</div>
+            <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+            <div class="published" style="font-size:11px;color:#6b7280;margin-bottom:8px;">{{ article.published | display_date }}</div>
+            <div class="intel-row">
+                <span class="intel-badge">{{ article.evidence_status }}</span>
+                <span class="intel-badge importance-badge">Importance: {{ article.importance_label|default('Medium') }} · {{ article.importance_score|default(0) }}/100</span>
+                <span class="intel-badge confidence-badge">Confidence: {{ article.confidence_label|default('Low') }}</span>
+                <span class="intel-badge relevance-badge">Relevance: {{ article.relevance_label|default('Low') }} · {{ article.relevance_score|default(0) }}/100</span>
+                {% if article.source_count > 1 %}<span class="intel-badge">{{ article.source_count }} independent sources</span>{% endif %}
+                {% if article.report_count > 1 %}<span class="intel-badge">{{ article.report_count }} related reports</span>{% endif %}
+            </div>
+            <p class="intel-hint">{{ article.why_matters_hint }}</p>
+            <p class="evidence-note">{{ article.what_we_know_hint }}</p>
+            <p class="evidence-note"><strong>Evidence detail:</strong> {{ article.evidence_detail }}</p>
+            <p class="evidence-note"><strong>Sources:</strong> {{ article.story_sources | join(', ') if article.story_sources else article.source }}</p>
+            <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">{{ article.description }}</p>
+            <div class="btn-group">
+                <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                <button onclick="triggerWhyMatters(this)">Why it matters</button>
+                <button onclick="triggerStoryTimeline(this)">Timeline</button>
+                <button onclick="triggerAiBrief(this)">AI Brief</button>
+                <button onclick="openAskModal(this)">Ask AI</button>
+                <button class="btn-save{% if article.id in saved_ids %} saved{% endif %}" onclick="toggleSave(this)">{{ 'Saved ✓' if article.id in saved_ids else 'Save' }}</button>
+            </div>
+            <div class="ai-drawer" data-drawer="brief"></div>
+            <div class="ai-drawer" data-drawer="timeline"></div>
+            <div class="ai-drawer" data-drawer="ask"></div>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+
+<div id="ask-modal-backdrop" class="ask-modal-backdrop" onclick="if(event.target===this)closeAskModal()">
+    <div class="ask-modal">
+        <h3>Ask AI</h3>
+        <div id="ask-modal-title" class="evidence-note" style="margin-bottom:12px;"></div>
+        <textarea id="ask-question" placeholder="Ask a question about this story…"></textarea>
+        <div class="ask-modal-actions">
+            <button class="btn-secondary" onclick="closeAskModal()">Cancel</button>
+            <button onclick="submitAskAi()">Ask AI</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const savedIds = new Set({{ saved_ids | list | tojson }});
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    const button = document.getElementById('install-app');
+    if (button) button.style.display = 'inline-block';
+});
+
+document.getElementById('install-app')?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    const button = document.getElementById('install-app');
+    if (button) button.style.display = 'none';
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
+}
+
+function formatDisplayDate(value) {
+    if (!value) return '';
+    const raw = String(value).trim();
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return raw;
+
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(dt);
+    const get = type => parts.find(part => part.type === type)?.value || '';
+    const day = get('day');
+    const month = get('month');
+    const year = get('year');
+    const hour = get('hour');
+    const minute = get('minute');
+
+    const localDate = `${year}-${month}-${day}`;
+    const nowParts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date());
+    const now = Object.fromEntries(nowParts.filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+    const nowDate = `${now.year}-${now.month}-${now.day}`;
+
+    const yesterdayDate = new Date(`${nowDate}T00:00:00Z`);
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+    const yesterdayParts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(yesterdayDate);
+    const yesterday = Object.fromEntries(yesterdayParts.filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+    const yesterdayKey = `${yesterday.year}-${yesterday.month}-${yesterday.day}`;
+
+    if (localDate === nowDate) return `Today · ${hour}:${minute}`;
+    if (localDate === yesterdayKey) return `Yesterday · ${hour}:${minute}`;
+
+    const monthName = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London', month: 'short'
+    }).format(dt);
+    return `${day} ${monthName} ${year} · ${hour}:${minute}`;
+}
+
+function formatArticleDates(root = document) {
+    root.querySelectorAll('.published').forEach(element => {
+        const raw = element.dataset.published || element.textContent.trim();
+        if (raw) {
+            element.dataset.published = raw;
+            element.textContent = formatDisplayDate(raw);
+        }
+    });
+}
+
+function articleFromCard(card) {
+    return {
+        id: card.dataset.articleId,
+        cluster_id: card.dataset.clusterId || '',
+        title: card.querySelector('h3 a').textContent.trim(),
+        description: card.querySelector('.article-description')?.textContent.trim() || '',
+        category: card.dataset.category,
+        source: card.querySelector('.source-name').textContent.trim(),
+        published: card.querySelector('.published')?.textContent.trim() || '', 
+        link: card.querySelector('h3 a').href,
+        confidence: card.querySelector('.intel-badge')?.textContent.trim() || 'Uncorroborated',
+        evidence_status: card.querySelector('.intel-badge')?.textContent.trim() || 'Single-source',
+        source_count: Number(card.dataset.sourceCount || 1),
+        report_count: Number(card.dataset.reportCount || 1),
+        related_count: Math.max(0, Number(card.dataset.reportCount || 1) - 1),
+        repeated_same_source_reports: Number(card.dataset.repeatCount || 0),
+        why_matters_hint: card.querySelector('.intel-hint')?.textContent.trim() || '',
+        what_we_know_hint: card.querySelector('.evidence-note')?.textContent.trim() || '',
+        evidence_detail: card.querySelectorAll('.evidence-note')[1]?.textContent.replace(/^Evidence detail:\s*/i, '').trim() || '',
+        impact_hint: card.querySelector('.intel-hint')?.textContent.trim() || '',
+        uncertainty_hint: '',
+        story_sources: (card.dataset.storySources || '').split('|').filter(Boolean),
+        importance_score: Number(card.dataset.importanceScore || 0),
+        importance_label: card.dataset.importanceLabel || 'Medium',
+        confidence_score: Number(card.dataset.confidenceScore || 0),
+        confidence_label: card.dataset.confidenceLabel || 'Low',
+        relevance_score: Number(card.dataset.relevanceScore || 0),
+        relevance_label: card.dataset.relevanceLabel || 'Low'
+    };
+}
+
+function filterCategory(category, element) {
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    element.classList.add('active');
+    document.getElementById('section-title').textContent = category === 'All' ? 'Top Stories' : category + ' Stories';
+    const container = document.getElementById('articles-container');
+    const cards = Array.from(container.querySelectorAll('.card'));
+    if (category.toLowerCase() === 'sport') {
+        cards.sort((a, b) => {
+            const aFootball = a.dataset.sportFocus === 'football' ? 1 : 0;
+            const bFootball = b.dataset.sportFocus === 'football' ? 1 : 0;
+            if (aFootball !== bFootball) return bFootball - aFootball;
+            return Number(b.dataset.publishedTs || 0) - Number(a.dataset.publishedTs || 0);
+        });
+        cards.forEach(card => container.appendChild(card));
+    }
+    cards.forEach(card => {
+        const match = category === 'All' || card.dataset.category.toLowerCase() === category.toLowerCase();
+        card.style.display = match ? 'block' : 'none';
+    });
+    document.getElementById('status').textContent = category.toLowerCase() === 'sport'
+        ? 'Football is prioritised first; other sports remain available below.'
+        : 'Stories are deduplicated and saved locally on this device.';
+}
+
+async function showSaved(element) {
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    element.classList.add('active');
+    document.getElementById('section-title').textContent = 'Saved Stories';
+    const container = document.getElementById('articles-container');
+    try {
+        const res = await fetch('/api/saved', {cache:'no-store'});
+        const data = await res.json();
+        if (!data.success || !data.articles.length) {
+            container.innerHTML = '<div class="card"><p style="color:#9ca3af">No saved stories yet.</p></div>';
+            return;
+        }
+        container.innerHTML = data.articles.map(article => `
+            <div class="card" data-category="${escapeHtml(article.category)}" data-article-id="${escapeHtml(article.id)}" data-cluster-id="${escapeHtml(article.cluster_id || '')}" data-source-count="${Number(article.source_count || 1)}" data-report-count="${Number(article.report_count || 1)}" data-repeat-count="${Number(article.repeated_same_source_reports || 0)}" data-story-sources="${escapeAttr((article.story_sources || []).join('|'))}" data-importance-score="${Number(article.importance_score || 0)}" data-importance-label="${escapeAttr(article.importance_label || 'Medium')}" data-confidence-score="${Number(article.confidence_score || 0)}" data-confidence-label="${escapeAttr(article.confidence_label || 'Low')}" data-relevance-score="${Number(article.relevance_score || 0)}" data-relevance-label="${escapeAttr(article.relevance_label || 'Low')}" data-sport-focus="${escapeAttr(article.sport_focus || 'other')}" data-published-ts="${Number(article.published_ts || 0)}">
+                <span class="source-tag">${escapeHtml(article.category)}</span>
+                <div class="source-name">${escapeHtml(article.source)}</div>
+                <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
+                <div class="published" data-published="${escapeHtml(article.published)}" style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escapeHtml(formatDisplayDate(article.published))}</div>
+                <div class="intel-row">
+                    <span class="intel-badge">${escapeHtml(article.evidence_status || article.confidence || 'Single-source')}</span>
+                    <span class="intel-badge">Importance: ${escapeHtml(article.importance_label || 'Medium')} · ${Number(article.importance_score || 0)}/100</span>
+                    <span class="intel-badge">Confidence: ${escapeHtml(article.confidence_label || 'Low')}</span>
+                    <span class="intel-badge">Relevance: ${escapeHtml(article.relevance_label || 'Low')} · ${Number(article.relevance_score || 0)}/100</span>
+                    ${Number(article.source_count || 1) > 1 ? `<span class="intel-badge">${escapeHtml(String(article.source_count))} independent sources</span>` : ''}
+                    ${Number(article.report_count || article.related_count + 1) > 1 ? `<span class="intel-badge">${escapeHtml(String(article.report_count || article.related_count + 1))} related reports</span>` : ''}
+                </div>
+                <p class="intel-hint">${escapeHtml(article.why_matters_hint || article.impact_hint || 'Kaivor currently has limited evidence for this report.')}</p>
+                <p class="evidence-note">${escapeHtml(article.what_we_know_hint || '')}</p>
+                <p class="evidence-note"><strong>Evidence detail:</strong> ${escapeHtml(article.evidence_detail || article.what_we_know_hint || article.evidence_status || 'Single-source')}</p>
+                <p class="evidence-note"><strong>Sources:</strong> ${escapeHtml((article.story_sources || []).join(', ') || article.source || 'Unknown source')}</p>
+                <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">${escapeHtml(article.description)}</p>
+                <div class="btn-group">
+                    <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                    <button onclick="triggerWhyMatters(this)">Why it matters</button>
+                    <button onclick="triggerStoryTimeline(this)">Timeline</button>
+                    <button onclick="triggerAiBrief(this)">AI Brief</button>
+                    <button onclick="openAskModal(this)">Ask AI</button>
+                    <button class="btn-save saved" onclick="toggleSave(this)">Saved ✓</button>
+                </div>
+                <div class="ai-drawer" data-drawer="brief"></div><div class="ai-drawer" data-drawer="timeline"></div><div class="ai-drawer" data-drawer="ask"></div>
+            </div>`).join('');
+        formatArticleDates(container);
+        document.getElementById('status').textContent = `${data.count} saved item${data.count === 1 ? '' : 's'}.`;
+    } catch (error) {
+        document.getElementById('status').textContent = 'Could not load saved stories.';
+    }
+}
+
+function escapeHtml(value) { const div=document.createElement('div'); div.textContent=value ?? ''; return div.innerHTML; }
+function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
+
+async function showRelevanceProfile(element){
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    element.classList.add('active');
+    document.getElementById('section-title').textContent = 'Personal Relevance';
+    const container=document.getElementById('articles-container');
+    try{
+        const res=await fetch('/api/relevance_profile',{cache:'no-store'});
+        const data=await res.json();
+        if(!data.success){throw new Error(data.error||'Failed to load profile');}
+        const p=data.profile||{};
+        const categories=p.categories||{};
+        const rows=Object.keys(categories).map(name=>`<label style="display:block;margin:7px 0;">${escapeHtml(name)} <select data-relevance-category="${escapeAttr(name)}"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>`).join('');
+        container.innerHTML=`<div class="card"><h3>Personal Relevance Profile</h3><p class="evidence-note">Choose how strongly each news category matters to you. Add keywords that should increase relevance.</p><div id="relevance-category-list">${rows}</div><label style="display:block;margin:10px 0;">Keywords<input id="relevance-keywords" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.keywords||[]).join(', '))}"></label><label style="display:block;margin:10px 0;">Regions<input id="relevance-regions" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.regions||[]).join(', '))}"></label><button onclick="saveRelevanceProfile()">Save relevance profile</button></div>`;
+        document.querySelectorAll('[data-relevance-category]').forEach(select=>{const name=select.dataset.relevanceCategory;select.value=String(categories[name]??0);});
+        document.getElementById('status').textContent='Personal relevance profile loaded.';
+    }catch(e){document.getElementById('status').textContent='Could not load relevance profile.';}
+}
+
+async function saveRelevanceProfile(){
+    const categories={};
+    document.querySelectorAll('[data-relevance-category]').forEach(select=>{categories[select.dataset.relevanceCategory]=Number(select.value||0);});
+    const keywords=document.getElementById('relevance-keywords').value.split(',').map(x=>x.trim()).filter(Boolean);
+    const regions=document.getElementById('relevance-regions').value.split(',').map(x=>x.trim()).filter(Boolean);
+    const res=await fetch('/api/relevance_profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:{categories,keywords,regions}})});
+    const data=await res.json();
+    if(data.success){alert('Personal relevance profile saved. Refresh news to recalculate all story scores.');location.reload();}
+    else alert(data.error||'Failed to save relevance profile.');
+}
+
+async function addCustomFeed() {
+    const name=document.getElementById('feed-name').value.trim();
+    const url=document.getElementById('feed-url').value.trim();
+    if(!name||!url){alert('Please provide both feed name and URL/publication.');return;}
+    const res=await fetch('/api/add_feed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url})});
+    const data=await res.json();
+    if(data.success){alert('Source saved. Kaivor will use it on future refreshes.');location.reload();}
+    else alert(data.error || 'Failed to add source.');
+}
+
+async function saveApiKey(type) {
+    const input=document.getElementById(type+'-key-input');
+    const key=input.value.trim();
+    if(!key){alert('Please enter a valid API key.');return;}
+    const res=await fetch('/api/set_key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,api_key:key})});
+    const data=await res.json();
+    if(data.success){alert(`${type.toUpperCase()} API key saved securely for this Kaivor instance.`);input.value='';}
+    else alert(data.error || 'Failed to save key.');
+}
+
+async function toggleSave(button) {
+    const card=button.closest('.card');
+    const article=articleFromCard(card);
+    try {
+        if(savedIds.has(article.id)) {
+            const res=await fetch('/api/save/'+encodeURIComponent(article.id),{method:'DELETE'});
+            const data=await res.json();
+            if(data.success){savedIds.delete(article.id);button.textContent='Save';button.classList.remove('saved');}
+        } else {
+            const res=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});
+            const data=await res.json();
+            if(data.success){savedIds.add(article.id);button.textContent='Saved ✓';button.classList.add('saved');}
+        }
+    } catch(error) { alert('Could not update saved story.'); }
+}
+
+async function updateFinanceTicker(){
+    try{
+        const response=await fetch('/api/ticker',{cache:'no-store'}); const result=await response.json();
+        if(result.success&&result.ticker){const data=result.ticker;
+            if(data.Gold)document.getElementById('gold-price').textContent=`$${Number(data.Gold).toLocaleString()}`;
+            if(data.Bitcoin)document.getElementById('bitcoin-price').textContent=`$${Number(data.Bitcoin).toLocaleString()}`;
+            if(data.SP500)document.getElementById('sp500-price').textContent=`$${Number(data.SP500).toLocaleString()}`;
+            if(data.Brent_Oil)document.getElementById('brent-oil-price').textContent=`$${Number(data.Brent_Oil).toFixed(2)}`;
+            if(data.GBP_USD)document.getElementById('gbp-usd-rate').textContent=Number(data.GBP_USD).toFixed(2);
+            if(data.GBP_EUR)document.getElementById('gbp-eur-rate').textContent=Number(data.GBP_EUR).toFixed(2);
+            if(data.EUR_USD)document.getElementById('eur-usd-rate').textContent=Number(data.EUR_USD).toFixed(2);
+        }
+    }catch(e){console.error('Ticker fetch error:',e);}
+}
+
+function getDrawer(card,type){return card.querySelector(`[data-drawer="${type}"]`);}
+function renderAiText(text){
+    let safe=escapeHtml(text||'');
+    safe=safe.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    const lines=safe.split(/\n+/);
+    return lines.map(line=>{
+        const trimmed=line.trim();
+        if(!trimmed)return '<div style="height:6px"></div>';
+        if(/^[-•]\s+/.test(trimmed))return '<div class="ai-bullet">• '+trimmed.replace(/^[-•]\s+/,'')+'</div>';
+        if(/^[A-Z][A-Z ]+$/.test(trimmed.replace(/<[^>]+>/g,'')))return '<div class="ai-heading">'+trimmed+'</div>';
+        return '<div>'+trimmed+'</div>';
+    }).join('');
+}
+function renderAiMarkdown(text){
+    const lines=String(text||'').replace(/\r/g,'').split('\n');
+    return lines.map(line=>{
+        let t=escapeHtml(line.trim());
+        if(!t)return '<div style="height:5px"></div>';
+        t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+        const numbered=t.match(/^(\d+)\.\s+(.*)$/);
+        if(numbered)return '<div class="ai-number"><span>'+numbered[1]+'.</span><div>'+numbered[2]+'</div></div>';
+        if(/^[-•]\s+/.test(t))return '<div class="ai-bullet">'+t.replace(/^[-•]\s+/,'')+'</div>';
+        return '<p>'+t+'</p>';
+    }).join('');
+}
+function showAiText(target,label,text,options={}){
+    const loading=options.loading===true;
+    const error=options.error===true;
+    target.style.display='block';
+    target.innerHTML='<div class="ai-card-head"><div class="ai-card-icon">'+(error?'!':'✦')+'</div><div><div class="ai-card-title">'+escapeHtml(label)+'</div><div class="ai-card-subtitle">Kaivor Intelligence</div></div></div><div class="ai-content '+(loading?'ai-loading ':'')+(error?'ai-error':'')+'">'+(loading?escapeHtml(text):renderAiMarkdown(text))+'</div>';
+}
+function showIntelligence(target, text){
+    target.innerHTML='<strong>Story Intelligence</strong><div style="height:10px"></div>'+renderAiText(text);
+    target.style.display='block';
+}
+
+function showTimeline(target, timeline, evidenceNote){
+    const items = timeline?.timeline || [];
+    let html = '<strong>Story Timeline</strong><br><br>';
+    html += '<strong>STATUS</strong><br>' + escapeHtml(timeline?.story_status || 'Unknown');
+    html += '<br><br><strong>WHAT CHANGED</strong><br>' + escapeHtml(timeline?.change_summary || 'No change summary available.');
+    if (items.length) {
+        html += '<br><br><strong>REPORTS</strong><br>';
+        html += items.slice().reverse().map(event => `
+            <div class="timeline-event">
+                <div class="timeline-meta">${escapeHtml(formatDisplayDate(event.published))} · ${escapeHtml(event.source)}</div>
+                <div class="timeline-title">${escapeHtml(event.title)}</div>
+                <div class="timeline-type">${escapeHtml(event.coverage_type)}</div>
+                <div style="margin-top:6px;"><a href="${escapeAttr(event.link)}" target="_blank" rel="noopener" style="color:#10b981;text-decoration:none;font-size:11px;">Open report</a></div>
+            </div>`).join('');
+    }
+    html += '<div class="timeline-note">' + escapeHtml(evidenceNote || 'Timeline is based only on reports currently held by Kaivor for this story.') + '</div>';
+    target.innerHTML = html;
+    target.style.display='block';
+}
+
+async function triggerStoryTimeline(button){
+    const card=button.closest('.card'); const target=getDrawer(card,'timeline'); const article=articleFromCard(card);
+    showAiText(target,'⏳ Building story timeline...','');
+    try{
+        const res=await fetch('/api/story_timeline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});
+        const data=await res.json();
+        if(data.success){showTimeline(target,data.timeline,data.evidence_note);}
+        else{showAiText(target,'⚠️ Failed to build story timeline.',data.error||'');}
+    }catch(e){showAiText(target,'⚠️ Error connecting to story timeline service.','');}
+}
+
+async function triggerStoryIntelligence(button){
+    const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
+    showAiText(target,'⏳ Building story intelligence...','');
+    try{
+        const res=await fetch('/api/story_intelligence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});
+        const data=await res.json();
+        if(data.success){showIntelligence(target,data.analysis||'No intelligence available.');}else{showAiText(target,'⚠️ Failed to build story intelligence.',data.error||'');}
+    }catch(e){showAiText(target,'⚠️ Error connecting to intelligence service.','');}
+}
+
+async function triggerAiBrief(button){
+    const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
+    showAiText(target,'⏳ Generating AI Executive Brief...','');
+    try{const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:article.title,description:article.description})});const data=await res.json();
+        showAiText(target,data.success?'AI Executive Summary:':'⚠️ Failed to generate brief.',data.brief||'');
+    }catch(e){showAiText(target,'⚠️ Error connecting to AI service.','');}
+}
+
+function openAskModal(button){
+    const card=button.closest('.card');
+    const article=articleFromCard(card);
+    window.__askArticle=article;
+    document.getElementById('ask-question').value='';
+    document.getElementById('ask-modal-title').textContent=article.title||'Ask about this story';
+    document.getElementById('ask-modal-backdrop').style.display='flex';
+    setTimeout(()=>document.getElementById('ask-question').focus(),50);
+}
+function closeAskModal(){document.getElementById('ask-modal-backdrop').style.display='none';}
+async function submitAskAi(){
+    const article=window.__askArticle||{};
+    const question=document.getElementById('ask-question').value.trim();
+    if(!question)return;
+    closeAskModal();
+    const card=[...document.querySelectorAll('.card')].find(c=>c.dataset.articleId===String(article.id));
+    const target=card?getDrawer(card,'ask'):null;
+    if(!target)return;
+    showAiText(target,'Ask AI','Thinking…',{loading:true});
+    try{
+        const res=await fetch('/api/ask_ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:article.title,description:article.description,question})});
+        const data=await res.json();
+        if(data.success)showAiText(target,'AI Analysis',data.answer||'No answer returned.');
+        else showAiText(target,'AI unavailable',data.error+(data.details?'\n\n'+data.details:''),{error:true});
+    }catch(e){showAiText(target,'AI unavailable','Could not connect to the AI service. Check that the Flask server is running.',{error:true});}
+}
+async function triggerWhyMatters(button){
+    const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
+    showAiText(target,'Why it matters','Building a concise story-specific explanation…',{loading:true});
+    try{
+        const res=await fetch('/api/why_matters',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});
+        const data=await res.json();
+        if(data.success)showAiText(target,'Why it matters',data.why||'No explanation available.');
+        else showAiText(target,'⚠️ Could not build explanation',data.error||'');
+    }catch(e){showAiText(target,'⚠️ Could not build explanation','The local news service did not respond.');}
+}
+
+
+document.addEventListener('DOMContentLoaded',()=>{formatArticleDates();updateFinanceTicker();setInterval(updateFinanceTicker,30000);});
+</script>
+</body>
+</html>
