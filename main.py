@@ -322,9 +322,10 @@ def _cron_authorized() -> bool:
 
 
 def _background_startup():
+    # Load local secrets/configuration at startup, but do not perform a
+    # competing news refresh. Cloud news refreshes are owned by cron-job.org.
     try:
         load_persisted_secrets()
-        refresh_news()
     except Exception:
         pass
     try:
