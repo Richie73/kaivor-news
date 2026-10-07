@@ -162,7 +162,14 @@ def build_feed_registry(custom_sources: dict[str, list[str]] | None = None) -> d
 def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hours: int, items_per_feed: int) -> list[dict[str, Any]]:
     url = feed["url"]
     try:
-        parsed = feedparser.parse(url, request_headers={"User-Agent": "Kaivor-News/FP017.1"})
+        response = requests.get(
+            url,
+            headers={"User-Agent": "Kaivor-News/FP017.1"},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            return []
+        parsed = feedparser.parse(response.content)
     except Exception:
         return []
     if getattr(parsed, "bozo", False) and not getattr(parsed, "entries", None):
