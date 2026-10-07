@@ -54,6 +54,17 @@ _cache_lock = threading.Lock()
 _news_cache = {"articles": [], "last_updated": 0}
 _news_lock = threading.Lock()
 
+# Background cron refresh state. The public cron endpoint must return
+# immediately because cron-job.org has a 30-second response limit.
+_cron_refresh_lock = threading.Lock()
+_cron_refresh_state = {
+    "running": False,
+    "started_at": 0.0,
+    "last_completed": 0.0,
+    "last_count": 0,
+    "last_error": "",
+}
+
 DEFAULT_RSS_SOURCES = {}
 
 
@@ -357,32 +368,77 @@ def api_health():
         "success": True,
         "status": "ok",
         "service": "kaivor-news",
-        "version": "FP018",
+        "version": "FP018.1",
         "news_count": news_count,
         "news_last_updated": news_last,
         "news_age_seconds": round(now - news_last, 1) if news_last else None,
         "finance_last_updated": finance_last,
         "finance_age_seconds": round(now - finance_last, 1) if finance_last else None,
         "cron_configured": bool(os.environ.get("KAIVOR_CRON_TOKEN", "").strip()),
+        "cron_refresh_running": bool(_cron_refresh_state["running"]),
+        "cron_refresh_last_completed": _cron_refresh_state["last_completed"],
+        "cron_refresh_last_count": _cron_refresh_state["last_count"],
+        "cron_refresh_last_error": _cron_refresh_state["last_error"],
         "time": datetime.now(timezone.utc).isoformat(),
     })
+
+
+def _cron_refresh_worker() -> None:
+    try:
+        articles = refresh_news()
+        with _cron_refresh_lock:
+            _cron_refresh_state["last_completed"] = time.time()
+            _cron_refresh_state["last_count"] = len(articles)
+            _cron_refresh_state["last_error"] = ""
+    except Exception as exc:
+        with _cron_refresh_lock:
+            _cron_refresh_state["last_completed"] = time.time()
+            _cron_refresh_state["last_count"] = 0
+            _cron_refresh_state["last_error"] = type(exc).__name__
+    finally:
+        with _cron_refresh_lock:
+            _cron_refresh_state["running"] = False
 
 
 @app.route("/api/cron/refresh", methods=["GET", "POST"])
 def api_cron_refresh():
     if not _cron_authorized():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
-    started = time.time()
+
+    with _cron_refresh_lock:
+        if _cron_refresh_state["running"]:
+            return jsonify({
+                "success": True,
+                "status": "already_running",
+                "message": "News refresh is already running.",
+            }), 202
+
+        _cron_refresh_state["running"] = True
+        _cron_refresh_state["started_at"] = time.time()
+        _cron_refresh_state["last_error"] = ""
+
     try:
-        articles = refresh_news()
-        return jsonify({
-            "success": True,
-            "count": len(articles),
-            "duration_seconds": round(time.time() - started, 2),
-            "refreshed_at": datetime.now(timezone.utc).isoformat(),
-        })
+        threading.Thread(
+            target=_cron_refresh_worker,
+            daemon=True,
+            name="kaivor-cron-refresh",
+        ).start()
     except Exception as exc:
-        return jsonify({"success": False, "error": "Refresh failed", "detail": type(exc).__name__}), 500
+        with _cron_refresh_lock:
+            _cron_refresh_state["running"] = False
+            _cron_refresh_state["last_error"] = type(exc).__name__
+
+        return jsonify({
+            "success": False,
+            "error": "Could not start refresh",
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "status": "started",
+        "message": "News refresh started in background.",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }), 202
 
 
 @app.route("/")
