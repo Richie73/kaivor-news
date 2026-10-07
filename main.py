@@ -384,18 +384,25 @@ def api_health():
 
 
 def _cron_refresh_worker() -> None:
+    print("CRON WORKER: starting refresh", flush=True)
     try:
+        started = time.time()
+        print("CRON WORKER: calling refresh_news()", flush=True)
         articles = refresh_news()
+        elapsed = round(time.time() - started, 2)
+        print(f"CRON WORKER: refresh_news() completed in {elapsed}s with {len(articles)} articles", flush=True)
         with _cron_refresh_lock:
             _cron_refresh_state["last_completed"] = time.time()
             _cron_refresh_state["last_count"] = len(articles)
             _cron_refresh_state["last_error"] = ""
     except Exception as exc:
+        print(f"CRON WORKER: ERROR {type(exc).__name__}: {exc}", flush=True)
         with _cron_refresh_lock:
             _cron_refresh_state["last_completed"] = time.time()
             _cron_refresh_state["last_count"] = 0
             _cron_refresh_state["last_error"] = type(exc).__name__
     finally:
+        print("CRON WORKER: finished", flush=True)
         with _cron_refresh_lock:
             _cron_refresh_state["running"] = False
 
