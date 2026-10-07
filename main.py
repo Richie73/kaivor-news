@@ -328,10 +328,9 @@ def _background_startup():
         load_persisted_secrets()
     except Exception:
         pass
-    try:
-        threading.Thread(target=background_finance_worker, daemon=True, name="kaivor-finance").start()
-    except Exception:
-        pass
+    # Finance refresh is intentionally not started automatically here.
+    # Keep finance fetching available to the API without creating a
+    # competing long-lived network worker in the News service.
 
 
 def _startup():
