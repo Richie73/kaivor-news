@@ -15,6 +15,23 @@
         .container { padding:16px; max-width:600px; margin:0 auto; }
         .market-bar { display:flex; gap:12px; overflow-x:auto; padding:12px; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; scrollbar-width:none; }
         .market-bar::-webkit-scrollbar,.chips::-webkit-scrollbar { display:none; }
+        .market-panel { background:#101512; border:1px solid #214537; border-radius:14px; padding:12px; margin-bottom:16px; }
+        .market-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+        .market-panel-title { color:#d1fae5; font-size:12px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; }
+        .market-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        #market-refresh { padding:7px 10px; font-size:12px; }
+        #market-refresh:disabled { opacity:.6; cursor:wait; }
+        .market-status { color:#9ca3af; font-size:11px; line-height:1.4; }
+        .market-status.stale { color:#fbbf24; }
+        .market-status.error { color:#fca5a5; }
+        .market-bar { margin-bottom:0; }
+        .market-value { display:inline-block; border-radius:4px; padding:1px 3px; transition:background .25s,color .25s; }
+        .market-value.price-up { color:#6ee7b7; background:#123126; }
+        .market-value.price-down { color:#fca5a5; background:#3a1e21; }
+        .market-value.price-neutral { color:#f3f4f6; }
+        .market-value.price-flash { animation:marketFlash 1.2s ease-out; }
+        @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #10b98166; } 100% { box-shadow:0 0 0 0 transparent; } }
+        @media (prefers-reduced-motion: reduce) { .market-value { transition:none; } .market-value.price-flash { animation:none; } }
         .manager-card,.card { background:#161618; border-radius:16px; padding:16px; margin-bottom:16px; border:1px solid #26262a; }
         .manager-settings { padding:0; overflow:hidden; }
         .manager-settings summary { list-style:none; cursor:pointer; padding:12px 14px; color:#10b981; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
@@ -81,16 +98,25 @@
 <body>
 <header><div>KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button></header>
 <div class="container">
-    <div class="market-bar">
-        <span>🌦️ London: <span id="london-weather">{{ market.weather }}</span></span>
-        <span>🪙 Gold: <span id="gold-price">{{ market.gold }}</span></span>
-        <span>₿ Bitcoin: <span id="bitcoin-price">{{ market.bitcoin }}</span></span>
-        <span>📈 S&amp;P 500: <span id="sp500-price">{{ market.SP500 }}</span></span>
-        <span>🛢️ Brent Oil: <span id="brent-oil-price">{{ market.Brent_Oil }}</span></span>
-        <span>💷 GBP/USD: <span id="gbp-usd-rate">{{ market.GBP_USD }}</span></span>
-        <span>💶 GBP/EUR: <span id="gbp-eur-rate">{{ market.GBP_EUR }}</span></span>
-        <span>💱 EUR/USD: <span id="eur-usd-rate">{{ market.EUR_USD }}</span></span>
-    </div>
+    <section class="market-panel" aria-label="Markets tracker">
+        <div class="market-panel-head">
+            <div class="market-panel-title">Market watch</div>
+            <div class="market-controls">
+                <span id="market-status" class="market-status" role="status" aria-live="polite">Waiting for market data</span>
+                <button id="market-refresh" type="button" onclick="refreshMarkets()">↻ Refresh markets</button>
+            </div>
+        </div>
+        <div class="market-bar">
+            <span>🌦️ London: <span id="london-weather">{{ market.weather }}</span></span>
+            <span>🪙 Gold: <span id="gold-price" class="market-value">{{ market.Gold or market.gold }}</span></span>
+            <span>₿ Bitcoin: <span id="bitcoin-price" class="market-value">{{ market.Bitcoin or market.bitcoin }}</span></span>
+            <span>📈 S&amp;P 500: <span id="sp500-price" class="market-value">{{ market.SP500 }}</span></span>
+            <span>🛢️ Brent Oil: <span id="brent-oil-price" class="market-value">{{ market.Brent_Oil }}</span></span>
+            <span>💷 GBP/USD: <span id="gbp-usd-rate" class="market-value">{{ market.GBP_USD }}</span></span>
+            <span>💶 GBP/EUR: <span id="gbp-eur-rate" class="market-value">{{ market.GBP_EUR }}</span></span>
+            <span>💱 EUR/USD: <span id="eur-usd-rate" class="market-value">{{ market.EUR_USD }}</span></span>
+        </div>
+    </section>
 
     <details class="manager-card manager-settings">
         <summary>⚙ Sources &amp; API Settings <span>Tap to configure</span></summary>
@@ -417,19 +443,117 @@ async function toggleSave(button) {
     } catch(error) { alert('Could not update saved story.'); }
 }
 
-async function updateFinanceTicker(){
-    try{
-        const response=await fetch('/api/ticker',{cache:'no-store'}); const result=await response.json();
-        if(result.success&&result.ticker){const data=result.ticker;
-            if(data.Gold)document.getElementById('gold-price').textContent=`$${Number(data.Gold).toLocaleString()}`;
-            if(data.Bitcoin)document.getElementById('bitcoin-price').textContent=`$${Number(data.Bitcoin).toLocaleString()}`;
-            if(data.SP500)document.getElementById('sp500-price').textContent=`$${Number(data.SP500).toLocaleString()}`;
-            if(data.Brent_Oil)document.getElementById('brent-oil-price').textContent=`$${Number(data.Brent_Oil).toFixed(2)}`;
-            if(data.GBP_USD)document.getElementById('gbp-usd-rate').textContent=Number(data.GBP_USD).toFixed(2);
-            if(data.GBP_EUR)document.getElementById('gbp-eur-rate').textContent=Number(data.GBP_EUR).toFixed(2);
-            if(data.EUR_USD)document.getElementById('eur-usd-rate').textContent=Number(data.EUR_USD).toFixed(2);
+let marketRefreshInFlight = false;
+let marketPreviousValues = {};
+let marketPollTimer = null;
+
+function setMarketStatus(message, state='') {
+    const el = document.getElementById('market-status');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.toggle('stale', state === 'stale');
+    el.classList.toggle('error', state === 'error');
+}
+
+function formatMarketValue(key, value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return String(value);
+    if (key === 'Gold' || key === 'Bitcoin' || key === 'SP500') return '$' + number.toLocaleString(undefined, {maximumFractionDigits: 2});
+    if (key === 'Brent_Oil') return '$' + number.toFixed(2);
+    return number.toFixed(4);
+}
+
+function updateMarketValue(key, value) {
+    const ids = {Gold:'gold-price', Bitcoin:'bitcoin-price', SP500:'sp500-price', Brent_Oil:'brent-oil-price', GBP_USD:'gbp-usd-rate', GBP_EUR:'gbp-eur-rate', EUR_USD:'eur-usd-rate'};
+    const el = document.getElementById(ids[key]);
+    if (!el || value === null || value === undefined || value === '') return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+    const previous = marketPreviousValues[key];
+    el.textContent = formatMarketValue(key, numeric);
+    el.classList.remove('price-up','price-down','price-neutral','price-flash');
+    if (Number.isFinite(previous) && numeric !== previous) {
+        el.classList.add(numeric > previous ? 'price-up' : 'price-down');
+        void el.offsetWidth;
+        el.classList.add('price-flash');
+    } else if (Number.isFinite(previous)) {
+        el.classList.add('price-neutral');
+    }
+    marketPreviousValues[key] = numeric;
+}
+
+function formatMarketAge(seconds) {
+    if (seconds === null || seconds === undefined) return 'No successful update yet';
+    const age = Math.max(0, Math.floor(Number(seconds)));
+    if (age < 60) return `Updated ${age}s ago`;
+    if (age < 3600) return `Updated ${Math.floor(age / 60)}m ago`;
+    return `Updated ${Math.floor(age / 3600)}h ago`;
+}
+
+async function updateFinanceTicker() {
+    try {
+        const response = await fetch('/api/ticker', {cache:'no-store'});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (!result.success) throw new Error('Ticker unavailable');
+        Object.entries(result.ticker || {}).forEach(([key, value]) => updateMarketValue(key, value));
+        const refresh = result.refresh || {};
+        if (refresh.running) {
+            setMarketStatus('Refreshing markets…');
+        } else if (result.age_seconds === null) {
+            setMarketStatus('No live data yet — tap Refresh markets', 'stale');
+        } else if (result.age_seconds > 1800) {
+            setMarketStatus(`${formatMarketAge(result.age_seconds)} · may be stale`, 'stale');
+        } else if (refresh.last_error && !refresh.last_updated_keys?.length) {
+            setMarketStatus(`${formatMarketAge(result.age_seconds)} · latest refresh failed`, 'error');
+        } else {
+            setMarketStatus(formatMarketAge(result.age_seconds));
         }
-    }catch(e){console.error('Ticker fetch error:',e);}
+    } catch (error) {
+        setMarketStatus('Could not check market data', 'error');
+        console.error('Ticker fetch error:', error);
+    }
+}
+
+async function refreshMarkets() {
+    if (marketRefreshInFlight) return;
+    marketRefreshInFlight = true;
+    const button = document.getElementById('market-refresh');
+    if (button) { button.disabled = true; button.textContent = '↻ Refreshing…'; }
+    setMarketStatus('Requesting latest market data…');
+    try {
+        const response = await fetch('/api/finance/refresh', {method:'POST', headers:{'Accept':'application/json'}});
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || 'Refresh could not start');
+        setMarketStatus('Refreshing markets…');
+        const deadline = Date.now() + 45000;
+        let completed = false;
+        while (Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 1800));
+            await updateFinanceTicker();
+            const tickerResponse = await fetch('/api/ticker', {cache:'no-store'});
+            const ticker = await tickerResponse.json();
+            if (ticker.success && ticker.refresh && !ticker.refresh.running) {
+                completed = true;
+                if (ticker.refresh.last_error && !(ticker.refresh.last_updated_keys || []).length) {
+                    setMarketStatus('Refresh failed; showing previous values', 'error');
+                } else if (ticker.refresh.last_updated_keys && ticker.refresh.last_updated_keys.length) {
+                    setMarketStatus(`Updated ${ticker.refresh.last_updated_keys.length} markets just now`);
+                } else {
+                    setMarketStatus('No new market data returned', 'stale');
+                }
+                break;
+            }
+        }
+        if (!completed) setMarketStatus('Still refreshing; check again shortly', 'stale');
+    } catch (error) {
+        setMarketStatus('Refresh failed; showing previous values', 'error');
+        console.error('Market refresh error:', error);
+    } finally {
+        marketRefreshInFlight = false;
+        if (button) { button.disabled = false; button.textContent = '↻ Refresh markets'; }
+        updateFinanceTicker();
+    }
 }
 
 function getDrawer(card,type){return card.querySelector(`[data-drawer="${type}"]`);}
@@ -555,7 +679,7 @@ async function triggerWhyMatters(button){
 }
 
 
-document.addEventListener('DOMContentLoaded',()=>{formatArticleDates();updateFinanceTicker();setInterval(updateFinanceTicker,30000);});
+document.addEventListener('DOMContentLoaded',()=>{formatArticleDates();updateFinanceTicker();marketPollTimer=setInterval(updateFinanceTicker,30000);});
 </script>
 </body>
 </html>

@@ -3,7 +3,6 @@ import re
 import threading
 import time
 from datetime import datetime, timezone
-from datetime import datetime, timezone
 from html import unescape
 from urllib.parse import urlparse
 
@@ -87,56 +86,89 @@ def load_persisted_secrets() -> None:
             os.environ.setdefault(env_name, secrets[key])
 
 
-def background_finance_worker():
-    while True:
-        data = {}
+# Finance refresh is deliberately on-demand: it must never compete with RSS refreshes.
+_finance_refresh_lock = threading.Lock()
+_finance_refresh_state = {
+    "running": False,
+    "started_at": 0.0,
+    "last_completed": 0.0,
+    "last_error": "",
+    "last_updated_keys": [],
+}
+
+
+def _fetch_finance_data():
+    """Fetch available market data with bounded connect/read timeouts."""
+    data = {}
+    errors = []
+
+    # FX data: one request for GBP pairs and one for EUR/USD.
+    fx_requests = (
+        ("https://api.frankfurter.app/latest?from=GBP&to=USD,EUR", {"GBP_USD": "USD", "GBP_EUR": "EUR"}),
+        ("https://api.frankfurter.app/latest?from=EUR&to=USD", {"EUR_USD": "USD"}),
+    )
+    for url, mapping in fx_requests:
         try:
-            response = requests.get(
-                "https://api.frankfurter.app/latest?from=GBP&to=USD,EUR", timeout=5
-            )
-            if response.status_code == 200:
-                rates = response.json().get("rates", {})
-                data["GBP_USD"] = float(rates.get("USD", 1.33))
-                data["GBP_EUR"] = float(rates.get("EUR", 1.19))
-        except Exception:
-            pass
+            response = requests.get(url, timeout=(3, 5))
+            response.raise_for_status()
+            rates = response.json().get("rates", {})
+            for output_key, rate_key in mapping.items():
+                value = rates.get(rate_key)
+                if value is not None:
+                    data[output_key] = float(value)
+        except Exception as exc:
+            errors.append(f"FX: {type(exc).__name__}")
 
+    symbols = {
+        "Brent_Oil": "BZ=F",
+        "Gold": "GC=F",
+        "Bitcoin": "BTC-USD",
+        "SP500": "^GSPC",
+    }
+    headers = {"User-Agent": "Mozilla/5.0 Kaivor-News/FP018.2"}
+    for key, symbol in symbols.items():
         try:
-            response = requests.get(
-                "https://api.frankfurter.app/latest?from=EUR&to=USD", timeout=5
-            )
-            if response.status_code == 200:
-                rates = response.json().get("rates", {})
-                data["EUR_USD"] = float(rates.get("USD", 1.08))
-        except Exception:
-            pass
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m"
+            response = requests.get(url, headers=headers, timeout=(3, 5))
+            response.raise_for_status()
+            results = response.json().get("chart", {}).get("result", [])
+            if results:
+                meta = results[0].get("meta", {})
+                price = meta.get("regularMarketPrice") or meta.get("previousClose")
+                if price is not None:
+                    data[key] = float(round(float(price), 2))
+        except Exception as exc:
+            errors.append(f"{key}: {type(exc).__name__}")
 
-        yahoo_symbols = {
-            "Brent_Oil": "BZ=F",
-            "Gold": "GC=F",
-            "Bitcoin": "BTC-USD",
-            "SP500": "^GSPC",
-        }
-        headers = {"User-Agent": "Mozilla/5.0 Kaivor-News/FP010"}
-        for key, symbol in yahoo_symbols.items():
-            try:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m"
-                response = requests.get(url, headers=headers, timeout=5)
-                if response.status_code == 200:
-                    result = response.json().get("chart", {}).get("result", [])
-                    if result:
-                        meta = result[0].get("meta", {})
-                        price = meta.get("regularMarketPrice") or meta.get("previousClose")
-                        if price is not None:
-                            data[key] = float(round(price, 2))
-            except Exception:
-                pass
+    return data, errors
 
-        if data:
-            with _cache_lock:
-                _finance_cache["data"] = data
+
+def _finance_refresh_worker():
+    """Perform one isolated refresh; preserve existing values if a source fails."""
+    try:
+        fresh_data, errors = _fetch_finance_data()
+        with _cache_lock:
+            if fresh_data:
+                merged = dict(_finance_cache.get("data") or {})
+                merged.update(fresh_data)
+                _finance_cache["data"] = merged
                 _finance_cache["last_updated"] = time.time()
-        time.sleep(600)
+        with _finance_refresh_lock:
+            _finance_refresh_state["last_completed"] = time.time()
+            _finance_refresh_state["last_error"] = "; ".join(errors[:3]) if errors else ("No providers returned data" if not fresh_data else "")
+            _finance_refresh_state["last_updated_keys"] = sorted(fresh_data.keys())
+    except Exception as exc:
+        with _finance_refresh_lock:
+            _finance_refresh_state["last_completed"] = time.time()
+            _finance_refresh_state["last_error"] = type(exc).__name__
+    finally:
+        with _finance_refresh_lock:
+            _finance_refresh_state["running"] = False
+
+
+def background_finance_worker():
+    """Legacy compatibility wrapper; intentionally does not run a loop."""
+    _finance_refresh_worker()
 
 
 def clean_html(raw_html):
@@ -474,7 +506,34 @@ def index():
 def api_ticker():
     with _cache_lock:
         data = dict(_finance_cache.get("data", {}))
-    return jsonify({"success": True, "ticker": data})
+        last_updated = float(_finance_cache.get("last_updated") or 0)
+    with _finance_refresh_lock:
+        state = dict(_finance_refresh_state)
+    return jsonify({
+        "success": True,
+        "ticker": data,
+        "last_updated": last_updated,
+        "age_seconds": round(max(0, time.time() - last_updated), 1) if last_updated else None,
+        "refresh": state,
+    })
+
+
+@app.route("/api/finance/refresh", methods=["POST"])
+def api_finance_refresh():
+    with _finance_refresh_lock:
+        if _finance_refresh_state["running"]:
+            return jsonify({"success": True, "status": "running", "message": "Market refresh is already running."}), 202
+        _finance_refresh_state["running"] = True
+        _finance_refresh_state["started_at"] = time.time()
+        _finance_refresh_state["last_error"] = ""
+        _finance_refresh_state["last_updated_keys"] = []
+    try:
+        threading.Thread(target=_finance_refresh_worker, daemon=True, name="kaivor-finance-refresh").start()
+    except Exception:
+        with _finance_refresh_lock:
+            _finance_refresh_state["running"] = False
+        return jsonify({"success": False, "status": "error", "message": "Could not start market refresh."}), 500
+    return jsonify({"success": True, "status": "started", "message": "Market refresh started."}), 202
 
 
 @app.route("/api/refresh", methods=["POST"])
