@@ -1,17 +1,18 @@
-const CACHE = 'kaivor-news-fp018-v1';
-const SHELL = ['/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
-
+const CACHE = 'kaivor-news-fp018-icon-v2';
+const SHELL = [
+  '/manifest.webmanifest',
+  '/icons/kaivor-news-192-v2.png',
+  '/icons/kaivor-news-512-v2.png'
+];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
-
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
-
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
