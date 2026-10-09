@@ -400,7 +400,7 @@ def api_health():
         "success": True,
         "status": "ok",
         "service": "kaivor-news",
-        "version": "FP018.1",
+        "version": "FP018.2",
         "news_count": news_count,
         "news_last_updated": news_last,
         "news_age_seconds": round(now - news_last, 1) if news_last else None,
