@@ -13,7 +13,12 @@
         .install-app { margin-top:7px; padding:5px 10px; font-size:11px; border-radius:999px; }
         .sub-header { font-size:11px; color:#10b981; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
         .container { padding:16px; max-width:600px; margin:0 auto; }
-        .market-bar { display:flex; gap:12px; overflow-x:auto; padding:12px; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; scrollbar-width:none; }
+        .market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; }
+        .market-track { display:flex; width:max-content; will-change:transform; animation:marketTickerScroll 38s linear infinite; }
+        .market-group { display:flex; flex:0 0 auto; align-items:center; gap:18px; padding:0 18px 0 12px; }
+        .market-group > span { flex:0 0 auto; }
+        .market-bar:hover .market-track,.market-bar:focus-within .market-track { animation-play-state:paused; }
+        @keyframes marketTickerScroll { from { transform:translateX(0); } to { transform:translateX(-50%); } }
         .market-bar::-webkit-scrollbar,.chips::-webkit-scrollbar { display:none; }
         .market-panel { background:#101512; border:1px solid #214537; border-radius:14px; padding:12px; margin-bottom:16px; }
         .market-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
@@ -31,7 +36,7 @@
         .market-value.price-neutral { color:#f3f4f6; }
         .market-value.price-flash { animation:marketFlash 1.2s ease-out; }
         @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #10b98166; } 100% { box-shadow:0 0 0 0 transparent; } }
-        @media (prefers-reduced-motion: reduce) { .market-value { transition:none; } .market-value.price-flash { animation:none; } }
+        @media (prefers-reduced-motion: reduce) { .market-track { animation:none; } .market-value { transition:none; } .market-value.price-flash { animation:none; } }
         .manager-card,.card { background:#161618; border-radius:16px; padding:16px; margin-bottom:16px; border:1px solid #26262a; }
         .manager-settings { padding:0; overflow:hidden; }
         .manager-settings summary { list-style:none; cursor:pointer; padding:12px 14px; color:#10b981; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
@@ -106,15 +111,18 @@
                 <button id="market-refresh" type="button" onclick="refreshMarkets()">↻ Refresh markets</button>
             </div>
         </div>
-        <div class="market-bar">
-            <span>🌦️ London: <span id="london-weather">{{ market.weather }}</span></span>
-            <span>🪙 Gold: <span id="gold-price" class="market-value">{{ market.Gold or market.gold }}</span></span>
-            <span>₿ Bitcoin: <span id="bitcoin-price" class="market-value">{{ market.Bitcoin or market.bitcoin }}</span></span>
-            <span>📈 S&amp;P 500: <span id="sp500-price" class="market-value">{{ market.SP500 }}</span></span>
-            <span>🛢️ Brent Oil: <span id="brent-oil-price" class="market-value">{{ market.Brent_Oil }}</span></span>
-            <span>💷 GBP/USD: <span id="gbp-usd-rate" class="market-value">{{ market.GBP_USD }}</span></span>
-            <span>💶 GBP/EUR: <span id="gbp-eur-rate" class="market-value">{{ market.GBP_EUR }}</span></span>
-            <span>💱 EUR/USD: <span id="eur-usd-rate" class="market-value">{{ market.EUR_USD }}</span></span>
+        <div class="market-bar" aria-label="Live market prices" tabindex="0">
+            <div class="market-track" id="market-track">
+                <div class="market-group" data-market-group>
+                    <span>🪙 Gold: <span id="gold-price" class="market-value">{{ market.Gold or market.gold }}</span></span>
+                    <span>₿ Bitcoin: <span id="bitcoin-price" class="market-value">{{ market.Bitcoin or market.bitcoin }}</span></span>
+                    <span>📈 S&amp;P 500: <span id="sp500-price" class="market-value">{{ market.SP500 }}</span></span>
+                    <span>🛢️ Brent Oil: <span id="brent-oil-price" class="market-value">{{ market.Brent_Oil }}</span></span>
+                    <span>💷 GBP/USD: <span id="gbp-usd-rate" class="market-value">{{ market.GBP_USD }}</span></span>
+                    <span>💶 GBP/EUR: <span id="gbp-eur-rate" class="market-value">{{ market.GBP_EUR }}</span></span>
+                    <span>💱 EUR/USD: <span id="eur-usd-rate" class="market-value">{{ market.EUR_USD }}</span></span>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -465,21 +473,46 @@ function formatMarketValue(key, value) {
 
 function updateMarketValue(key, value) {
     const ids = {Gold:'gold-price', Bitcoin:'bitcoin-price', SP500:'sp500-price', Brent_Oil:'brent-oil-price', GBP_USD:'gbp-usd-rate', GBP_EUR:'gbp-eur-rate', EUR_USD:'eur-usd-rate'};
-    const el = document.getElementById(ids[key]);
-    if (!el || value === null || value === undefined || value === '') return;
+    const id = ids[key];
+    if (!id || value === null || value === undefined || value === '') return;
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return;
     const previous = marketPreviousValues[key];
-    el.textContent = formatMarketValue(key, numeric);
-    el.classList.remove('price-up','price-down','price-neutral','price-flash');
-    if (Number.isFinite(previous) && numeric !== previous) {
-        el.classList.add(numeric > previous ? 'price-up' : 'price-down');
-        void el.offsetWidth;
-        el.classList.add('price-flash');
-    } else if (Number.isFinite(previous)) {
-        el.classList.add('price-neutral');
-    }
+    const elements = [...document.querySelectorAll(`#${id}, [data-market-key="${key}"]`)];
+    elements.forEach(el => {
+        el.textContent = formatMarketValue(key, numeric);
+        el.classList.remove('price-up','price-down','price-neutral','price-flash');
+        if (Number.isFinite(previous) && numeric !== previous) {
+            el.classList.add(numeric > previous ? 'price-up' : 'price-down');
+            void el.offsetWidth;
+            el.classList.add('price-flash');
+        } else if (Number.isFinite(previous)) {
+            el.classList.add('price-neutral');
+        }
+    });
     marketPreviousValues[key] = numeric;
+}
+
+function initializeMarketTicker() {
+    const track = document.getElementById('market-track');
+    const original = track && track.querySelector('[data-market-group]');
+    if (!track || !original || track.dataset.initialized === 'true') return;
+    const idsToKeys = {
+        'gold-price':'Gold', 'bitcoin-price':'Bitcoin', 'sp500-price':'SP500',
+        'brent-oil-price':'Brent_Oil', 'gbp-usd-rate':'GBP_USD',
+        'gbp-eur-rate':'GBP_EUR', 'eur-usd-rate':'EUR_USD'
+    };
+    Object.entries(idsToKeys).forEach(([id, key]) => {
+        const value = original.querySelector(`#${id}`);
+        if (value) value.dataset.marketKey = key;
+    });
+    const clone = original.cloneNode(true);
+    clone.removeAttribute('data-market-group');
+    clone.setAttribute('aria-hidden', 'true');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    clone.querySelectorAll('.market-value').forEach(el => el.classList.remove('price-up','price-down','price-neutral','price-flash'));
+    track.appendChild(clone);
+    track.dataset.initialized = 'true';
 }
 
 function formatMarketAge(seconds) {
@@ -679,7 +712,7 @@ async function triggerWhyMatters(button){
 }
 
 
-document.addEventListener('DOMContentLoaded',()=>{formatArticleDates();updateFinanceTicker();marketPollTimer=setInterval(updateFinanceTicker,30000);});
+document.addEventListener('DOMContentLoaded',()=>{formatArticleDates();initializeMarketTicker();updateFinanceTicker();marketPollTimer=setInterval(updateFinanceTicker,30000);});
 </script>
 </body>
 </html>
