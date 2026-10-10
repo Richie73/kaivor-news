@@ -83,6 +83,29 @@
         .importance-badge,.confidence-badge { font-weight:600; }
         .intel-hint { font-size:12px; color:#b7c8c0; line-height:1.45; margin:0 0 10px; }
         .evidence-note { font-size:12px; color:#9ca3af; line-height:1.45; margin:0 0 10px; }
+
+        /* FP018.4 mobile story-card refinement */
+        .card { padding:13px; margin-bottom:11px; border-radius:13px; }
+        .card h3 { font-size:16px; line-height:1.38; margin:2px 0 6px; }
+        .source-tag { display:inline-block; margin:0 7px 4px 0; font-size:10px; letter-spacing:.45px; }
+        .source-name { display:inline-block; margin:0 0 4px; font-size:10px; }
+        .story-meta-compact { color:#737b87; font-size:10px; margin:0 0 8px; }
+        .intel-row { gap:5px; margin:7px 0 9px; }
+        .intel-badge { padding:3px 6px; font-size:9px; }
+        .intel-hint { margin-bottom:8px; font-size:12px; line-height:1.5; }
+        .article-description { font-size:12px !important; line-height:1.5 !important; margin-bottom:9px !important; }
+        .evidence-details { margin:8px 0 10px; border:1px solid #292d32; border-radius:9px; background:#131315; }
+        .evidence-details summary { padding:9px 10px; color:#a7f3d0; font-size:11px; font-weight:600; cursor:pointer; }
+        .evidence-details-body { padding:0 10px 10px; }
+        .evidence-details-body .evidence-note { font-size:11px; margin:0 0 8px; overflow-wrap:anywhere; }
+        .btn-group { gap:6px; margin-top:9px; }
+        .btn-group button,.btn-group .btn-link { padding:7px 9px; font-size:11px; border-radius:7px; }
+        @media (max-width:380px) {
+            .card { padding:11px; }
+            .btn-group { gap:5px; }
+            .btn-group button,.btn-group .btn-link { padding:7px 8px; font-size:10px; }
+        }
+
         .ai-drawer strong { color:#a7f3d0; }
          .ai-heading { color:#a7f3d0; font-weight:700; margin:0 0 6px; }
          .ai-bullet { margin:5px 0 5px 16px; }
@@ -172,9 +195,14 @@
                 {% if article.report_count > 1 %}<span class="intel-badge">{{ article.report_count }} related reports</span>{% endif %}
             </div>
             <p class="intel-hint">{{ article.why_matters_hint }}</p>
-            <p class="evidence-note">{{ article.what_we_know_hint }}</p>
-            <p class="evidence-note"><strong>Evidence detail:</strong> {{ article.evidence_detail }}</p>
-            <p class="evidence-note"><strong>Sources:</strong> {{ article.story_sources | join(', ') if article.story_sources else article.source }}</p>
+            <details class="evidence-details">
+                <summary>Evidence &amp; sources</summary>
+                <div class="evidence-details-body">
+                    <p class="evidence-note">{{ article.what_we_know_hint }}</p>
+                    <p class="evidence-note"><strong>Evidence detail:</strong> {{ article.evidence_detail }}</p>
+                    <p class="evidence-note"><strong>Sources:</strong> {{ article.story_sources | join(', ') if article.story_sources else article.source }}</p>
+                </div>
+            </details>
             <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">{{ article.description }}</p>
             <div class="btn-group">
                 <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
@@ -288,7 +316,7 @@ function articleFromCard(card) {
         description: card.querySelector('.article-description')?.textContent.trim() || '',
         category: card.dataset.category,
         source: card.querySelector('.source-name').textContent.trim(),
-        published: card.querySelector('.published')?.textContent.trim() || '', 
+        published: card.querySelector('.published')?.textContent.trim() || '',
         link: card.querySelector('h3 a').href,
         confidence: card.querySelector('.intel-badge')?.textContent.trim() || 'Uncorroborated',
         evidence_status: card.querySelector('.intel-badge')?.textContent.trim() || 'Single-source',
@@ -362,9 +390,14 @@ async function showSaved(element) {
                     ${Number(article.report_count || article.related_count + 1) > 1 ? `<span class="intel-badge">${escapeHtml(String(article.report_count || article.related_count + 1))} related reports</span>` : ''}
                 </div>
                 <p class="intel-hint">${escapeHtml(article.why_matters_hint || article.impact_hint || 'Kaivor currently has limited evidence for this report.')}</p>
-                <p class="evidence-note">${escapeHtml(article.what_we_know_hint || '')}</p>
-                <p class="evidence-note"><strong>Evidence detail:</strong> ${escapeHtml(article.evidence_detail || article.what_we_know_hint || article.evidence_status || 'Single-source')}</p>
-                <p class="evidence-note"><strong>Sources:</strong> ${escapeHtml((article.story_sources || []).join(', ') || article.source || 'Unknown source')}</p>
+                <details class="evidence-details">
+                    <summary>Evidence &amp; sources</summary>
+                    <div class="evidence-details-body">
+                        <p class="evidence-note">${escapeHtml(article.what_we_know_hint || '')}</p>
+                        <p class="evidence-note"><strong>Evidence detail:</strong> ${escapeHtml(article.evidence_detail || article.what_we_know_hint || article.evidence_status || 'Single-source')}</p>
+                        <p class="evidence-note"><strong>Sources:</strong> ${escapeHtml((article.story_sources || []).join(', ') || article.source || 'Unknown source')}</p>
+                    </div>
+                </details>
                 <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">${escapeHtml(article.description)}</p>
                 <div class="btn-group">
                     <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
