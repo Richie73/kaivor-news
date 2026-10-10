@@ -84,3 +84,28 @@ def test_sport_focus_survives_normalisation():
         "sport_focus": "football",
     })
     assert item["sport_focus"] == "football"
+
+
+def test_shared_sport_classifier_prioritises_football():
+    from news_freshness import classify_sport_focus
+
+    assert classify_sport_focus("Arsenal confirm new signing") == "football"
+    assert classify_sport_focus("Champions League draw announced") == "football"
+    assert classify_sport_focus("Women's Super League fixture update") == "football"
+
+
+def test_shared_sport_classifier_preserves_other_sports():
+    from news_freshness import classify_sport_focus
+
+    assert classify_sport_focus("Singapore Formula One Grand Prix qualifying") == "other"
+    assert classify_sport_focus("NFL game latest") == "other"
+    assert classify_sport_focus("Wimbledon tennis final") == "other"
+
+
+def test_explicit_football_feed_keeps_football_focus():
+    from news_freshness import classify_sport_focus
+
+    assert classify_sport_focus(
+        "General sports headline",
+        feed_focus="football",
+    ) == "football"

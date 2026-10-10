@@ -26,6 +26,35 @@ DEFAULT_MAX_AGE_HOURS = max(1, int(os.environ.get("KAIVOR_NEWS_MAX_AGE_HOURS", "
 DEFAULT_ITEMS_PER_FEED = max(5, int(os.environ.get("KAIVOR_NEWS_ITEMS_PER_FEED", "15")))
 MAX_WORKERS = max(4, int(os.environ.get("KAIVOR_NEWS_MAX_WORKERS", "12")))
 
+
+# Shared classification rules for Sport stories across RSS and API feeds.
+FOOTBALL_TERMS = (
+    "football", "soccer", "premier league", "champions league",
+    "europa league", "conference league", "fa cup", "efl cup",
+    "carabao cup", "league cup", "football league", "world cup",
+    "european championship", "euros", "nations league", "fifa", "uefa",
+    "women's super league", "women’s super league", "ballon d'or",
+    "goalkeeper", "striker", "midfielder", "defender", "forward",
+    "transfer window", "footballer", "offside", "penalty shootout",
+    "free kick", "corner kick", "red card", "yellow card",
+    "championship play-off", "championship playoff",
+    "arsenal", "liverpool", "manchester city", "manchester united",
+    "manchester utd", "chelsea", "tottenham", "spurs", "newcastle united",
+    "aston villa", "west ham", "everton", "nottingham forest",
+    "brighton", "crystal palace", "fulham", "brentford", "bournemouth",
+    "wolves", "wolverhampton", "leicester city", "leeds united",
+    "sunderland", "real madrid", "barcelona", "bayern munich",
+    "paris saint-germain", "psg", "inter milan", "ac milan", "juventus",
+    "borussia dortmund", "atletico madrid",
+)
+
+def classify_sport_focus(title: Any, description: Any = "", feed_focus: Any = "") -> str:
+    """Return football only for explicitly football-focused feeds or matching stories."""
+    if str(feed_focus or "").strip().lower() == "football":
+        return "football"
+    combined = f"{title or ''} {description or ''}".lower()
+    return "football" if any(term in combined for term in FOOTBALL_TERMS) else "other"
+
 # Curated defaults: several independent publishers per category without
 # deliberately filling the feed with low-quality aggregators.
 DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
@@ -193,14 +222,11 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
         title = _clean(entry.get("title") or "No Title")
         link = _clean(entry.get("link") or "#")
         combined_text = f"{title} {clean_html(raw_desc)}".lower()
-        football_terms = (
-            "football", "soccer", "premier league", "champions league",
-            "europa league", "conference league", "fa cup", "efl",
-            "fifa", "uefa", "wsl", "women's super league", "ballon d'or",
-            "goalkeeper", "striker", "midfielder", "transfer window",
-            "footballer", "offside", "penalty shootout",
+        sport_focus = classify_sport_focus(
+            title,
+            clean_html(raw_desc),
+            feed.get("sport_focus", ""),
         )
-        is_football = bool(feed.get("sport_focus") == "football" or any(term in combined_text for term in football_terms))
 
         items.append({
             "title": title,
@@ -212,7 +238,7 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
             "link": link,
             "feed_tier": feed.get("tier", "custom"),
             "feed_url": url,
-            "sport_focus": "football" if is_football else "other",
+            "sport_focus": sport_focus,
         })
     items.sort(key=lambda item: float(item.get("published_ts") or 0), reverse=True)
     return items[:items_per_feed]

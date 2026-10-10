@@ -309,19 +309,16 @@ def fetch_fresh_news():
         all_articles.extend(fetch_guardian_articles(category))
     all_articles.extend(puzzle_items())
 
-    # Ensure Sport items from APIs/custom feeds also carry a football focus flag.
-    football_terms = (
-        "football", "soccer", "premier league", "champions league",
-        "europa league", "conference league", "fa cup", "efl",
-        "fifa", "uefa", "wsl", "women's super league", "ballon d'or",
-        "goalkeeper", "striker", "midfielder", "transfer window",
-        "footballer", "offside", "penalty shootout",
-    )
+    # Apply the same football classification to RSS and API/Guardian stories.
+    from news_freshness import classify_sport_focus
+
     for article in all_articles:
         if str(article.get("category") or "").strip().lower() == "sport":
-            if article.get("sport_focus") != "football":
-                combined = f"{article.get('title', '')} {article.get('description', '')}".lower()
-                article["sport_focus"] = "football" if any(term in combined for term in football_terms) else "other"
+            article["sport_focus"] = classify_sport_focus(
+                article.get("title", ""),
+                article.get("description", ""),
+                article.get("sport_focus", ""),
+            )
 
     # Keep the deterministic freshness ordering supplied by the feed layer.
     # Guardian/API and puzzle items are appended afterwards and therefore do
