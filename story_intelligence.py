@@ -31,20 +31,33 @@ STOPWORDS = {
 }
 
 IMPACT_RULES = [
+    # Specific subjects must precede broad infrastructure/economy keywords.
+    ("motorsport", (
+        "formula one", "formula 1", "grand prix", "f1", "qualifying",
+        "sprint race", "pit stop", "pole position", "verstappen", "hamilton",
+        "leclerc", "norris", "russell", "ferrari", "mclaren", "red bull racing",
+        "constructor championship", "drivers championship", "motorsport",
+    ),
+     "This is primarily a motorsport development. Its significance depends on race results, championship points, team strategy, driver performance and any confirmed consequences for upcoming sessions."),
+    ("sport", (
+        "football", "soccer", "goal", "match", "tournament", "world cup",
+        "championship", "player", "manager", "transfer", "premier league",
+        "champions league", "fa cup", "rugby", "tennis", "cricket", "golf",
+        "basketball", "athlete", "fixture", "kick-off", "kickoff", "race win",
+    ),
+     "This is primarily a sporting development. It may affect results, standings, qualification, selection, team or athlete performance, or the wider competition picture."),
     ("war", ("war", "strike", "strikes", "drone", "missile", "attack", "troops", "military", "ceasefire", "russia", "ukraine", "iran", "israel", "gaza", "houthi"),
      "This concerns an active conflict or security event. If confirmed, developments of this type can affect civilian safety, infrastructure, military operations and the wider course of the conflict."),
-    ("infrastructure", ("bridge", "airport", "rail", "railway", "power", "grid", "pipeline", "port", "road", "station", "infrastructure"),
-     "This concerns infrastructure that can affect movement, essential services or economic activity. If the reported damage is confirmed, disruption could extend beyond the immediate incident."),
     ("politics", ("government", "minister", "chancellor", "president", "prime minister", "election", "parliament", "vote", "law", "policy", "resign"),
      "This could affect government decisions, public policy or political stability. The practical impact depends on what action follows the reported development."),
-    ("economy", ("inflation", "interest rate", "rates", "jobs", "employment", "recession", "gdp", "economy", "market", "markets", "bank", "tariff", "trade"),
-     "This could affect prices, borrowing, employment, trade or financial markets. The scale of the impact depends on whether the development persists and how markets or policymakers respond."),
     ("technology", ("ai", "artificial intelligence", "chip", "semiconductor", "cyber", "hack", "software", "robot", "model", "data breach"),
      "This could affect technology capability, competition, security or how a product or service is used. The longer-term significance depends on adoption, verification and follow-up."),
     ("science", ("study", "research", "trial", "scientists", "discovery", "climate", "vaccine", "disease", "space", "nasa"),
      "The significance depends on the strength of the underlying evidence and whether the finding survives independent verification or further research."),
-    ("sport", ("football", "goal", "match", "tournament", "world cup", "championship", "player", "manager", "transfer"),
-     "The immediate significance is mainly sporting: it may affect results, qualification, selection, form or the wider competition picture."),
+    ("infrastructure", ("bridge", "airport", "rail", "railway", "power", "grid", "pipeline", "port", "road", "station", "infrastructure"),
+     "This concerns infrastructure that can affect movement, essential services or economic activity. If the reported damage is confirmed, disruption could extend beyond the immediate incident."),
+    ("economy", ("inflation", "interest rate", "rates", "jobs", "employment", "recession", "gdp", "economy", "market", "markets", "bank", "tariff", "trade"),
+     "This could affect prices, borrowing, employment, trade or financial markets. The scale of the impact depends on whether the development persists and how markets or policymakers respond."),
 ]
 
 UNCERTAINTY_RULES = [

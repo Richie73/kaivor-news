@@ -14,3 +14,28 @@ assert all(item["evidence_status"] == "Corroborated — 2 independent sources" f
 assert all("infrastructure" in item["impact_hint"].lower() or "conflict" in item["impact_hint"].lower() for item in enriched)
 assert all(item["uncertainty_hint"] for item in enriched), "Expected an explicit uncertainty statement"
 print("✓ Intelligence quality and evidence model")
+
+# FP018.5 regression: explanations must follow the story topic, not incidental words.
+TOPIC_CASES = [
+    {
+        "id": "f1",
+        "title": "Formula One Grand Prix race disrupted at street circuit",
+        "description": "The race result and championship points are under review.",
+        "category": "Sport",
+        "source": "Test Motorsport",
+        "link": "https://example/f1",
+    },
+    {
+        "id": "football",
+        "title": "Premier League club confirms new manager",
+        "description": "The appointment could affect team selection and results.",
+        "category": "Sport",
+        "source": "Test Football",
+        "link": "https://example/football",
+    },
+]
+
+topic_results = enrich_articles(TOPIC_CASES)
+assert "motorsport" in topic_results[0]["impact_hint"].lower(), topic_results[0]["impact_hint"]
+assert "sporting" in topic_results[1]["impact_hint"].lower(), topic_results[1]["impact_hint"]
+print("✓ Topic-aware impact explanation regressions")
