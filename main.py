@@ -330,8 +330,16 @@ def fetch_fresh_news():
 
 
 def refresh_news():
+    """Refresh news without discarding a healthy cache on an empty result."""
     articles = fetch_fresh_news()
     with _news_lock:
+        if not articles and _news_cache.get("articles"):
+            print(
+                "NEWS REFRESH: received zero articles; preserving existing cache",
+                flush=True,
+            )
+            return []
+
         _news_cache["articles"] = articles
         _news_cache["last_updated"] = time.time()
     return articles
@@ -477,8 +485,39 @@ def api_cron_refresh():
     }), 202
 
 
+def _ensure_news_refresh_started() -> bool:
+    """Start one background refresh when this process has no cached news."""
+    with _news_lock:
+        if _news_cache.get("articles"):
+            return False
+
+    with _cron_refresh_lock:
+        if _cron_refresh_state["running"]:
+            return False
+
+        _cron_refresh_state["running"] = True
+        _cron_refresh_state["started_at"] = time.time()
+        _cron_refresh_state["last_error"] = ""
+
+    try:
+        threading.Thread(
+            target=_cron_refresh_worker,
+            daemon=True,
+            name="kaivor-cold-start-refresh",
+        ).start()
+        print("NEWS RECOVERY: started background refresh for empty cache", flush=True)
+        return True
+    except Exception as exc:
+        with _cron_refresh_lock:
+            _cron_refresh_state["running"] = False
+            _cron_refresh_state["last_error"] = type(exc).__name__
+        print(f"NEWS RECOVERY: could not start refresh ({type(exc).__name__})", flush=True)
+        return False
+
+
 @app.route("/")
 def index():
+    _ensure_news_refresh_started()
     with _cache_lock:
         market_data = _finance_cache.get(
             "data",
