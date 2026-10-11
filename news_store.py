@@ -174,6 +174,7 @@ def load_secrets() -> dict[str, str]:
             "openai": "OPENAI_API_KEY",
             "guardian": "GUARDIAN_API_KEY",
             "brave": "BRAVE_API_KEY",
+            "newsdata": "NEWSDATA_API_KEY",
         }
         result: dict[str, str] = {}
         for key, env_name in aliases.items():
@@ -184,7 +185,7 @@ def load_secrets() -> dict[str, str]:
 
 
 def save_secret(secret_type: str, api_key: str) -> bool:
-    aliases = {"openrouter", "openai", "guardian", "brave"}
+    aliases = {"openrouter", "openai", "guardian", "brave", "newsdata"}
     if secret_type not in aliases or not api_key.strip():
         return False
     with _LOCK:

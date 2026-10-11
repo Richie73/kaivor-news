@@ -18,3 +18,5 @@ services:
         sync: false
       - key: BRAVE_API_KEY
         sync: false
+      - key: NEWSDATA_API_KEY
+        sync: false

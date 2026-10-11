@@ -80,6 +80,7 @@ def load_persisted_secrets() -> None:
         "openai": "OPENAI_API_KEY",
         "guardian": "GUARDIAN_API_KEY",
         "brave": "BRAVE_API_KEY",
+        "newsdata": "NEWSDATA_API_KEY",
     }
     for key, env_name in aliases.items():
         if secrets.get(key):
@@ -263,6 +264,80 @@ def fetch_guardian_articles(category):
     return articles
 
 
+def fetch_newsdata_articles():
+    # Fetch optional NewsData.io articles; errors never break refreshes.
+    api_key = os.environ.get("NEWSDATA_API_KEY", "").strip()
+    if not api_key:
+        return []
+
+    category_map = {
+        "world": "World",
+        "technology": "Technology",
+        "business": "Business",
+        "science": "Science",
+        "sports": "Sport",
+        "politics": "UK",
+        "domestic": "UK",
+    }
+    articles = []
+    try:
+        response = requests.get(
+            "https://newsdata.io/api/1/latest",
+            params={
+                "apikey": api_key,
+                "language": "en",
+                "country": "gb,us",
+                "category": "world,technology,business,science,sports",
+                "size": 10,
+            },
+            timeout=(3, 8),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            return []
+        results = payload.get("results", [])
+        if not isinstance(results, list):
+            return []
+
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or "").strip()
+            link = str(item.get("link") or "").strip()
+            if not title or not link.startswith(("https://", "http://")):
+                continue
+
+            raw_categories = item.get("category") or []
+            if isinstance(raw_categories, str):
+                raw_categories = [raw_categories]
+            categories = [
+                value.strip().lower()
+                for value in raw_categories
+                if isinstance(value, str)
+            ]
+            category = next(
+                (category_map[value] for value in categories if value in category_map),
+                "World",
+            )
+            published_raw = str(item.get("pubDate") or "")
+            description = clean_html(item.get("description") or item.get("content") or "")
+            articles.append({
+                "title": title,
+                "description": description,
+                "category": category,
+                "source": str(item.get("source_name") or item.get("source_id") or "NewsData.io"),
+                "published": published_raw[:16] or "Recent",
+                "published_ts": _published_timestamp(published_raw),
+                "link": link,
+                "feed_tier": "supplemental",
+                "feed_url": "https://newsdata.io/api/1/latest",
+            })
+    except Exception as exc:
+        print(f"NEWSDATA: optional provider unavailable ({type(exc).__name__})", flush=True)
+    return articles
+
+
 def puzzle_items():
     return [
         {
@@ -307,6 +382,7 @@ def fetch_fresh_news():
     all_articles = fetch_multi_source_news(load_custom_sources())
     for category in ("World", "Technology", "Business", "Science", "UK", "Sport"):
         all_articles.extend(fetch_guardian_articles(category))
+    all_articles.extend(fetch_newsdata_articles())
     all_articles.extend(puzzle_items())
 
     # Apply the same football classification to RSS and API/Guardian stories.
@@ -613,7 +689,7 @@ def api_set_key():
     data = request.json or {}
     key_type = str(data.get("type", "")).strip().lower()
     api_key = str(data.get("api_key", "")).strip()
-    if key_type not in {"openrouter", "openai", "guardian", "brave"} or not api_key:
+    if key_type not in {"openrouter", "openai", "guardian", "brave", "newsdata"} or not api_key:
         return jsonify({"success": False, "error": "Unsupported key type or empty API key."}), 400
 
     if not save_secret(key_type, api_key):
@@ -624,6 +700,7 @@ def api_set_key():
             "openai": "OPENAI_API_KEY",
             "guardian": "GUARDIAN_API_KEY",
             "brave": "BRAVE_API_KEY",
+            "newsdata": "NEWSDATA_API_KEY",
         }[key_type]
     ] = api_key
     refresh_news()
