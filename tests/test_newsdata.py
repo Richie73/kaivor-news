@@ -81,3 +81,35 @@ def test_api_failure_returns_empty_list():
             side_effect=main.requests.RequestException("simulated failure"),
         ):
             assert main.fetch_newsdata_articles() == []
+
+
+def test_articles_with_missing_or_unsupported_category_are_skipped():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "results": [
+            {
+                "title": "Uncategorised story",
+                "link": "https://example.com/uncategorised",
+                "category": [],
+            },
+            {
+                "title": "Unexpected category story",
+                "link": "https://example.com/unexpected",
+                "category": ["lifestyle"],
+            },
+            {
+                "title": "Valid business story",
+                "link": "https://example.com/business",
+                "category": ["business"],
+            },
+        ]
+    }
+
+    with patch.dict(main.os.environ, {"NEWSDATA_API_KEY": "test-key"}):
+        with patch.object(main.requests, "get", return_value=response):
+            articles = main.fetch_newsdata_articles()
+
+    assert len(articles) == 1
+    assert articles[0]["title"] == "Valid business story"
+    assert articles[0]["category"] == "Business"

@@ -322,8 +322,12 @@ def fetch_newsdata_articles():
             ]
             category = next(
                 (category_map[value] for value in categories if value in category_map),
-                "World",
+                None,
             )
+            if category is None:
+                print("NEWSDATA: skipped article with missing or unsupported category", flush=True)
+                continue
+
             published_raw = str(item.get("pubDate") or "")
             description = clean_html(item.get("description") or item.get("content") or "")
             articles.append({
