@@ -184,6 +184,7 @@
     {% for article in articles %}
         <div class="card" data-category="{{ article.category }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
             <span class="source-tag">{{ article.category }}</span>
+            <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div>
             <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
             <div class="published" style="font-size:11px;color:#6b7280;margin-bottom:8px;">{{ article.published | display_date }}</div>
@@ -379,6 +380,7 @@ async function showSaved(element) {
         container.innerHTML = data.articles.map(article => `
             <div class="card" data-category="${escapeHtml(article.category)}" data-article-id="${escapeHtml(article.id)}" data-cluster-id="${escapeHtml(article.cluster_id || '')}" data-source-count="${Number(article.source_count || 1)}" data-report-count="${Number(article.report_count || 1)}" data-repeat-count="${Number(article.repeated_same_source_reports || 0)}" data-story-sources="${escapeAttr((article.story_sources || []).join('|'))}" data-importance-score="${Number(article.importance_score || 0)}" data-importance-label="${escapeAttr(article.importance_label || 'Medium')}" data-confidence-score="${Number(article.confidence_score || 0)}" data-confidence-label="${escapeAttr(article.confidence_label || 'Low')}" data-relevance-score="${Number(article.relevance_score || 0)}" data-relevance-label="${escapeAttr(article.relevance_label || 'Low')}" data-sport-focus="${escapeAttr(article.sport_focus || 'other')}" data-published-ts="${Number(article.published_ts || 0)}">
                 <span class="source-tag">${escapeHtml(article.category)}</span>
+                <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
                 <div class="source-name">${escapeHtml(article.source)}</div>
                 <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
                 <div class="published" data-published="${escapeHtml(article.published)}" style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escapeHtml(formatDisplayDate(article.published))}</div>

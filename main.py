@@ -338,6 +338,20 @@ def fetch_newsdata_articles():
     return articles
 
 
+
+def article_provider_label(article):
+    """Return a provider label based on explicit article metadata."""
+    feed_url = str(article.get("feed_url") or "").lower()
+    feed_tier = str(article.get("feed_tier") or "").lower()
+    if "newsdata.io" in feed_url:
+        return "NewsData.io"
+    if "content.guardianapis.com" in feed_url:
+        return "The Guardian API"
+    if feed_tier in {"primary", "major", "specialist", "custom", "rss"}:
+        return "RSS"
+    return "Other"
+
+
 def puzzle_items():
     return [
         {
@@ -611,7 +625,7 @@ def index():
     with _news_lock:
         articles = list(_news_cache.get("articles", []))
     saved_ids = {item["id"] for item in load_saved_articles()}
-    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids)
+    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label)
 
 
 @app.route("/api/ticker", methods=["GET"])
@@ -710,6 +724,8 @@ def api_set_key():
 @app.route("/api/saved", methods=["GET"])
 def api_saved():
     saved = load_saved_articles()
+    for article in saved:
+        article["provider"] = article_provider_label(article)
     return jsonify({"success": True, "articles": saved, "count": len(saved)})
 
 
