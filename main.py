@@ -268,6 +268,7 @@ def fetch_newsdata_articles():
     # Fetch optional NewsData.io articles; errors never break refreshes.
     api_key = os.environ.get("NEWSDATA_API_KEY", "").strip()
     if not api_key:
+        print("NEWSDATA: skipped (API key not configured)", flush=True)
         return []
 
     category_map = {
@@ -298,7 +299,10 @@ def fetch_newsdata_articles():
             return []
         results = payload.get("results", [])
         if not isinstance(results, list):
+            print("NEWSDATA: invalid results format", flush=True)
             return []
+
+        print(f"NEWSDATA: API returned {len(results)} raw articles", flush=True)
 
         for item in results:
             if not isinstance(item, dict):
@@ -333,6 +337,7 @@ def fetch_newsdata_articles():
                 "feed_tier": "supplemental",
                 "feed_url": "https://newsdata.io/api/1/latest",
             })
+        print(f"NEWSDATA: accepted {len(articles)} articles", flush=True)
     except Exception as exc:
         print(f"NEWSDATA: optional provider unavailable ({type(exc).__name__})", flush=True)
     return articles
