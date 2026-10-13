@@ -52,7 +52,21 @@
         .card h3 a { color:#f3f4f6; text-decoration:none; }
         .source-tag { font-size:11px; color:#10b981; text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
         .source-name { font-size:11px; color:#6b7280; margin-bottom:8px; }
-        .chips { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:16px; scrollbar-width:none; }
+        .chips {
+            position: sticky;
+            top: 82px;
+            z-index: 900;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin: 0 -2px 16px;
+            background: #0b0b0b;
+            border-bottom: 1px solid #26262a;
+            scrollbar-width: none;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
         .chip { background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
         .chip.active { background:#10b981; color:#000; font-weight:600; border-color:#10b981; }
         .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
