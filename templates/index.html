@@ -121,71 +121,6 @@
         .timeline-title { font-size:13px; color:#d1fae5; line-height:1.4; }
         .timeline-type { font-size:10px; color:#a7f3d0; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
         .timeline-note { font-size:11px; color:#9ca3af; margin-top:10px; line-height:1.45; }
-
-        /* Persistent category navigation */
-        :root {
-            --kaivor-header-height: 78px;
-            --kaivor-nav-height: 48px;
-        }
-        body {
-            padding-top: calc(var(--kaivor-header-height) + var(--kaivor-nav-height) + 12px);
-        }
-        header {
-            height: 78px; padding: 8px 16px; font-size: 18px;
-            box-sizing: border-box;
-        }
-        .chips {
-            position: fixed;
-            top: var(--kaivor-header-height);
-            left: 0;
-            right: 0;
-            z-index: 999;
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 9px 12px;
-            margin: 0;
-            background: #0b0b0b;
-            border-bottom: 1px solid #26262a;
-            scrollbar-width: none;
-            box-sizing: border-box;
-            -webkit-overflow-scrolling: touch;
-        }
-        .chip {
-            flex: 0 0 auto;
-        }
-        .settings-section {
-            border-top: 1px solid #26262a;
-            margin-top: 28px;
-            padding-top: 20px;
-            scroll-margin-top: calc(var(--kaivor-header-height) + var(--kaivor-nav-height) + 12px);
-        }
-        .settings-section-title {
-            margin: 0 0 6px;
-            font-size: 16px;
-            color: #d1fae5;
-        }
-        .settings-section-note {
-            margin: 0 0 14px;
-            font-size: 12px;
-            color: #9ca3af;
-        }
-        @media (max-width: 600px) {
-            :root {
-                --kaivor-header-height: 78px;
-                --kaivor-nav-height: 48px;
-            }
-            .chips {
-                gap: 6px;
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-            .chip {
-                padding: 7px 11px;
-                font-size: 12px;
-            }
-        }
-
     </style>
 </head>
 <body>
@@ -214,7 +149,20 @@
         </div>
     </section>
 
-
+    <details class="manager-card manager-settings">
+        <summary>⚙ Sources &amp; API Settings <span>Tap to configure</span></summary>
+        <div class="settings-body">
+            <div class="settings-label">Custom RSS source</div>
+            <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
+            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)...">
+            <button onclick="addCustomFeed()">Add Source</button>
+            <div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div>
+            <div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div>
+            <div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div>
+            <div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div>
+            <div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div>
+        </div>
+    </details>
 
     <div class="chips">
         <div class="chip active" onclick="filterCategory('All',this)">Top Stories</div>
@@ -273,26 +221,6 @@
     {% endfor %}
     </div>
 </div>
-
-
-<section class="container settings-section" id="source-settings" aria-label="Source and API settings">
-    <h2 class="settings-section-title">Settings &amp; Sources</h2>
-    <p class="settings-section-note">Manage news feeds and connect your API providers.</p>
-    <details class="manager-card manager-settings">
-        <summary>⚙ Sources &amp; API Settings <span>Tap to configure</span></summary>
-        <div class="settings-body">
-            <div class="settings-label">Custom RSS source</div>
-            <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
-            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)...">
-            <button onclick="addCustomFeed()">Add Source</button>
-            <div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div>
-            <div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div>
-            <div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div>
-            <div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div>
-            <div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div>
-        </div>
-    </details>
-</section>
 
 <div id="ask-modal-backdrop" class="ask-modal-backdrop" onclick="if(event.target===this)closeAskModal()">
     <div class="ask-modal">
