@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import feedparser
 import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from news_quality import quality_rejection_reason
 
 from evidence_engine import evidence_sentence
 from story_intelligence import enrich_articles
@@ -330,7 +331,7 @@ def fetch_newsdata_articles():
 
             published_raw = str(item.get("pubDate") or "")
             description = clean_html(item.get("description") or item.get("content") or "")
-            articles.append({
+            article = {
                 "title": title,
                 "description": description,
                 "category": category,
@@ -340,7 +341,15 @@ def fetch_newsdata_articles():
                 "link": link,
                 "feed_tier": "supplemental",
                 "feed_url": "https://newsdata.io/api/1/latest",
-            })
+            }
+            rejection_reason = quality_rejection_reason(article)
+            if rejection_reason:
+                print(
+                    f"NEWSDATA: filtered article ({rejection_reason})",
+                    flush=True,
+                )
+                continue
+            articles.append(article)
         print(f"NEWSDATA: accepted {len(articles)} articles", flush=True)
     except Exception as exc:
         print(f"NEWSDATA: optional provider unavailable ({type(exc).__name__})", flush=True)
