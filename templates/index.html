@@ -137,7 +137,32 @@
         .timeline-title { font-size:13px; color:#d1fae5; line-height:1.4; }
         .timeline-type { font-size:10px; color:#a7f3d0; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
         .timeline-note { font-size:11px; color:#9ca3af; margin-top:10px; line-height:1.45; }
-    </style>
+
+.ai-section-heading {
+    color: #a7f3d0;
+    font-size: 1.02rem;
+    line-height: 1.4;
+    font-weight: 750;
+    margin: 18px 0 8px;
+}
+.ai-section-heading:first-child { margin-top: 0; }
+.ai-markdown-list {
+    margin: 8px 0 12px;
+    padding-left: 22px;
+}
+.ai-markdown-list li {
+    margin: 6px 0;
+    padding-left: 3px;
+    line-height: 1.6;
+}
+.ai-content p { margin: 8px 0; line-height: 1.65; }
+.ai-content code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(148,163,184,.12);
+}
+
+</style>
 </head>
 <body>
 <header><div>KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button></header>
@@ -655,16 +680,65 @@ function renderAiText(text){
     }).join('');
 }
 function renderAiMarkdown(text){
-    const lines=String(text||'').replace(/\r/g,'').split('\n');
-    return lines.map(line=>{
-        let t=escapeHtml(line.trim());
-        if(!t)return '<div style="height:5px"></div>';
-        t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
-        const numbered=t.match(/^(\d+)\.\s+(.*)$/);
-        if(numbered)return '<div class="ai-number"><span>'+numbered[1]+'.</span><div>'+numbered[2]+'</div></div>';
-        if(/^[-•]\s+/.test(t))return '<div class="ai-bullet">'+t.replace(/^[-•]\s+/,'')+'</div>';
-        return '<p>'+t+'</p>';
-    }).join('');
+    const lines = String(text || '').replace(/\r/g, '').split('\n');
+    const output = [];
+    let inList = false;
+    let listType = '';
+
+    const closeList = () => {
+        if (inList) {
+            output.push(listType === 'ol' ? '</ol>' : '</ul>');
+            inList = false;
+            listType = '';
+        }
+    };
+
+    const inline = value => {
+        // Escape all source text before adding a deliberately small set of safe tags.
+        let safe = escapeHtml(value);
+        safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        safe = safe.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>');
+        safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+        return safe;
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+            closeList();
+            continue;
+        }
+
+        const heading = line.match(/^(#{1,4})\s+(.+?)\s*#*$/);
+        if (heading) {
+            closeList();
+            const level = Math.min(heading[1].length + 1, 5);
+            output.push('<h' + level + ' class="ai-section-heading">' + inline(heading[2]) + '</h' + level + '>');
+            continue;
+        }
+
+        const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+        const bullet = line.match(/^[-*•]\s+(.+)$/);
+        const item = numbered ? {type: 'ol', text: numbered[1]} :
+                     bullet ? {type: 'ul', text: bullet[1]} : null;
+
+        if (item) {
+            if (!inList || listType !== item.type) {
+                closeList();
+                listType = item.type;
+                output.push(listType === 'ol' ? '<ol class="ai-markdown-list">' : '<ul class="ai-markdown-list">');
+                inList = true;
+            }
+            output.push('<li>' + inline(item.text) + '</li>');
+            continue;
+        }
+
+        closeList();
+        output.push('<p>' + inline(line) + '</p>');
+    }
+
+    closeList();
+    return output.join('');
 }
 function showAiText(target,label,text,options={}){
     const loading=options.loading===true;
