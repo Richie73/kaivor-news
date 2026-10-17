@@ -720,9 +720,9 @@ async function triggerStoryIntelligence(button){
 
 async function triggerAiBrief(button){
     const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
-    showAiText(target,'⏳ Generating AI Executive Brief...','');
-    try{const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:article.title,description:article.description})});const data=await res.json();
-        showAiText(target,data.success?'AI Executive Summary:':'⚠️ Failed to generate brief.',data.brief||'');
+    showAiText(target,'⏳ Generating confidence-aware AI Brief...','');
+    try{const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});const data=await res.json();
+        showAiText(target,data.success?'AI Executive Summary:':'⚠️ Failed to generate brief.',data.brief||data.error||'');
     }catch(e){showAiText(target,'⚠️ Error connecting to AI service.','');}
 }
 

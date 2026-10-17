@@ -10,6 +10,7 @@ import feedparser
 import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from news_quality import quality_rejection_reason
+from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
 
 from evidence_engine import evidence_sentence
 from story_intelligence import enrich_articles
@@ -944,8 +945,15 @@ def api_why_matters():
 @app.route("/api/ai_brief", methods=["POST"])
 def api_ai_brief():
     data = request.json or {}
-    article_title = data.get("title", "")
-    article_desc = data.get("description", "")
+    article = data.get("article") if isinstance(data.get("article"), dict) else {}
+    # Backwards compatibility for older clients that still send title/description.
+    article = dict(article)
+    article.setdefault("title", data.get("title", ""))
+    article.setdefault("description", data.get("description", ""))
+    if not str(article.get("title") or "").strip():
+        return jsonify({"success": False, "error": "Article title is required."}), 400
+
+    messages = build_ai_brief_messages(article)
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
 
@@ -954,15 +962,14 @@ def api_ai_brief():
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "deepseek/deepseek-chat",
-                "messages": [
-                    {"role": "system", "content": "Provide a short 3-bullet summary: 1) What happened, 2) Why it matters, 3) Next outlook. Do not invent facts."},
-                    {"role": "user", "content": f"Title: {article_title}\nSummary: {article_desc}"},
-                ],
-                "temperature": 0.3,
+                "messages": messages,
+                "temperature": 0.1,
             }
             response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if response.status_code == 200:
-                return jsonify({"success": True, "brief": response.json()["choices"][0]["message"]["content"]})
+                brief = response.json()["choices"][0]["message"]["content"].strip()
+                if brief:
+                    return jsonify({"success": True, "brief": brief, "provider": "openrouter"})
         except Exception:
             pass
 
@@ -971,24 +978,18 @@ def api_ai_brief():
             headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
             payload = {
                 "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": "Provide a short 3-bullet summary: 1) What happened, 2) Why it matters, 3) Next outlook. Do not invent facts."},
-                    {"role": "user", "content": f"Title: {article_title}\nSummary: {article_desc}"},
-                ],
-                "temperature": 0.3,
+                "messages": messages,
+                "temperature": 0.1,
             }
             response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=10)
             if response.status_code == 200:
-                return jsonify({"success": True, "brief": response.json()["choices"][0]["message"]["content"]})
+                brief = response.json()["choices"][0]["message"]["content"].strip()
+                if brief:
+                    return jsonify({"success": True, "brief": brief, "provider": "openai"})
         except Exception:
             pass
 
-    fallback_brief = (
-        f"• What happened: Key updates regarding '{article_title}'.\n"
-        "• Significance: Review the source coverage for the verified context.\n"
-        "• Outlook: Continued monitoring advised."
-    )
-    return jsonify({"success": True, "brief": fallback_brief, "fallback": True})
+    return jsonify({"success": True, "brief": build_ai_brief_fallback(article), "fallback": True})
 
 
 @app.route("/api/ask_ai", methods=["POST"])
