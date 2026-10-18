@@ -1,5 +1,8 @@
+import json
 import os
 import re
+import subprocess
+import sys
 import threading
 import time
 from datetime import datetime, timezone
@@ -409,14 +412,39 @@ def puzzle_items():
 
 
 def fetch_fresh_news():
-    """Fetch current multi-source news, Guardian API coverage and puzzles."""
+    """Fetch current multi-source news, logging each potentially slow stage."""
     from news_freshness import fetch_multi_source_news
 
+    started = time.monotonic()
+    print("REFRESH STAGE: RSS collection started", flush=True)
     all_articles = fetch_multi_source_news(load_custom_sources())
+    print(
+        f"REFRESH STAGE: RSS collection finished in {time.monotonic() - started:.1f}s; articles={len(all_articles)}",
+        flush=True,
+    )
+
     for category in ("World", "Technology", "Business", "Science", "UK", "Sport"):
-        all_articles.extend(fetch_guardian_articles(category))
-    all_articles.extend(fetch_newsdata_articles())
-    all_articles.extend(puzzle_items())
+        category_started = time.monotonic()
+        print(f"REFRESH STAGE: Guardian {category} started", flush=True)
+        guardian_articles = fetch_guardian_articles(category)
+        all_articles.extend(guardian_articles)
+        print(
+            f"REFRESH STAGE: Guardian {category} finished in {time.monotonic() - category_started:.1f}s; articles={len(guardian_articles)}",
+            flush=True,
+        )
+
+    print("REFRESH STAGE: NewsData started", flush=True)
+    stage_started = time.monotonic()
+    newsdata_articles = fetch_newsdata_articles()
+    all_articles.extend(newsdata_articles)
+    print(
+        f"REFRESH STAGE: NewsData finished in {time.monotonic() - stage_started:.1f}s; articles={len(newsdata_articles)}",
+        flush=True,
+    )
+
+    puzzles = puzzle_items()
+    all_articles.extend(puzzles)
+    print(f"REFRESH STAGE: puzzles added; articles={len(puzzles)}", flush=True)
 
     # Apply the same football classification to RSS and API/Guardian stories.
     from news_freshness import classify_sport_focus
@@ -432,15 +460,55 @@ def fetch_fresh_news():
     # Keep the deterministic freshness ordering supplied by the feed layer.
     # Guardian/API and puzzle items are appended afterwards and therefore do
     # not displace current RSS reporting.
+    print(f"REFRESH STAGE: deduplication started; articles={len(all_articles)}", flush=True)
+    stage_started = time.monotonic()
     news_articles = deduplicate_articles(all_articles)
+    print(
+        f"REFRESH STAGE: deduplication finished in {time.monotonic() - stage_started:.1f}s; articles={len(news_articles)}",
+        flush=True,
+    )
+    print("REFRESH STAGE: enrichment started", flush=True)
+    stage_started = time.monotonic()
     enriched = enrich_articles(news_articles)
+    print(
+        f"REFRESH STAGE: enrichment finished in {time.monotonic() - stage_started:.1f}s; articles={len(enriched)}",
+        flush=True,
+    )
     enriched.sort(key=lambda item: float(item.get("published_ts") or 0), reverse=True)
+    print(f"REFRESH STAGE: pipeline finished in {time.monotonic() - started:.1f}s", flush=True)
     return enriched
 
 
-def refresh_news():
+def _fetch_fresh_news_isolated(timeout_seconds: int = 90):
+    """Run collection in a killable child process with a hard wall-clock limit.
+
+    Python threads cannot safely be force-stopped. Isolating network collection
+    means a stuck provider cannot leave the web process's refresh flag locked
+    forever; subprocess.run kills the child when the timeout expires.
+    """
+    runner_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "news_refresh_runner.py")
+    completed = subprocess.run(
+        [sys.executable, runner_path],
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+        stdout=subprocess.PIPE,
+        text=True,
+        timeout=timeout_seconds,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"News refresh child exited with status {completed.returncode}")
+    try:
+        articles = json.loads(completed.stdout or "")
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("News refresh child returned invalid JSON") from exc
+    if not isinstance(articles, list) or any(not isinstance(item, dict) for item in articles):
+        raise RuntimeError("News refresh child returned an invalid article payload")
+    return articles
+
+
+def refresh_news(fetcher=None):
     """Refresh news without discarding a healthy cache on an empty result."""
-    articles = fetch_fresh_news()
+    articles = (fetcher or fetch_fresh_news)()
     with _news_lock:
         if not articles and _news_cache.get("articles"):
             print(
@@ -534,7 +602,7 @@ def _cron_refresh_worker() -> None:
     try:
         started = time.time()
         print("CRON WORKER: calling refresh_news()", flush=True)
-        articles = refresh_news()
+        articles = refresh_news(fetcher=_fetch_fresh_news_isolated)
         elapsed = round(time.time() - started, 2)
         print(f"CRON WORKER: refresh_news() completed in {elapsed}s with {len(articles)} articles", flush=True)
         with _cron_refresh_lock:
