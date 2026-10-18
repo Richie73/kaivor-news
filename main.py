@@ -33,6 +33,8 @@ from news_store import (
     save_secret,
 )
 
+APP_VERSION = "FP019.0"
+
 app = Flask(__name__)
 
 
@@ -65,6 +67,8 @@ _cron_refresh_state = {
     "running": False,
     "started_at": 0.0,
     "last_completed": 0.0,
+    "last_successful": 0.0,
+    "last_duration_seconds": 0.0,
     "last_count": 0,
     "last_error": "",
 }
@@ -582,7 +586,7 @@ def api_health():
         "success": True,
         "status": "ok",
         "service": "kaivor-news",
-        "version": "FP018.2",
+        "version": APP_VERSION,
         "news_count": news_count,
         "news_last_updated": news_last,
         "news_age_seconds": round(now - news_last, 1) if news_last else None,
@@ -590,7 +594,15 @@ def api_health():
         "finance_age_seconds": round(now - finance_last, 1) if finance_last else None,
         "cron_configured": bool(os.environ.get("KAIVOR_CRON_TOKEN", "").strip()),
         "cron_refresh_running": bool(_cron_refresh_state["running"]),
+        "cron_refresh_started_at": _cron_refresh_state["started_at"],
+        "cron_refresh_running_age_seconds": (
+            round(now - _cron_refresh_state["started_at"], 1)
+            if _cron_refresh_state["running"] and _cron_refresh_state["started_at"]
+            else None
+        ),
         "cron_refresh_last_completed": _cron_refresh_state["last_completed"],
+        "cron_refresh_last_successful": _cron_refresh_state["last_successful"],
+        "cron_refresh_last_duration_seconds": _cron_refresh_state["last_duration_seconds"],
         "cron_refresh_last_count": _cron_refresh_state["last_count"],
         "cron_refresh_last_error": _cron_refresh_state["last_error"],
         "time": datetime.now(timezone.utc).isoformat(),
@@ -599,27 +611,32 @@ def api_health():
 
 def _cron_refresh_worker() -> None:
     print("CRON WORKER: starting refresh", flush=True)
+    started = time.time()
     try:
-        started = time.time()
         print("CRON WORKER: calling refresh_news()", flush=True)
         articles = refresh_news(fetcher=_fetch_fresh_news_isolated)
-        elapsed = round(time.time() - started, 2)
+        completed = time.time()
+        elapsed = round(completed - started, 2)
         print(f"CRON WORKER: refresh_news() completed in {elapsed}s with {len(articles)} articles", flush=True)
         with _cron_refresh_lock:
-            _cron_refresh_state["last_completed"] = time.time()
+            _cron_refresh_state["last_completed"] = completed
+            _cron_refresh_state["last_successful"] = completed
+            _cron_refresh_state["last_duration_seconds"] = elapsed
             _cron_refresh_state["last_count"] = len(articles)
             _cron_refresh_state["last_error"] = ""
     except Exception as exc:
+        completed = time.time()
+        elapsed = round(completed - started, 2)
         print(f"CRON WORKER: ERROR {type(exc).__name__}: {exc}", flush=True)
         with _cron_refresh_lock:
-            _cron_refresh_state["last_completed"] = time.time()
+            _cron_refresh_state["last_completed"] = completed
+            _cron_refresh_state["last_duration_seconds"] = elapsed
             _cron_refresh_state["last_count"] = 0
             _cron_refresh_state["last_error"] = type(exc).__name__
     finally:
         print("CRON WORKER: finished", flush=True)
         with _cron_refresh_lock:
             _cron_refresh_state["running"] = False
-
 
 @app.route("/api/cron/refresh", methods=["GET", "POST"])
 def api_cron_refresh():
