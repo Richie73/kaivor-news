@@ -13,6 +13,7 @@ import feedparser
 import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from news_quality import quality_rejection_reason
+from news_feed_quality import assess_feed, feed_quality_snapshot
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
 
 from evidence_engine import evidence_sentence
@@ -33,7 +34,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP020.0"
+APP_VERSION = "FP021.0"
 
 app = Flask(__name__)
 
@@ -59,6 +60,9 @@ _finance_cache = {"data": {}, "last_updated": 0}
 _cache_lock = threading.Lock()
 _news_cache = {"articles": [], "last_updated": 0}
 _news_lock = threading.Lock()
+
+# Latest aggregate quality report; never stores article text or credentials.
+_feed_quality_state = {"checked_at": 0.0, "snapshot": {}}
 
 # Background cron refresh state. The public cron endpoint must return
 # immediately because cron-job.org has a 30-second response limit.
@@ -518,19 +522,24 @@ def _fetch_fresh_news_isolated(timeout_seconds: int = 90):
 
 
 def refresh_news(fetcher=None):
-    """Refresh news without discarding a healthy cache on an empty result."""
+    """Validate feed structure and preserve a healthy cache on degraded refreshes."""
     articles = (fetcher or fetch_fresh_news)()
+    report = assess_feed(articles)
     with _news_lock:
-        if not articles and _news_cache.get("articles"):
-            print(
-                "NEWS REFRESH: received zero articles; preserving existing cache",
-                flush=True,
-            )
+        cached = _news_cache.get("articles") or []
+        # Do not replace a useful cache with an empty or severely malformed feed.
+        minimum_acceptable = min(5, len(cached)) if cached else 0
+        if report["accepted_count"] < minimum_acceptable or (
+            not report["accepted_count"] and cached
+        ):
+            _feed_quality_state.update({"checked_at": time.time(), "snapshot": report})
+            print("NEWS REFRESH: feed quality below safety threshold; preserving existing cache", flush=True)
             return []
 
-        _news_cache["articles"] = articles
+        _news_cache["articles"] = report["articles"]
         _news_cache["last_updated"] = time.time()
-    return articles
+        _feed_quality_state.update({"checked_at": time.time(), "snapshot": report})
+    return report["articles"]
 
 
 def _cron_authorized() -> bool:
@@ -579,6 +588,21 @@ def service_worker():
 @app.route("/icons/<path:filename>")
 def pwa_icon(filename):
     return send_from_directory("static/icons", filename)
+
+
+@app.route("/api/news-quality", methods=["GET"])
+def api_news_quality():
+    """Return aggregate feed quality diagnostics without article content or secrets."""
+    with _news_lock:
+        snapshot = dict(_feed_quality_state.get("snapshot") or {})
+        checked_at = float(_feed_quality_state.get("checked_at") or 0)
+        cached = _news_cache.get("articles") or []
+    if not snapshot:
+        snapshot = feed_quality_snapshot(cached)
+    snapshot.pop("articles", None)
+    snapshot["checked_at"] = checked_at or None
+    snapshot["cache_count"] = len(cached)
+    return jsonify({"success": True, "version": APP_VERSION, "feed_quality": snapshot})
 
 
 @app.route("/api/health", methods=["GET"])
