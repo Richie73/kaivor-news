@@ -33,7 +33,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP019.0"
+APP_VERSION = "FP020.0"
 
 app = Flask(__name__)
 
@@ -71,7 +71,14 @@ _cron_refresh_state = {
     "last_duration_seconds": 0.0,
     "last_count": 0,
     "last_error": "",
+    "last_attempt_count": 0,
+    "consecutive_failures": 0,
+    "retry_after": 0.0,
 }
+
+REFRESH_MAX_ATTEMPTS = 2
+REFRESH_RETRY_BACKOFF_SECONDS = 5
+REFRESH_FAILURE_COOLDOWN_SECONDS = 60
 
 DEFAULT_RSS_SOURCES = {}
 
@@ -605,34 +612,84 @@ def api_health():
         "cron_refresh_last_duration_seconds": _cron_refresh_state["last_duration_seconds"],
         "cron_refresh_last_count": _cron_refresh_state["last_count"],
         "cron_refresh_last_error": _cron_refresh_state["last_error"],
+        "cron_refresh_last_attempt_count": _cron_refresh_state["last_attempt_count"],
+        "cron_refresh_consecutive_failures": _cron_refresh_state["consecutive_failures"],
+        "cron_refresh_retry_after": _cron_refresh_state["retry_after"],
+        "cron_refresh_retry_after_seconds": (
+            round(max(0.0, _cron_refresh_state["retry_after"] - now), 1)
+            if _cron_refresh_state["retry_after"] > now
+            else 0.0
+        ),
         "time": datetime.now(timezone.utc).isoformat(),
     })
 
 
 def _cron_refresh_worker() -> None:
+    """Run a refresh with one bounded retry and a cooldown after final failure."""
     print("CRON WORKER: starting refresh", flush=True)
     started = time.time()
+    last_exception = None
+    attempts = 0
+
     try:
-        print("CRON WORKER: calling refresh_news()", flush=True)
-        articles = refresh_news(fetcher=_fetch_fresh_news_isolated)
+        for attempt in range(1, REFRESH_MAX_ATTEMPTS + 1):
+            attempts = attempt
+            with _cron_refresh_lock:
+                _cron_refresh_state["last_attempt_count"] = attempts
+
+            try:
+                print(
+                    f"CRON WORKER: refresh attempt {attempt}/{REFRESH_MAX_ATTEMPTS}",
+                    flush=True,
+                )
+                articles = refresh_news(fetcher=_fetch_fresh_news_isolated)
+                completed = time.time()
+                elapsed = round(completed - started, 2)
+                print(
+                    f"CRON WORKER: refresh completed in {elapsed}s "
+                    f"with {len(articles)} articles on attempt {attempt}",
+                    flush=True,
+                )
+                with _cron_refresh_lock:
+                    _cron_refresh_state["last_completed"] = completed
+                    _cron_refresh_state["last_successful"] = completed
+                    _cron_refresh_state["last_duration_seconds"] = elapsed
+                    _cron_refresh_state["last_count"] = len(articles)
+                    _cron_refresh_state["last_error"] = ""
+                    _cron_refresh_state["last_attempt_count"] = attempts
+                    _cron_refresh_state["consecutive_failures"] = 0
+                    _cron_refresh_state["retry_after"] = 0.0
+                return
+            except Exception as exc:
+                last_exception = exc
+                print(
+                    f"CRON WORKER: attempt {attempt} failed "
+                    f"({type(exc).__name__})",
+                    flush=True,
+                )
+                if attempt < REFRESH_MAX_ATTEMPTS:
+                    print(
+                        f"CRON WORKER: retrying in "
+                        f"{REFRESH_RETRY_BACKOFF_SECONDS}s",
+                        flush=True,
+                    )
+                    time.sleep(REFRESH_RETRY_BACKOFF_SECONDS)
+
         completed = time.time()
         elapsed = round(completed - started, 2)
-        print(f"CRON WORKER: refresh_news() completed in {elapsed}s with {len(articles)} articles", flush=True)
-        with _cron_refresh_lock:
-            _cron_refresh_state["last_completed"] = completed
-            _cron_refresh_state["last_successful"] = completed
-            _cron_refresh_state["last_duration_seconds"] = elapsed
-            _cron_refresh_state["last_count"] = len(articles)
-            _cron_refresh_state["last_error"] = ""
-    except Exception as exc:
-        completed = time.time()
-        elapsed = round(completed - started, 2)
-        print(f"CRON WORKER: ERROR {type(exc).__name__}: {exc}", flush=True)
         with _cron_refresh_lock:
             _cron_refresh_state["last_completed"] = completed
             _cron_refresh_state["last_duration_seconds"] = elapsed
             _cron_refresh_state["last_count"] = 0
-            _cron_refresh_state["last_error"] = type(exc).__name__
+            _cron_refresh_state["last_error"] = type(last_exception).__name__ if last_exception else "RefreshFailed"
+            _cron_refresh_state["last_attempt_count"] = attempts
+            _cron_refresh_state["consecutive_failures"] += 1
+            _cron_refresh_state["retry_after"] = completed + REFRESH_FAILURE_COOLDOWN_SECONDS
+        print(
+            f"CRON WORKER: refresh failed after {attempts} attempts; "
+            f"cooldown={REFRESH_FAILURE_COOLDOWN_SECONDS}s",
+            flush=True,
+        )
     finally:
         print("CRON WORKER: finished", flush=True)
         with _cron_refresh_lock:
@@ -644,6 +701,7 @@ def api_cron_refresh():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
 
     with _cron_refresh_lock:
+        now = time.time()
         if _cron_refresh_state["running"]:
             return jsonify({
                 "success": True,
@@ -651,9 +709,20 @@ def api_cron_refresh():
                 "message": "News refresh is already running.",
             }), 202
 
+        retry_after = float(_cron_refresh_state.get("retry_after") or 0)
+        if retry_after > now:
+            return jsonify({
+                "success": False,
+                "status": "cooldown",
+                "message": "News refresh is temporarily cooling down after repeated failure.",
+                "retry_after": retry_after,
+                "retry_after_seconds": round(retry_after - now, 1),
+            }), 429
+
         _cron_refresh_state["running"] = True
-        _cron_refresh_state["started_at"] = time.time()
+        _cron_refresh_state["started_at"] = now
         _cron_refresh_state["last_error"] = ""
+        _cron_refresh_state["last_attempt_count"] = 0
 
     try:
         threading.Thread(
@@ -686,12 +755,16 @@ def _ensure_news_refresh_started() -> bool:
             return False
 
     with _cron_refresh_lock:
+        now = time.time()
         if _cron_refresh_state["running"]:
+            return False
+        if float(_cron_refresh_state.get("retry_after") or 0) > now:
             return False
 
         _cron_refresh_state["running"] = True
-        _cron_refresh_state["started_at"] = time.time()
+        _cron_refresh_state["started_at"] = now
         _cron_refresh_state["last_error"] = ""
+        _cron_refresh_state["last_attempt_count"] = 0
 
     try:
         threading.Thread(
