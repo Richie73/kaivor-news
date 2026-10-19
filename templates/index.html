@@ -223,7 +223,7 @@
 
     <div id="articles-container">
     {% for article in articles %}
-        <div class="card" data-category="{{ article.category }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
+        <div class="card" data-category="{{ article.category }}" data-subscription-publisher="{{ article_subscription_access(article).publisher }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
             <span class="source-tag">{{ article.category }}</span>
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div>
@@ -249,6 +249,8 @@
             <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">{{ article.description }}</p>
             <div class="btn-group">
                 <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                {% if article_subscription_access(article).supported %}<a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link" title="{{ article_subscription_access(article).label }}">Subscription Reader · {{ article_subscription_access(article).publisher }}</a>{% endif %}
+                <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
                 <button onclick="triggerWhyMatters(this)">Why it matters</button>
                 <button onclick="triggerStoryTimeline(this)">Timeline</button>
                 <button onclick="triggerAiBrief(this)">AI Brief</button>
@@ -445,6 +447,8 @@ async function showSaved(element) {
                 <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">${escapeHtml(article.description)}</p>
                 <div class="btn-group">
                     <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                    ${subscriptionReaderLink(article)}
+                    <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
                     <button onclick="triggerWhyMatters(this)">Why it matters</button>
                     <button onclick="triggerStoryTimeline(this)">Timeline</button>
                     <button onclick="triggerAiBrief(this)">AI Brief</button>
@@ -790,6 +794,35 @@ async function triggerStoryIntelligence(button){
         const data=await res.json();
         if(data.success){showIntelligence(target,data.analysis||'No intelligence available.');}else{showAiText(target,'⚠️ Failed to build story intelligence.',data.error||'');}
     }catch(e){showAiText(target,'⚠️ Error connecting to intelligence service.','');}
+}
+
+function subscriptionReaderLink(article){
+    const host = (()=>{try{return new URL(article.link).hostname.toLowerCase().replace(/\.$/,'')}catch(e){return ''}})();
+    const publishers = [
+        ['nytimes.com','The New York Times'],
+        ['telegraph.co.uk','The Telegraph'],
+        ['independent.co.uk','The Independent'],
+        ['theathletic.com','The Athletic']
+    ];
+    const match = publishers.find(([domain]) => host === domain || host.endsWith('.'+domain));
+    if(!match)return '';
+    return `<a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link" title="Open using your existing subscription">Subscription Reader · ${escapeHtml(match[1])}</a>`;
+}
+function openManualTextBrief(button){
+    const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
+    target.innerHTML = `<div class="manual-text-workflow"><label style="display:block;margin:8px 0;color:#d1d5db">Paste article text you are permitted to use</label><textarea rows="7" maxlength="30000" class="manual-article-text" style="width:100%;box-sizing:border-box;background:#111827;color:#f3f4f6;border:1px solid #374151;border-radius:8px;padding:10px" placeholder="Paste the article text here…"></textarea><div style="font-size:11px;color:#9ca3af;margin:5px 0">Text is sent to the AI provider configured for Kaivor when you request a summary. Do not paste content unless your access and the applicable terms permit this use.</div><button type="button" onclick="submitManualTextBrief(this)">Generate summary</button><button type="button" onclick="this.closest('.manual-text-workflow').remove()">Cancel</button></div>`;
+}
+async function submitManualTextBrief(button){
+    const workflow=button.closest('.manual-text-workflow'); const text=workflow.querySelector('textarea').value.trim();
+    if(!text){workflow.querySelector('textarea').focus();return;}
+    const card=button.closest('.card'); const article=articleFromCard(card); const target=getDrawer(card,'brief');
+    showAiText(target,'Generating summary from supplied text…','');
+    try{
+        const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:{title:article.title,description:text,link:article.link,source:article.source,category:article.category}})});
+        const data=await res.json();
+        showAiText(target,data.success?'Summary of supplied text:':'Summary unavailable',data.brief||data.error||'No summary returned.');
+        workflow.remove();
+    }catch(e){showAiText(target,'Summary unavailable','Could not connect to Kaivor AI.');}
 }
 
 async function triggerAiBrief(button){

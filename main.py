@@ -14,6 +14,7 @@ import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from news_quality import quality_rejection_reason
 from news_feed_quality import assess_feed, feed_quality_snapshot
+from publisher_access import publisher_access_info
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
 
 from evidence_engine import evidence_sentence
@@ -387,6 +388,11 @@ def article_provider_label(article):
     if feed_tier in {"primary", "major", "specialist", "custom", "rss"}:
         return "RSS"
     return "Other"
+
+
+def article_subscription_access(article):
+    """Return safe publisher access metadata; never fetch article contents."""
+    return publisher_access_info(article.get("source", ""), article.get("link", ""))
 
 
 def puzzle_items():
@@ -826,7 +832,7 @@ def index():
     with _news_lock:
         articles = list(_news_cache.get("articles", []))
     saved_ids = {item["id"] for item in load_saved_articles()}
-    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label)
+    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label, article_subscription_access=article_subscription_access)
 
 
 @app.route("/api/ticker", methods=["GET"])
