@@ -8,7 +8,7 @@ def test_health_reports_fp019_version_and_refresh_diagnostics():
     assert response.status_code == 200
     payload = response.get_json()
 
-    assert payload["version"] == "FP021.0"
+    assert payload["version"] == "FP024.0"
     assert "cron_refresh_started_at" in payload
     assert "cron_refresh_running_age_seconds" in payload
     assert "cron_refresh_last_successful" in payload

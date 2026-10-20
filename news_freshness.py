@@ -61,12 +61,15 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
     "World": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/world/rss", "tier": "primary"},
+        {"name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "tier": "primary"},
+        {"name": "The Independent", "url": "https://www.independent.co.uk/news/world/rss", "tier": "primary"},
         {"name": "CNN", "url": "http://rss.cnn.com/rss/edition_world.rss", "tier": "major"},
         {"name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "tier": "major"},
     ],
     "Technology": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/technology/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/technology/rss", "tier": "primary"},
+        {"name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", "tier": "primary"},
         {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "tier": "specialist"},
         {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "tier": "specialist"},
         {"name": "Wired", "url": "https://www.wired.com/feed/rss", "tier": "specialist"},
@@ -75,6 +78,8 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
     "Business": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/business/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/business/rss", "tier": "primary"},
+        {"name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", "tier": "primary"},
+        {"name": "The Independent", "url": "https://www.independent.co.uk/news/business/rss", "tier": "primary"},
         {"name": "CNBC", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "tier": "major"},
         {"name": "NPR", "url": "https://feeds.npr.org/1006/rss.xml", "tier": "major"},
     ],
@@ -87,6 +92,7 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
     "UK": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/uk/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/rss", "tier": "primary"},
+        {"name": "The Independent", "url": "https://www.independent.co.uk/news/uk/rss", "tier": "primary"},
         {"name": "Sky News", "url": "https://feeds.skynews.com/feeds/rss/uk.xml", "tier": "major"},
     ],
     "Sport": [
@@ -95,6 +101,8 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         # excluding other major sports.
         {"name": "BBC Sport Football", "url": "https://feeds.bbci.co.uk/sport/football/rss.xml", "tier": "primary", "sport_focus": "football"},
         {"name": "The Guardian Football", "url": "https://www.theguardian.com/football/rss", "tier": "primary", "sport_focus": "football"},
+        {"name": "The Athletic Football", "url": "https://theathletic.com/football/?rss=1", "tier": "primary", "sport_focus": "football"},
+        {"name": "The Independent Football", "url": "https://www.independent.co.uk/sport/football/rss", "tier": "primary", "sport_focus": "football"},
         {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/sport/rss", "tier": "primary"},
         {"name": "ESPN", "url": "https://www.espn.com/espn/rss/news", "tier": "major"},

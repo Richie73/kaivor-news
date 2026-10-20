@@ -15,6 +15,15 @@ def publisher_for_url(url):
         host = (urlparse(str(url or "")).hostname or "").lower().rstrip(".")
     except (TypeError, ValueError):
         return None
+    # The Athletic's current RSS may link through the NYT-owned /athletic/ path.
+    # Check this before the broader nytimes.com match so the label remains correct.
+    path = (urlparse(str(url or "")).path or "").lower()
+    if host == "nytimes.com" or host.endswith(".nytimes.com"):
+        if path.startswith("/athletic/") or path == "/athletic":
+            return {
+                "domain": "theathletic.com",
+                **PUBLISHERS["theathletic.com"],
+            }
     for domain, info in PUBLISHERS.items():
         if host == domain or host.endswith("." + domain):
             return {"domain": domain, **info}
