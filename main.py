@@ -35,7 +35,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP024.0"
+APP_VERSION = "FP025.0"
 
 app = Flask(__name__)
 
@@ -64,6 +64,8 @@ _news_lock = threading.Lock()
 
 # Latest aggregate quality report; never stores article text or credentials.
 _feed_quality_state = {"checked_at": 0.0, "snapshot": {}}
+_publisher_feed_state = {"checked_at": 0.0, "snapshot": {"feed_count": 0, "status_counts": {}, "feeds": []}}
+_publisher_feed_lock = threading.Lock()
 
 # Background cron refresh state. The public cron endpoint must return
 # immediately because cron-job.org has a 30-second response limit.
@@ -439,6 +441,13 @@ def fetch_fresh_news():
     started = time.monotonic()
     print("REFRESH STAGE: RSS collection started", flush=True)
     all_articles = fetch_multi_source_news(load_custom_sources())
+    try:
+        from news_freshness import get_feed_diagnostics
+        diagnostics = get_feed_diagnostics()
+        with _publisher_feed_lock:
+            _publisher_feed_state.update({"checked_at": time.time(), "snapshot": diagnostics})
+    except Exception as exc:
+        print(f"REFRESH STAGE: feed diagnostics unavailable ({type(exc).__name__})", flush=True)
     print(
         f"REFRESH STAGE: RSS collection finished in {time.monotonic() - started:.1f}s; articles={len(all_articles)}",
         flush=True,
@@ -519,11 +528,23 @@ def _fetch_fresh_news_isolated(timeout_seconds: int = 90):
     if completed.returncode != 0:
         raise RuntimeError(f"News refresh child exited with status {completed.returncode}")
     try:
-        articles = json.loads(completed.stdout or "")
+        payload = json.loads(completed.stdout or "")
     except (TypeError, json.JSONDecodeError) as exc:
         raise RuntimeError("News refresh child returned invalid JSON") from exc
+    # Accept legacy list payloads for compatibility with older runner tests/deployments.
+    if isinstance(payload, list):
+        articles = payload
+        diagnostics = None
+    elif isinstance(payload, dict):
+        articles = payload.get("articles")
+        diagnostics = payload.get("feed_diagnostics")
+    else:
+        raise RuntimeError("News refresh child returned an invalid payload")
     if not isinstance(articles, list) or any(not isinstance(item, dict) for item in articles):
         raise RuntimeError("News refresh child returned an invalid article payload")
+    if isinstance(diagnostics, dict):
+        with _publisher_feed_lock:
+            _publisher_feed_state.update({"checked_at": time.time(), "snapshot": diagnostics})
     return articles
 
 
@@ -594,6 +615,16 @@ def service_worker():
 @app.route("/icons/<path:filename>")
 def pwa_icon(filename):
     return send_from_directory("static/icons", filename)
+
+
+@app.route("/api/publisher-feeds", methods=["GET"])
+def api_publisher_feeds():
+    """Return safe per-feed outcomes; never expose feed URLs or article content."""
+    with _publisher_feed_lock:
+        snapshot = dict(_publisher_feed_state.get("snapshot") or {})
+        checked_at = float(_publisher_feed_state.get("checked_at") or 0)
+    return jsonify({"success": True, "version": APP_VERSION,
+                    "checked_at": checked_at or None, "publisher_feeds": snapshot})
 
 
 @app.route("/api/news-quality", methods=["GET"])

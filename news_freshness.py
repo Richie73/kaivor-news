@@ -11,6 +11,8 @@ Goals:
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import os
@@ -25,6 +27,20 @@ import requests
 DEFAULT_MAX_AGE_HOURS = max(1, int(os.environ.get("KAIVOR_NEWS_MAX_AGE_HOURS", "72")))
 DEFAULT_ITEMS_PER_FEED = max(5, int(os.environ.get("KAIVOR_NEWS_ITEMS_PER_FEED", "15")))
 MAX_WORKERS = max(4, int(os.environ.get("KAIVOR_NEWS_MAX_WORKERS", "12")))
+_DIAGNOSTICS_LOCK = threading.Lock()
+_FEED_DIAGNOSTICS: dict[str, dict[str, Any]] = {}
+
+
+def get_feed_diagnostics() -> dict[str, Any]:
+    """Return safe, bounded publisher/feed status without URLs or article text."""
+    with _DIAGNOSTICS_LOCK:
+        feeds = [dict(value) for value in _FEED_DIAGNOSTICS.values()]
+    feeds.sort(key=lambda item: (item.get("publisher", "").lower(), item.get("category", "")))
+    counts: dict[str, int] = {}
+    for item in feeds:
+        status = str(item.get("status") or "unknown")
+        counts[status] = counts.get(status, 0) + 1
+    return {"feed_count": len(feeds), "status_counts": counts, "feeds": feeds}
 
 
 # Shared classification rules for Sport stories across RSS and API feeds.
@@ -196,8 +212,16 @@ def build_feed_registry(custom_sources: dict[str, list[str]] | None = None) -> d
     return registry
 
 
-def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hours: int, items_per_feed: int) -> list[dict[str, Any]]:
+def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hours: int, items_per_feed: int, diagnostic: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     url = feed["url"]
+    started = time.time()
+    def finish(status: str, article_count: int = 0, error: str = "") -> None:
+        if diagnostic is None:
+            return
+        diagnostic.update({"status": status, "article_count": article_count,
+                           "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                           "duration_ms": max(0, int((time.time() - started) * 1000)),
+                           "error": error or None})
     try:
         response = requests.get(
             url,
@@ -205,11 +229,17 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
             timeout=10,
         )
         if response.status_code != 200:
+            finish("http_error", error=f"HTTP {response.status_code}")
             return []
         parsed = feedparser.parse(response.content)
-    except Exception:
+    except requests.RequestException as exc:
+        finish("request_error", error=type(exc).__name__)
+        return []
+    except Exception as exc:
+        finish("fetch_error", error=type(exc).__name__)
         return []
     if getattr(parsed, "bozo", False) and not getattr(parsed, "entries", None):
+        finish("parse_error", error="Invalid feed response")
         return []
 
     feed_title = _clean(parsed.feed.get("title")) or feed.get("name") or source_name_from_url(url, category)
@@ -249,7 +279,9 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
             "sport_focus": sport_focus,
         })
     items.sort(key=lambda item: float(item.get("published_ts") or 0), reverse=True)
-    return items[:items_per_feed]
+    result = items[:items_per_feed]
+    finish("ok" if result else "empty", len(result))
+    return result
 
 
 def fetch_multi_source_news(custom_sources: dict[str, list[str]] | None = None, *, now: datetime | None = None, max_age_hours: int = DEFAULT_MAX_AGE_HOURS, items_per_feed: int = DEFAULT_ITEMS_PER_FEED) -> list[dict[str, Any]]:
@@ -262,13 +294,33 @@ def fetch_multi_source_news(custom_sources: dict[str, list[str]] | None = None, 
             jobs.append((category, feed))
 
     articles: list[dict[str, Any]] = []
+    diagnostics: dict[str, dict[str, Any]] = {}
+    future_metadata = {}
     with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, max(1, len(jobs)))) as executor:
-        futures = [executor.submit(_fetch_feed, feed, category, now, max_age_hours, items_per_feed) for category, feed in jobs]
-        for future in as_completed(futures):
+        for category, feed in jobs:
+            key = f"{category}|{feed.get('name') or source_name_from_url(feed['url'], category)}"
+            diag = {"key": key, "publisher": feed.get("name") or source_name_from_url(feed["url"], category),
+                    "category": category, "status": "running", "article_count": 0,
+                    "last_successful_at": None, "checked_at": None, "duration_ms": 0, "error": None}
+            with _DIAGNOSTICS_LOCK:
+                previous = _FEED_DIAGNOSTICS.get(key, {})
+                diag["last_successful_at"] = previous.get("last_successful_at")
+            diagnostics[key] = diag
+            future = executor.submit(_fetch_feed, feed, category, now, max_age_hours, items_per_feed, diag)
+            future_metadata[future] = (key, diag)
+        for future in as_completed(future_metadata):
+            key, diag = future_metadata[future]
             try:
                 articles.extend(future.result())
-            except Exception:
-                pass
+            except Exception as exc:
+                diag.update({"status": "fetch_error", "error": type(exc).__name__})
+            if diag.get("status") in {"ok", "empty"}:
+                diag["last_successful_at"] = diag.get("checked_at")
+            with _DIAGNOSTICS_LOCK:
+                previous = _FEED_DIAGNOSTICS.get(key, {})
+                if not diag.get("last_successful_at"):
+                    diag["last_successful_at"] = previous.get("last_successful_at")
+                _FEED_DIAGNOSTICS[key] = dict(diag)
 
     # Sport is intentionally football-first while retaining other sports.
     # Within each group, newest publication time still wins.

@@ -55,6 +55,6 @@ def test_quality_endpoint_reports_aggregate_counts_only():
     response = main.app.test_client().get("/api/news-quality")
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["version"] == "FP024.0"
+    assert payload["version"] == "FP025.0"
     assert "feed_quality" in payload
     assert "articles" not in payload["feed_quality"]

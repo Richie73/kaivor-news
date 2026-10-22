@@ -14,7 +14,10 @@ def main() -> int:
         # and remain visible in Render's runtime logs.
         with contextlib.redirect_stdout(sys.stderr):
             articles = kaivor_news.fetch_fresh_news()
-        sys.stdout.write(json.dumps(articles, ensure_ascii=False, separators=(",", ":")))
+            from news_freshness import get_feed_diagnostics
+            feed_diagnostics = get_feed_diagnostics()
+        payload = {"articles": articles, "feed_diagnostics": feed_diagnostics}
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
         sys.stdout.flush()
         return 0
     except Exception as exc:
