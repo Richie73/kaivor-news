@@ -809,16 +809,54 @@ function subscriptionReaderLink(article){
     return `<a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link" title="Open using your existing subscription">Subscription Reader · ${escapeHtml(match[1])}</a>`;
 }
 function openManualTextBrief(button){
-    const card=button.closest('.card'); const target=getDrawer(card,'brief'); const article=articleFromCard(card);
-    target.innerHTML = `<div class="manual-text-workflow"><label style="display:block;margin:8px 0;color:#d1d5db">Paste article text you are permitted to use</label><textarea rows="7" maxlength="30000" class="manual-article-text" style="width:100%;box-sizing:border-box;background:#111827;color:#f3f4f6;border:1px solid #374151;border-radius:8px;padding:10px" placeholder="Paste the article text here…"></textarea><div style="font-size:11px;color:#9ca3af;margin:5px 0">Text is sent to the AI provider configured for Kaivor when you request a summary. Do not paste content unless your access and the applicable terms permit this use.</div><button type="button" onclick="submitManualTextBrief(this)">Generate summary</button><button type="button" onclick="this.closest('.manual-text-workflow').remove()">Cancel</button></div>`;
+    try {
+        const card = button && button.closest('.card');
+        if (!card) {
+            alert('Kaivor could not identify this article. Please refresh the page and try again.');
+            return;
+        }
+
+        let target = getDrawer(card, 'brief');
+        if (!target) {
+            target = document.createElement('div');
+            target.className = 'ai-drawer';
+            target.dataset.drawer = 'brief';
+            button.closest('.btn-group').insertAdjacentElement('afterend', target);
+        }
+
+        target.style.setProperty('display', 'block', 'important');
+        target.innerHTML = `
+            <div class="manual-text-workflow">
+                <label style="display:block;margin:8px 0;color:#d1d5db">
+                    Paste article text you are permitted to use
+                </label>
+                <textarea rows="7" maxlength="30000" class="manual-article-text"
+                    style="width:100%;box-sizing:border-box;background:#111827;color:#f3f4f6;border:1px solid #374151;border-radius:8px;padding:10px"
+                    placeholder="Paste the article text here…"></textarea>
+                <div style="font-size:11px;color:#9ca3af;margin:5px 0">
+                    Text is sent to the AI provider configured for Kaivor when you request a summary.
+                    Do not paste content unless your access and the applicable terms permit this use.
+                </div>
+                <button type="button" onclick="submitManualTextBrief(this)">Generate summary</button>
+                <button type="button" onclick="this.closest('.manual-text-workflow').remove()">Cancel</button>
+            </div>`;
+        target.scrollIntoView({behavior:'smooth', block:'nearest'});
+        const textarea = target.querySelector('textarea');
+        if (textarea) textarea.focus();
+    } catch (error) {
+        console.error('Could not open pasted-text summary form:', error);
+        alert('Kaivor could not open the pasted-text form. Please refresh the page and try again.');
+    }
 }
+window.openManualTextBrief = openManualTextBrief;
+
 async function submitManualTextBrief(button){
     const workflow=button.closest('.manual-text-workflow'); const text=workflow.querySelector('textarea').value.trim();
     if(!text){workflow.querySelector('textarea').focus();return;}
     const card=button.closest('.card'); const article=articleFromCard(card); const target=getDrawer(card,'brief');
     showAiText(target,'Generating summary from supplied text…','');
     try{
-        const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:{title:article.title,description:text,link:article.link,source:article.source,category:article.category}})});
+        const res=await fetch('/api/ai_brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:{title:article.title,description:text,link:'',source:'User-supplied text',source_type:'pasted_text',category:article.category,published:'',story_sources:[],source_count:1,report_count:1,confidence_label:'Low',evidence_status:'User-supplied text; publisher unverified'}})});
         const data=await res.json();
         showAiText(target,data.success?'Summary of supplied text:':'Summary unavailable',data.brief||data.error||'No summary returned.');
         workflow.remove();

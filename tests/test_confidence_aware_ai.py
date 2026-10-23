@@ -62,3 +62,40 @@ def test_fallback_attributes_low_confidence_claim_and_recommends_verification():
     assert "bbc news reports" in fallback
     assert "not been independently corroborated" in fallback
     assert "independent reporting" in fallback
+
+
+def test_pasted_text_prompt_does_not_inherit_selected_publishers():
+    article = {
+        "title": "UK road repair programme",
+        "description": "The supplied text describes a proposed investment.",
+        "source": "User-supplied text",
+        "source_type": "pasted_text",
+        "story_sources": [],
+        "source_count": 1,
+        "report_count": 1,
+        "confidence_label": "Low",
+        "evidence_status": "User-supplied text; publisher unverified",
+    }
+    messages = build_ai_brief_messages(article)
+    system = messages[0]["content"].lower()
+    user = messages[1]["content"].lower()
+    assert "user-supplied text" in system
+    assert "do not attribute it to the card's publisher" in system
+    assert "not supplied (user-pasted content)" in user
+    assert "the independent" not in user
+
+
+def test_pasted_text_fallback_does_not_claim_a_publisher_reported_it():
+    fallback = build_ai_brief_fallback({
+        "title": "UK road repair programme",
+        "description": "The supplied text describes a proposed investment.",
+        "source": "User-supplied text",
+        "source_type": "pasted_text",
+        "source_count": 1,
+        "report_count": 1,
+        "confidence_label": "Low",
+        "evidence_status": "User-supplied text; publisher unverified",
+    }).lower()
+    assert "the supplied text describes" in fallback
+    assert "original publisher and accuracy cannot be verified" in fallback
+    assert "user-supplied text reports:" not in fallback
