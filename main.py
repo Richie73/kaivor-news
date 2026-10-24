@@ -16,6 +16,7 @@ from news_quality import quality_rejection_reason
 from news_feed_quality import assess_feed, feed_quality_snapshot
 from publisher_access import publisher_access_info
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
+from brief_quality_validation import validate_brief
 from article_extractor import extract_article_text
 
 from evidence_engine import evidence_sentence
@@ -36,7 +37,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP029.0"
+APP_VERSION = "FP030.0"
 
 app = Flask(__name__)
 
@@ -1166,14 +1167,12 @@ def api_why_matters():
 def api_ai_brief():
     data = request.json or {}
     article = data.get("article") if isinstance(data.get("article"), dict) else {}
-    # Backwards compatibility for older clients that still send title/description.
     article = dict(article)
     article.setdefault("title", data.get("title", ""))
     article.setdefault("description", data.get("description", ""))
     if not str(article.get("title") or "").strip():
         return jsonify({"success": False, "error": "Article title is required."}), 400
 
-    # Safe, aggregate diagnostics: never return the article text, API keys, or URL.
     retrieval = {
         "status": "not_attempted",
         "attempted": False,
@@ -1184,90 +1183,133 @@ def api_ai_brief():
         "content_source": "none",
     }
     source_type = str(article.get("source_type") or "article").strip().lower()
-    link = str(article.get("link") or "").strip()
+    link = str(article.get("url") or article.get("link") or "").strip()
     description = str(article.get("description") or "").strip()
 
-    # Never fetch user-pasted text. Retrieve only when a link exists and the feed
-    # description is short; preserve the original description on any failure.
     if source_type == "pasted_text":
         retrieval["status"] = "skipped_pasted_text"
-    elif len(description) >= 1200:
-        retrieval["status"] = "skipped_description_long"
     elif not link:
         retrieval["status"] = "skipped_no_url"
+    elif len(description) >= 1200:
+        retrieval["status"] = "skipped_description_long"
     else:
         retrieval["attempted"] = True
-        retrieval_start = time.monotonic()
+        import time
+        started = time.monotonic()
         try:
             extraction = extract_article_text(link)
-        except Exception:
-            # Retrieval is optional: an extractor exception must not prevent a brief.
-            extraction = {"success": False, "status": "extraction_error"}
-        retrieval["duration_ms"] = round((time.monotonic() - retrieval_start) * 1000)
-        if extraction.get("success") and extraction.get("text"):
-            extracted_text = str(extraction["text"])
-            article["description"] = extracted_text
-            article["source_type"] = "retrieved_article"
-            article["retrieval_status"] = "full_text"
-            article["retrieved_char_count"] = len(extracted_text)
-            # These are heuristic extraction diagnostics, not a guarantee that
-            # the publisher's claims are true. Never expose the fetched URL/text.
-            try:
-                quality_score = max(0, min(100, int(extraction.get("quality_score", 0))))
-            except (TypeError, ValueError):
-                quality_score = 0
-            content_source = str(extraction.get("content_source") or "unknown")
-            if content_source not in {"semantic_container", "page_text_fallback"}:
-                content_source = "unknown"
-            retrieval.update({
-                "status": "full_text",
-                "character_count": len(extracted_text),
-                "quality_score": quality_score,
-                "content_source": content_source,
-            })
-        else:
             retrieval["status"] = str(extraction.get("status") or "unavailable")
+            retrieval["fallback_used"] = not bool(extraction.get("success"))
+            if extraction.get("success") and extraction.get("text"):
+                extracted_text = str(extraction["text"]).strip()
+                article["description"] = extracted_text
+                retrieval["character_count"] = len(extracted_text)
+                article["retrieval_status"] = "full_text"
+                article["retrieved_char_count"] = len(extracted_text)
+                try:
+                    quality_score = max(0, min(100, int(extraction.get("quality_score", 0))))
+                except (TypeError, ValueError):
+                    quality_score = 0
+                content_source = str(extraction.get("content_source") or "unknown")
+                if content_source not in {"semantic_container", "page_text_fallback"}:
+                    content_source = "unknown"
+                retrieval.update({
+                    "status": "full_text",
+                    "character_count": len(extracted_text),
+                    "quality_score": quality_score,
+                    "content_source": content_source,
+                })
+            else:
+                article["retrieval_status"] = retrieval["status"]
+                article["retrieval_message"] = (
+                    "Full article text was unavailable; the feed description was retained."
+                )
+        except Exception:
+            retrieval["status"] = "extraction_error"
             retrieval["fallback_used"] = True
             article["retrieval_status"] = retrieval["status"]
-            article["retrieval_message"] = "Full article text was unavailable; the feed description was retained."
+            article["retrieval_message"] = (
+                "Full article text was unavailable; the feed description was retained."
+            )
+        finally:
+            retrieval["duration_ms"] = int((time.monotonic() - started) * 1000)
 
     messages = build_ai_brief_messages(article)
+    providers = []
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
-
     if api_key:
-        try:
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-            payload = {
-                "model": "deepseek/deepseek-chat",
-                "messages": messages,
-                "temperature": 0.1,
-            }
-            response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                brief = response.json()["choices"][0]["message"]["content"].strip()
-                if brief:
-                    return jsonify({"success": True, "brief": brief, "provider": "openrouter", "retrieval": retrieval})
-        except Exception:
-            pass
-
+        providers.append((
+            "openrouter",
+            "https://openrouter.ai/api/v1/chat/completions",
+            api_key,
+            "deepseek/deepseek-chat",
+        ))
     if openai_key:
+        providers.append((
+            "openai",
+            "https://api.openai.com/v1/chat/completions",
+            openai_key,
+            "gpt-4o-mini",
+        ))
+
+    rejected = []
+    for provider, endpoint, key, model in providers:
         try:
-            headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            }
             payload = {
-                "model": "gpt-4o-mini",
+                "model": model,
                 "messages": messages,
                 "temperature": 0.1,
             }
-            response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                brief = response.json()["choices"][0]["message"]["content"].strip()
-                if brief:
-                    return jsonify({"success": True, "brief": brief, "provider": "openai", "retrieval": retrieval})
+            response = requests.post(
+                endpoint, json=payload, headers=headers, timeout=10
+            )
+            if response.status_code != 200:
+                rejected.append({"provider": provider, "reason": "provider_http_error"})
+                continue
+            brief = str(
+                response.json()["choices"][0]["message"]["content"] or ""
+            ).strip()
+            validation = validate_brief(brief, article)
+            if validation["valid"]:
+                return jsonify({
+                    "success": True,
+                    "brief": brief,
+                    "provider": provider,
+                    "retrieval": retrieval,
+                    "brief_validation": validation,
+                })
+            rejected.append({
+                "provider": provider,
+                "reason": "brief_validation_failed",
+                "issues": validation["issues"],
+            })
         except Exception:
-            pass
+            rejected.append({"provider": provider, "reason": "provider_request_failed"})
 
-    return jsonify({"success": True, "brief": build_ai_brief_fallback(article), "fallback": True, "retrieval": retrieval})
+    fallback_brief = build_ai_brief_fallback(article)
+    fallback_validation = validate_brief(fallback_brief, article)
+    result = {
+        "success": True,
+        "brief": fallback_brief,
+        "fallback": True,
+        "provider": "deterministic",
+        "retrieval": retrieval,
+        "brief_validation": fallback_validation,
+        "validation_diagnostics": {
+            "rejected_provider_count": len(rejected),
+            "rejected_providers": rejected,
+        },
+    }
+    if not fallback_validation["valid"]:
+        result["brief_validation"]["fallback_warning"] = (
+            "Deterministic fallback did not pass all structural checks."
+        )
+    return jsonify(result)
 
 
 @app.route("/api/ask_ai", methods=["POST"])
