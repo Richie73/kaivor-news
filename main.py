@@ -1173,24 +1173,51 @@ def api_ai_brief():
     if not str(article.get("title") or "").strip():
         return jsonify({"success": False, "error": "Article title is required."}), 400
 
-    # Prefer full article text when the feed only provides a short teaser.
-    # Never fetch for user-pasted text, and preserve the original teaser if
-    # retrieval is blocked or extraction fails.
+    # Safe, aggregate diagnostics: never return the article text, API keys, or URL.
+    retrieval = {
+        "status": "not_attempted",
+        "attempted": False,
+        "character_count": 0,
+        "duration_ms": 0,
+        "fallback_used": False,
+    }
     source_type = str(article.get("source_type") or "article").strip().lower()
-    if source_type != "pasted_text":
-        link = str(article.get("link") or "").strip()
-        description = str(article.get("description") or "").strip()
-        if link and len(description) < 1200:
+    link = str(article.get("link") or "").strip()
+    description = str(article.get("description") or "").strip()
+
+    # Never fetch user-pasted text. Retrieve only when a link exists and the feed
+    # description is short; preserve the original description on any failure.
+    if source_type == "pasted_text":
+        retrieval["status"] = "skipped_pasted_text"
+    elif len(description) >= 1200:
+        retrieval["status"] = "skipped_description_long"
+    elif not link:
+        retrieval["status"] = "skipped_no_url"
+    else:
+        retrieval["attempted"] = True
+        retrieval_start = time.monotonic()
+        try:
             extraction = extract_article_text(link)
-            if extraction.get("success") and extraction.get("text"):
-                article["description"] = extraction["text"]
-                article["source_type"] = "retrieved_article"
-                article["retrieval_status"] = "full_text"
-                article["retrieved_url"] = extraction.get("final_url") or link
-                article["retrieved_char_count"] = len(extraction["text"])
-            else:
-                article["retrieval_status"] = extraction.get("status", "unavailable")
-                article["retrieval_message"] = extraction.get("message", "Full article text was unavailable.")
+        except Exception:
+            # Retrieval is optional: an extractor exception must not prevent a brief.
+            extraction = {"success": False, "status": "extraction_error"}
+        retrieval["duration_ms"] = round((time.monotonic() - retrieval_start) * 1000)
+        if extraction.get("success") and extraction.get("text"):
+            extracted_text = str(extraction["text"])
+            article["description"] = extracted_text
+            article["source_type"] = "retrieved_article"
+            article["retrieval_status"] = "full_text"
+            article["retrieved_char_count"] = len(extracted_text)
+            retrieval.update({
+                "status": "full_text",
+                "character_count": len(extracted_text),
+            })
+        else:
+            retrieval["status"] = str(extraction.get("status") or "unavailable")
+            retrieval["fallback_used"] = True
+            article["retrieval_status"] = retrieval["status"]
+            article["retrieval_message"] = "Full article text was unavailable; the feed description was retained."
+
     messages = build_ai_brief_messages(article)
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
@@ -1207,7 +1234,7 @@ def api_ai_brief():
             if response.status_code == 200:
                 brief = response.json()["choices"][0]["message"]["content"].strip()
                 if brief:
-                    return jsonify({"success": True, "brief": brief, "provider": "openrouter"})
+                    return jsonify({"success": True, "brief": brief, "provider": "openrouter", "retrieval": retrieval})
         except Exception:
             pass
 
@@ -1223,11 +1250,11 @@ def api_ai_brief():
             if response.status_code == 200:
                 brief = response.json()["choices"][0]["message"]["content"].strip()
                 if brief:
-                    return jsonify({"success": True, "brief": brief, "provider": "openai"})
+                    return jsonify({"success": True, "brief": brief, "provider": "openai", "retrieval": retrieval})
         except Exception:
             pass
 
-    return jsonify({"success": True, "brief": build_ai_brief_fallback(article), "fallback": True})
+    return jsonify({"success": True, "brief": build_ai_brief_fallback(article), "fallback": True, "retrieval": retrieval})
 
 
 @app.route("/api/ask_ai", methods=["POST"])
