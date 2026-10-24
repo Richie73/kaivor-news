@@ -1,7 +1,8 @@
 """Deterministic structural checks for generated Kaivor News briefs.
 
 These checks identify common formatting and evidence-preservation problems.
-They do not establish whether a news claim is true.
+Evidence attribution, uncertainty, and material figures must appear in WHAT IS REPORTED,
+not merely in analysis or follow-up sections. These checks do not establish truth.
 """
 from __future__ import annotations
 
@@ -27,6 +28,22 @@ def _normalise_number(value: str) -> str:
     return re.sub(r"[\s,]", "", value).lower()
 
 
+def _reported_section(text: str) -> str:
+    """Extract WHAT IS REPORTED so evidence checks cannot be satisfied by later sections."""
+    heading = re.compile(
+        r"(?im)^\s*(?:\d+\s*[).:-]\s*)?(?:\*\*)?WHAT IS REPORTED(?:\*\*)?\s*:?[ \t]*"
+    )
+    start = heading.search(text)
+    if not start:
+        return ""
+    remainder = text[start.end():]
+    next_heading = re.search(
+        r"(?im)^\s*(?:\d+\s*[).:-]\s*)?(?:\*\*)?(?:WHY IT MATTERS|WHAT TO WATCH NEXT)(?:\*\*)?\s*:?[ \t]*",
+        remainder,
+    )
+    return remainder[:next_heading.start()] if next_heading else remainder
+
+
 def validate_brief(
     brief: Any,
     article: dict[str, Any] | None = None,
@@ -36,6 +53,8 @@ def validate_brief(
     article = article if isinstance(article, dict) else {}
     upper = text.upper()
     lower = text.lower()
+    reported = _reported_section(text)
+    reported_lower = reported.lower()
     issues: list[str] = []
 
     missing_sections = [
@@ -52,7 +71,7 @@ def validate_brief(
 
     if source_type == "pasted_text":
         if not any(
-            phrase in lower
+            phrase in reported_lower
             for phrase in (
                 "user-supplied",
                 "pasted text",
@@ -61,7 +80,7 @@ def validate_brief(
             )
         ):
             issues.append("missing_pasted_text_attribution")
-    elif source and source.lower() not in lower:
+    elif source and source.lower() not in reported_lower:
         issues.append("missing_source_attribution")
 
     confidence = str(article.get("confidence_label") or "").strip().lower()
@@ -90,7 +109,7 @@ def validate_brief(
         "does not independently verify",
     )
     if low_confidence and not any(
-        phrase in lower for phrase in uncertainty_phrases
+        phrase in reported_lower for phrase in uncertainty_phrases
     ):
         issues.append("missing_uncertainty")
 
@@ -98,7 +117,7 @@ def validate_brief(
         str(article.get(key) or "") for key in ("title", "description")
     )
     material_numbers = MATERIAL_NUMBER_RE.findall(source_material)
-    normalised_brief = _normalise_number(lower)
+    normalised_brief = _normalise_number(reported_lower)
     missing_numbers = [
         number.strip()
         for number in material_numbers
