@@ -1256,60 +1256,112 @@ def api_ai_brief():
     rejected = []
     for provider, endpoint, key, model in providers:
         try:
-            headers = {
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": model,
-                "messages": messages,
-                "temperature": 0.1,
-            }
             response = requests.post(
-                endpoint, json=payload, headers=headers, timeout=10
+                endpoint,
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.1,
+                },
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=10,
             )
-            if response.status_code != 200:
-                rejected.append({"provider": provider, "reason": "provider_http_error"})
-                continue
-            brief = str(
-                response.json()["choices"][0]["message"]["content"] or ""
-            ).strip()
-            validation = validate_brief(brief, article)
-            if validation["valid"]:
-                return jsonify({
-                    "success": True,
-                    "brief": brief,
-                    "provider": provider,
-                    "retrieval": retrieval,
-                    "brief_validation": validation,
-                })
+        except Exception:
             rejected.append({
                 "provider": provider,
-                "reason": "brief_validation_failed",
-                "issues": validation["issues"],
+                "reason": "provider_request_failed",
             })
-        except Exception:
-            rejected.append({"provider": provider, "reason": "provider_request_failed"})
+            continue
 
-    fallback_brief = build_ai_brief_fallback(article)
+        if response.status_code != 200:
+            rejected.append({
+                "provider": provider,
+                "reason": "provider_http_error",
+            })
+            continue
+
+        try:
+            provider_payload = response.json()
+            choices = provider_payload.get("choices")
+            if not isinstance(choices, list) or not choices:
+                raise ValueError("missing_choices")
+            first_choice = choices[0]
+            if not isinstance(first_choice, dict):
+                raise ValueError("invalid_choice")
+            message = first_choice.get("message")
+            if not isinstance(message, dict):
+                raise ValueError("missing_message")
+            brief = message.get("content")
+            if not isinstance(brief, str) or not brief.strip():
+                raise ValueError("invalid_content")
+            brief = brief.strip()
+        except Exception:
+            rejected.append({
+                "provider": provider,
+                "reason": "malformed_provider_response",
+            })
+            continue
+
+        validation = validate_brief(brief, article)
+        if validation["valid"]:
+            return jsonify({
+                "success": True,
+                "brief": brief,
+                "provider": provider,
+                "retrieval": retrieval,
+                "brief_validation": validation,
+                "validation_diagnostics": {
+                    "rejected_provider_count": len(rejected),
+                    "rejected_providers": rejected,
+                },
+            })
+
+        rejected.append({
+            "provider": provider,
+            "reason": "brief_validation_failed",
+            "issues": validation["issues"],
+        })
+
+    diagnostics = {
+        "rejected_provider_count": len(rejected),
+        "rejected_providers": rejected,
+    }
+    try:
+        fallback_brief = build_ai_brief_fallback(article)
+    except Exception:
+        return jsonify({
+            "success": False,
+            "error": "Unable to generate a news brief.",
+            "fallback": True,
+            "provider": "deterministic",
+            "retrieval": retrieval,
+            "validation_diagnostics": diagnostics,
+        }), 502
+
     fallback_validation = validate_brief(fallback_brief, article)
-    result = {
+    if not fallback_validation["valid"]:
+        return jsonify({
+            "success": False,
+            "error": "Unable to produce a brief that passed structural validation.",
+            "fallback": True,
+            "provider": "deterministic",
+            "retrieval": retrieval,
+            "brief_validation": fallback_validation,
+            "validation_diagnostics": diagnostics,
+        }), 502
+
+    return jsonify({
         "success": True,
         "brief": fallback_brief,
         "fallback": True,
         "provider": "deterministic",
         "retrieval": retrieval,
         "brief_validation": fallback_validation,
-        "validation_diagnostics": {
-            "rejected_provider_count": len(rejected),
-            "rejected_providers": rejected,
-        },
-    }
-    if not fallback_validation["valid"]:
-        result["brief_validation"]["fallback_warning"] = (
-            "Deterministic fallback did not pass all structural checks."
-        )
-    return jsonify(result)
+        "validation_diagnostics": diagnostics,
+    })
 
 
 @app.route("/api/ask_ai", methods=["POST"])

@@ -1,60 +1,68 @@
-KAIVOR NEWS — FP022.0 RELIABILITY REGRESSION PROTECTION
-======================================================
+FP031 — AI Brief Validation and Fallback Hardening
+=================================================
 
-SCOPE
------
-This is a tests-and-validation milestone. It adds four regression tests for:
-- preserving cache timestamps and diagnostics when fetching raises an exception;
-- replacing the cache and refreshing aggregate quality diagnostics on success;
-- preventing duplicate cron workers while a refresh is already running;
-- allowing a new cron refresh after a cooldown has expired.
+Bundle contents
+---------------
+- main.py
+  Complete replacement for the current Kaivor News API entry point.
+- tests/test_ai_brief_validation_fp031.py
+  Regression tests for valid provider output, malformed provider payloads,
+  invalid provider briefs, provider exceptions, HTTP errors, and invalid or
+  failing deterministic fallbacks.
+- README_INSTALL.txt
+  Installation, rollback, compile, and test instructions.
+- CHANGELOG.txt
+  Milestone changes.
 
-No production application files are replaced in this milestone.
+Install location
+----------------
+Install from Termux into the existing project root: ~/Kaivor
 
-CONTENTS
+Do NOT extract this archive into ~/Kaivor/Kaivor. The archive paths are
+relative to the project root and replace ~/Kaivor/main.py.
+
+1. Download the ZIP to Android's Download folder.
+2. In Termux, inspect the archive:
+     unzip -l ~/storage/shared/Download/FP031-AI-Brief-Validation-Hardening.zip
+3. Back up the current entry point:
+     cd ~/Kaivor
+     cp main.py main.py.fp030-backup
+4. Extract the complete bundle into the project root:
+     unzip -o ~/storage/shared/Download/FP031-AI-Brief-Validation-Hardening.zip -d ~/Kaivor
+5. Compile:
+     cd ~/Kaivor
+     python -m py_compile main.py tests/test_ai_brief_validation_fp031.py
+6. Run the FP030 validator unit tests and the FP031 integration tests:
+     python -m pytest -q tests/test_brief_quality_validation_fp030.py tests/test_ai_brief_validation_fp031.py
+7. Run the full regression suite:
+     python -m pytest -q tests
+
+The app's existing runtime/test dependencies must already be installed. If
+collection reports a missing dependency, install the project's requirements
+in the established Termux environment before interpreting the result:
+     python -m pip install -r requirements.txt
+
+What changes
+------------
+- Provider HTTP errors, request exceptions, malformed JSON/payload structures,
+  and structurally invalid briefs receive distinct safe diagnostic reasons.
+- A provider with invalid output is rejected and the next configured provider
+  is tried.
+- Successful provider responses include aggregate rejection diagnostics for
+  earlier providers, without returning provider response bodies, article URLs,
+  API keys, or exception details.
+- Deterministic fallback output is validated before it is returned.
+- If fallback generation fails or its result fails validation, the endpoint
+  returns HTTP 502 with success=false and does not expose the invalid brief.
+- Valid deterministic fallback behavior remains successful and includes
+  validation diagnostics.
+
+Rollback
 --------
-tests/test_news_reliability_fp022.py
-scripts/test_news_reliability.sh
+If tests fail or the app behaves unexpectedly:
+     cd ~/Kaivor
+     cp main.py.fp030-backup main.py
+     python -m py_compile main.py
 
-INSTALL (TERMUX ONLY)
----------------------
-From Termux, with the Kaivor News repository at ~/Kaivor:
-
-1. Copy the two files from this ZIP, preserving their paths, into ~/Kaivor.
-   If the ZIP is in Android shared storage, for example:
-
-   cd ~/Kaivor
-   unzip -o ~/storage/shared/Download/Kaivor-News-FP022.0-Reliability-Tests.zip \
-     tests/test_news_reliability_fp022.py scripts/test_news_reliability.sh -d .
-
-   Adjust the ZIP path only if you saved it somewhere else.
-
-2. Run the complete validation command:
-
-   cd ~/Kaivor && bash scripts/test_news_reliability.sh
-
-   The script compiles the main news modules and tests, runs the full tests/
-   suite, then checks whitespace errors. It does not deploy or change production.
-
-3. If dependencies are missing, install the project's declared requirements:
-
-   cd ~/Kaivor && python -m pip install -r requirements.txt
-
-   Then repeat the validation command.
-
-4. Review only the two intended additions:
-
-   cd ~/Kaivor && git status --short
-   git diff --check
-
-   Do not use `git add .`. Stage the two files explicitly only after tests pass:
-
-   git add tests/test_news_reliability_fp022.py scripts/test_news_reliability.sh
-
-5. Commit only after the tests pass and the diff is reviewed. This milestone
-   contains no production-code change and does not require a deployment.
-
-SECURITY
---------
-This bundle contains no credentials, secret configuration, .git metadata,
-cache directories, or nested project copies.
+This bundle changes files only when you install it. It does not commit, push,
+or deploy anything. Review and test before staging or deploying.

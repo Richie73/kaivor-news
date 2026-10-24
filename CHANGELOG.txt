@@ -1,0 +1,17 @@
+FP031 — AI Brief Validation and Fallback Hardening
+
+- Distinguished provider transport/request failures, HTTP failures, malformed
+  provider payloads, and structurally invalid briefs in safe diagnostics.
+- Continued to the next configured provider after malformed or invalid output.
+- Returned rejection diagnostics with valid provider output.
+- Validated deterministic fallback output before returning it.
+- Failed closed with HTTP 502 when fallback generation failed or fallback
+  output failed validation; invalid brief text is not returned.
+- Added API regression tests for provider success, malformed responses,
+  provider fallback, HTTP errors, request exceptions, and fail-closed behavior.
+
+Validation performed while preparing this bundle:
+- Python syntax compilation.
+- FP030 validator unit tests.
+- FP031 integration tests require the project's Flask/feedparser runtime
+  dependencies and should be run in the user's Termux environment.
