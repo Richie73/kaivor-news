@@ -36,7 +36,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP026.0"
+APP_VERSION = "FP028.0"
 
 app = Flask(__name__)
 
@@ -1180,6 +1180,8 @@ def api_ai_brief():
         "character_count": 0,
         "duration_ms": 0,
         "fallback_used": False,
+        "quality_score": 0,
+        "content_source": "none",
     }
     source_type = str(article.get("source_type") or "article").strip().lower()
     link = str(article.get("link") or "").strip()
@@ -1208,9 +1210,20 @@ def api_ai_brief():
             article["source_type"] = "retrieved_article"
             article["retrieval_status"] = "full_text"
             article["retrieved_char_count"] = len(extracted_text)
+            # These are heuristic extraction diagnostics, not a guarantee that
+            # the publisher's claims are true. Never expose the fetched URL/text.
+            try:
+                quality_score = max(0, min(100, int(extraction.get("quality_score", 0))))
+            except (TypeError, ValueError):
+                quality_score = 0
+            content_source = str(extraction.get("content_source") or "unknown")
+            if content_source not in {"semantic_container", "page_text_fallback"}:
+                content_source = "unknown"
             retrieval.update({
                 "status": "full_text",
                 "character_count": len(extracted_text),
+                "quality_score": quality_score,
+                "content_source": content_source,
             })
         else:
             retrieval["status"] = str(extraction.get("status") or "unavailable")
