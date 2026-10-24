@@ -42,7 +42,7 @@ def test_publisher_feed_endpoint_is_safe_and_reports_version(monkeypatch):
     response = main.app.test_client().get("/api/publisher-feeds")
     assert response.status_code == 200
     data = response.get_json()
-    assert data["version"] == "FP028.0"
+    assert data["version"] == "FP029.0"
     assert data["publisher_feeds"]["feeds"][0]["status"] == "ok"
     assert "feed_url" not in response.get_data(as_text=True)
 

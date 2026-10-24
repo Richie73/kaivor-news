@@ -36,7 +36,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP028.0"
+APP_VERSION = "FP029.0"
 
 app = Flask(__name__)
 
