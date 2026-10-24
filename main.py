@@ -16,6 +16,7 @@ from news_quality import quality_rejection_reason
 from news_feed_quality import assess_feed, feed_quality_snapshot
 from publisher_access import publisher_access_info
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
+from article_extractor import extract_article_text
 
 from evidence_engine import evidence_sentence
 from story_intelligence import enrich_articles
@@ -35,7 +36,7 @@ from news_store import (
     save_secret,
 )
 
-APP_VERSION = "FP025.0"
+APP_VERSION = "FP026.0"
 
 app = Flask(__name__)
 
@@ -1172,6 +1173,24 @@ def api_ai_brief():
     if not str(article.get("title") or "").strip():
         return jsonify({"success": False, "error": "Article title is required."}), 400
 
+    # Prefer full article text when the feed only provides a short teaser.
+    # Never fetch for user-pasted text, and preserve the original teaser if
+    # retrieval is blocked or extraction fails.
+    source_type = str(article.get("source_type") or "article").strip().lower()
+    if source_type != "pasted_text":
+        link = str(article.get("link") or "").strip()
+        description = str(article.get("description") or "").strip()
+        if link and len(description) < 1200:
+            extraction = extract_article_text(link)
+            if extraction.get("success") and extraction.get("text"):
+                article["description"] = extraction["text"]
+                article["source_type"] = "retrieved_article"
+                article["retrieval_status"] = "full_text"
+                article["retrieved_url"] = extraction.get("final_url") or link
+                article["retrieved_char_count"] = len(extraction["text"])
+            else:
+                article["retrieval_status"] = extraction.get("status", "unavailable")
+                article["retrieval_message"] = extraction.get("message", "Full article text was unavailable.")
     messages = build_ai_brief_messages(article)
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
