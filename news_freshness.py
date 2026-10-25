@@ -91,6 +91,13 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         {"name": "Wired", "url": "https://www.wired.com/feed/rss", "tier": "specialist"},
         {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "tier": "specialist"},
     ],
+    "Android": [
+        {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "tier": "specialist"},
+        {"name": "9to5Google", "url": "https://9to5google.com/feed/", "tier": "specialist"},
+        {"name": "Android Authority", "url": "https://www.androidauthority.com/feed/", "tier": "specialist"},
+        {"name": "SamMobile", "url": "https://www.sammobile.com/feed/", "tier": "specialist"},
+        {"name": "Droid Life", "url": "https://www.droid-life.com/feed/", "tier": "specialist"},
+    ],
     "Business": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/business/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/business/rss", "tier": "primary"},

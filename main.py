@@ -455,7 +455,7 @@ def fetch_fresh_news():
         flush=True,
     )
 
-    for category in ("World", "Technology", "Business", "Science", "UK", "Sport"):
+    for category in ("World", "Technology", "Android", "Business", "Science", "UK", "Sport"):
         category_started = time.monotonic()
         print(f"REFRESH STAGE: Guardian {category} started", flush=True)
         guardian_articles = fetch_guardian_articles(category)
