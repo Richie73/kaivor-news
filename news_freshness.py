@@ -98,6 +98,16 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         {"name": "SamMobile", "url": "https://www.sammobile.com/feed/", "tier": "specialist"},
         {"name": "Droid Life", "url": "https://www.droid-life.com/feed/", "tier": "specialist"},
     ],
+    "Culture": [
+        {"name": "BBC Culture", "url": "https://www.bbc.com/culture/feed.rss", "tier": "primary"},
+        {"name": "BBC Entertainment & Arts", "url": "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml", "tier": "primary"},
+        {"name": "The Guardian Culture", "url": "https://www.theguardian.com/uk/culture/rss", "tier": "primary"},
+        {"name": "The Guardian Music", "url": "https://www.theguardian.com/music/rss", "tier": "primary"},
+        {"name": "Louder", "url": "https://www.loudersound.com/feeds/all", "tier": "specialist"},
+        {"name": "Kerrang!", "url": "https://kerrang.com/feed.rss", "tier": "specialist"},
+        {"name": "BFI", "url": "https://www.bfi.org.uk/rss-feed", "tier": "specialist"},
+        {"name": "France 24 Culture", "url": "https://www.france24.com/en/culture/rss", "tier": "major"},
+    ],
     "Business": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/business/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/business/rss", "tier": "primary"},

@@ -257,7 +257,7 @@ def fetch_guardian_articles(category):
     guardian_key = os.environ.get("GUARDIAN_API_KEY")
     if not guardian_key:
         return articles
-    section_map = {"World": "world", "Technology": "technology", "Business": "business", "Science": "science", "UK": "uk-news", "Sport": "sport"}
+    section_map = {"World": "world", "Technology": "technology", "Culture": "culture", "Business": "business", "Science": "science", "UK": "uk-news", "Sport": "sport"}
     section = section_map.get(category)
     if not section:
         return articles
@@ -455,7 +455,7 @@ def fetch_fresh_news():
         flush=True,
     )
 
-    for category in ("World", "Technology", "Android", "Business", "Science", "UK", "Sport"):
+    for category in ("World", "Technology", "Android", "Culture", "Business", "Science", "UK", "Sport"):
         category_started = time.monotonic()
         print(f"REFRESH STAGE: Guardian {category} started", flush=True)
         guardian_articles = fetch_guardian_articles(category)

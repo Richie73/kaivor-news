@@ -1,9 +1,11 @@
-"""FP039.1 regression: Android is included in the full news refresh pipeline."""
+"""FP039.1 regression: Android remains enabled after later category additions."""
 from pathlib import Path
+
 
 def test_refresh_pipeline_includes_android_category():
     source = Path("main.py").read_text(encoding="utf-8")
-    assert 'for category in ("World", "Technology", "Android", "Business", "Science", "UK", "Sport"):' in source
+    assert 'for category in ("World", "Technology", "Android", "Culture", "Business", "Science", "UK", "Sport"):' in source
+
 
 def test_android_category_has_feed_registry_and_ui_filter():
     freshness = Path("news_freshness.py").read_text(encoding="utf-8")
