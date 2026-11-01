@@ -96,3 +96,9 @@ def test_unconfigured_pin_disables_api(client, monkeypatch):
     monkeypatch.delenv("KAIVOR_READING_PIN")
     response = client.get("/api/reading/dashboard")
     assert response.status_code == 503
+
+
+def test_missing_session_secret_keeps_reading_locked(client, monkeypatch):
+    monkeypatch.delenv("KAIVOR_SESSION_SECRET")
+    response = client.get("/api/reading/dashboard")
+    assert response.status_code == 503
