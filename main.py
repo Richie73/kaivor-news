@@ -5,7 +5,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from html import unescape
 from urllib.parse import urlparse
 
@@ -40,6 +40,14 @@ from news_store import (
 APP_VERSION = "FP030.0"
 
 app = Flask(__name__)
+# Reading data is private; the Reading blueprint uses signed sessions after PIN unlock.
+app.secret_key = os.environ.get("KAIVOR_SESSION_SECRET") or os.urandom(32)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("KAIVOR_COOKIE_SECURE", "false").lower() in {"1", "true", "yes"}
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
+from reading_web import reading_bp
+app.register_blueprint(reading_bp)
 
 
 def display_date(value):

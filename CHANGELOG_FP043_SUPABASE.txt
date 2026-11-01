@@ -1,0 +1,23 @@
+FP043 — SUPABASE READING STORAGE
+=================================
+
+Added
+- PostgreSQL persistence adapter for the existing Kaivor Reading domain.
+- Explicit Supabase transaction-pooler connection through
+  KAIVOR_READING_DATABASE_URL.
+- Additive SQL migration for books, notes, progress, lists and list membership.
+- Row Level Security enabled on all five Reading tables.
+- Render environment declarations for database URL, Reading PIN and session
+  secret; no secret values included.
+- Tests for backend selection, URL validation and migration safety.
+
+Changed
+- Reading service selection now uses Supabase PostgreSQL only when the explicit
+  KAIVOR_READING_DATABASE_URL variable is configured.
+- Local development and tests continue to use SQLite by default.
+- Added psycopg 3 binary dependency for Render/Linux deployment.
+
+Not included
+- No BorrowBox login, scraping, undocumented API calls or synchronisation.
+- No automatic migration of existing SQLite records.
+- No automatic database schema changes at application startup.

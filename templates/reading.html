@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0b0b">
+<title>Kaivor Reading</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0b0d;--panel:#151519;--panel2:#1d1d23;--line:#303039;--muted:#a1a1aa;--text:#f4f4f5;--accent:#10b981;--warn:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0b0b0df2;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:800;letter-spacing:.08em}.sub{font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}
+a{color:var(--accent)}button,.button{border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:var(--panel2);color:var(--text);font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button.primary{background:var(--accent);color:#06251b;border-color:var(--accent);font-weight:700}
+button.danger{color:#fecaca;border-color:#7f1d1d}
+button:disabled{opacity:.5;cursor:not-allowed}
+main{max-width:1000px;margin:0 auto;padding:20px 14px 60px}
+.panel,.book-card,.metric,.locked-card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}
+h1{font-size:25px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}h3{font-size:16px;margin:0 0 5px}
+.muted,.hint{color:var(--muted)}.hint{font-size:13px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+.metric strong{display:block;font-size:26px}.metric span{font-size:12px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:14px;align-items:start}
+.stack{display:grid;gap:14px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:#0f0f12;color:var(--text);padding:11px;font:inherit;min-width:0}
+textarea{min-height:76px;resize:vertical}.full{grid-column:1/-1}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.toolbar input{flex:2;min-width:180px}.toolbar select{flex:1;min-width:140px}
+.book-list{display:grid;gap:10px}.book-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.book-meta{font-size:12px;color:var(--muted);margin:3px 0 10px}
+.status-pill{font-size:11px;border:1px solid var(--line);border-radius:30px;padding:3px 8px;color:#d4d4d8;white-space:nowrap}
+.book-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.book-actions .full{grid-column:1/-1}
+.progress-track{height:7px;background:#303039;border-radius:20px;overflow:hidden;margin:8px 0}.progress-fill{height:100%;background:var(--accent)}
+.note-list{display:grid;gap:7px;margin-top:9px}.note{border-left:2px solid var(--accent);padding:7px 10px;background:#101014;border-radius:0 8px 8px 0;font-size:13px}
+.list-item{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}.list-item:last-child{border:0}
+.provider{border:1px solid #66501b;background:#211b0d;border-radius:12px;padding:12px}.provider strong{display:block}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted)}
+.alert{border:1px solid #7f1d1d;background:#2a1111;color:#fecaca;padding:10px;border-radius:9px;margin-bottom:12px}
+.locked{min-height:75vh;display:grid;place-items:center;padding:20px}.locked-card{max-width:440px;width:100%}
+@media(max-width:720px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}header{align-items:flex-start}.book-actions{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="brand">KAIVOR NEWS</div><div class="sub">Reading Intelligence</div></div>
+  <div class="row" style="flex:0 0 auto">
+    <a class="button" href="/">← News</a>
+    {% if authenticated %}<form method="post" action="/reading/logout"><button type="submit">Lock</button></form>{% endif %}
+  </div>
+</header>
+
+{% if not pin_configured %}
+<main class="locked"><section class="locked-card">
+  <h1>Reading is locked</h1>
+  <p>This section stores personal reading records. Configure a private access PIN before enabling it.</p>
+  <p class="hint">Add <code>KAIVOR_READING_PIN</code> (at least 8 characters) and <code>KAIVOR_SESSION_SECRET</code> to the Kaivor News environment settings. Generate the session secret with <code>python -c "import secrets; print(secrets.token_urlsafe(48))"</code>.</p>
+  <p class="hint">Do not use a PIN you use for banking or other important accounts.</p>
+</section></main>
+{% elif not authenticated %}
+<main class="locked"><section class="locked-card">
+  <h1>Unlock your reading library</h1>
+  <p class="muted">Your books, notes and progress are protected by a separate Kaivor Reading PIN.</p>
+  {% if login_failed %}<div class="alert">That PIN wasn't correct. Try again.</div>{% endif %}
+  <form method="post" action="/reading/login" class="stack">
+    <label for="pin">Reading PIN</label><input id="pin" name="pin" type="password" autocomplete="current-password" required autofocus>
+    <button class="primary" type="submit">Unlock Reading</button>
+  </form>
+</section></main>
+{% else %}
+<main>
+  <section>
+    <h1>Your reading space</h1>
+    <div class="muted">One independent library for books, audiobooks, notes and reading progress.</div>
+  </section>
+  <section class="metrics" aria-label="Reading summary">
+    <div class="metric"><strong id="metric-total">—</strong><span>Books in library</span></div>
+    <div class="metric"><strong id="metric-reading">—</strong><span>Currently reading</span></div>
+    <div class="metric"><strong id="metric-finished">—</strong><span>Finished</span></div>
+    <div class="metric"><strong id="metric-notes">—</strong><span>Personal notes</span></div>
+  </section>
+  <div class="layout">
+    <div class="stack">
+      <section class="panel">
+        <h2>Add a book</h2>
+        <form id="add-book-form" class="form-grid">
+          <input class="full" name="title" placeholder="Book title" maxlength="240" required>
+          <input name="author" placeholder="Author">
+          <select name="book_format"><option value="ebook">Ebook</option><option value="audiobook">Audiobook</option><option value="print">Print</option><option value="magazine">Magazine</option><option value="newspaper">Newspaper</option><option value="other">Other</option></select>
+          <select name="status"><option value="want_to_read">Want to read</option><option value="reading">Currently reading</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="abandoned">Abandoned</option></select>
+          <textarea class="full" name="description" placeholder="Description (optional)"></textarea>
+          <button class="primary full" type="submit">Add to my library</button>
+        </form>
+        <div id="form-message" class="hint" role="status" aria-live="polite"></div>
+      </section>
+
+      <section>
+        <div class="row"><h2 style="margin:0">My library</h2><span id="book-count" class="hint" style="text-align:right"></span></div>
+        <div class="toolbar">
+          <input id="search-books" type="search" placeholder="Search titles, authors or descriptions">
+          <select id="filter-status"><option value="">All statuses</option><option value="want_to_read">Want to read</option><option value="reading">Reading</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="abandoned">Abandoned</option></select>
+        </div>
+        <div id="book-list" class="book-list"><div class="empty">Loading your library…</div></div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="provider">
+        <strong>BorrowBox connection</strong>
+        <p class="hint">Not connected. Kaivor is ready for an authorised provider adapter, but Bolinda has not yet confirmed an integration method.</p>
+        <a class="button" href="https://www.borrowbox.com/" target="_blank" rel="noopener noreferrer">Open BorrowBox ↗</a>
+      </section>
+      <section class="panel">
+        <h2>My reading lists</h2>
+        <form id="add-list-form" class="stack">
+          <input name="name" placeholder="New list name" maxlength="120" required>
+          <input name="description" placeholder="Description (optional)">
+          <button type="submit">Create list</button>
+        </form>
+        <div id="reading-lists" class="hint" style="margin-top:10px">Loading lists…</div>
+      </section>
+      <section class="panel">
+        <h2>Integration status</h2>
+        <p class="hint">Your library works independently of BorrowBox. No BorrowBox password is requested or stored. Automatic loans, due dates and progress sync remain disabled until an approved connection is available.</p>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<script>
+const STATUSES = {
+  want_to_read: 'Want to read', reading: 'Reading', paused: 'Paused',
+  finished: 'Finished', abandoned: 'Abandoned'
+};
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[ch]));
+const api = async (url, options={}) => {
+  const response = await fetch(url, {cache:'no-store', ...options,
+    headers:{'Accept':'application/json', ...(options.headers || {})}});
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.success === false) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+};
+let booksCache = [];
+let listsCache = [];
+
+function showMessage(message, isError=false) {
+  $('form-message').textContent = message;
+  $('form-message').style.color = isError ? '#fca5a5' : '#a1a1aa';
+}
+function formatFormat(value) {
+  return ({ebook:'Ebook',audiobook:'Audiobook',print:'Print',magazine:'Magazine',newspaper:'Newspaper',other:'Other'})[value] || value;
+}
+function renderBooks(books) {
+  booksCache = books;
+  $('book-count').textContent = `${books.length} shown`;
+  if (!books.length) {
+    $('book-list').innerHTML = '<div class="empty">No books match this view. Add a book above to get started.</div>';
+    return;
+  }
+  $('book-list').innerHTML = books.map(book => {
+    const progress = book.latest_progress;
+    const pct = progress && progress.progress_unit === 'percent' ? Math.max(0,Math.min(100,Number(progress.progress_value))) : null;
+    const progressText = progress ? (pct !== null ? `${pct}% complete` : `${progress.progress_value} ${progress.progress_unit}`) : '';
+    return `<article class="book-card" data-id="${book.id}">
+      <div class="book-top"><div><h3>${escapeHtml(book.title)}</h3>
+        <div class="book-meta">${escapeHtml(book.author || 'Author not set')} · ${escapeHtml(formatFormat(book.book_format))}</div>
+      </div><span class="status-pill">${escapeHtml(STATUSES[book.status] || book.status)}</span></div>
+      ${book.description ? `<p class="hint">${escapeHtml(book.description)}</p>` : ''}
+      ${progress ? `${pct !== null ? `<div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}<div class="hint">${escapeHtml(progressText)}</div>` : ''}
+      <div class="book-actions">
+        <select class="status-select" aria-label="Reading status">${Object.entries(STATUSES).map(([v,l])=>`<option value="${v}" ${book.status===v?'selected':''}>${l}</option>`).join('')}</select>
+        <button type="button" class="save-status">Update status</button>
+        <input class="progress-value" type="number" min="0" step="1" placeholder="Progress value">
+        <select class="progress-unit" aria-label="Progress unit"><option value="percent">Percent</option><option value="page">Page</option><option value="minute">Minute</option><option value="chapter">Chapter</option></select>
+        <button type="button" class="record-progress full">Save progress</button>
+        <select class="list-select full" aria-label="Choose reading list"><option value="">Add to a list…</option>${listsCache.map(list=>`<option value="${list.id}">${escapeHtml(list.name)}</option>`).join('')}</select>
+        <button type="button" class="add-to-list full">Add to selected list</button>
+        <button type="button" class="toggle-notes full">Show notes (${Number(book.notes_count || 0)})</button>
+        <div class="notes-area full" hidden></div>
+      </div>
+    </article>`;
+  }).join('');
+  $('book-list').querySelectorAll('.book-card').forEach(card => {
+    const id = Number(card.dataset.id);
+    card.querySelector('.save-status').addEventListener('click', async () => {
+      try { await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:card.querySelector('.status-select').value})}); await loadDashboard(); }
+      catch(e){alert(e.message);}
+    });
+    card.querySelector('.record-progress').addEventListener('click', async () => {
+      const value = card.querySelector('.progress-value').value;
+      if (value === '') return alert('Enter a progress value first.');
+      try { await api(`/api/reading/books/${id}/progress`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value,unit:card.querySelector('.progress-unit').value})}); await loadDashboard(); }
+      catch(e){alert(e.message);}
+    });
+    card.querySelector('.toggle-notes').addEventListener('click', async () => {
+      const area = card.querySelector('.notes-area');
+      if (!area.hidden) { area.hidden = true; return; }
+      area.hidden = false;
+      try {
+        const data = await api(`/api/reading/books/${id}/notes`);
+        area.innerHTML = `<div class="note-list">${data.notes.map(note=>`<div class="note">${escapeHtml(note.note)}${note.page_reference?`<div class="hint">${escapeHtml(note.page_reference)}</div>`:''}</div>`).join('') || '<div class="hint">No notes yet.</div>'}</div>
+          <form class="note-form stack" style="margin-top:9px"><textarea name="note" placeholder="Add a note, idea or observation" required></textarea><input name="page_reference" placeholder="Page / chapter (optional)"><button type="submit">Save note</button></form>`;
+        area.querySelector('.note-form').addEventListener('submit', async event => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          try { await api(`/api/reading/books/${id}/notes`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:form.get('note'),page_reference:form.get('page_reference')})}); await loadDashboard(); }
+          catch(e){alert(e.message);}
+        });
+      } catch(e) { area.textContent = e.message; }
+    });
+    card.querySelector('.add-to-list').addEventListener('click', async () => {
+      const listId = card.querySelector('.list-select').value;
+      if (!listId) return alert('Choose a reading list first.');
+      try { await api(`/api/reading/lists/${listId}/books`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book_id:id})}); alert('Added to reading list.'); await loadLists(); }
+      catch(e){alert(e.message);}
+    });
+  });
+}
+async function loadLists() {
+  const data = await api('/api/reading/lists');
+  listsCache = data.lists;
+  $('reading-lists').innerHTML = listsCache.length ? listsCache.map(list=>`<div class="list-item"><div><strong>${escapeHtml(list.name)}</strong><div class="hint">${escapeHtml(list.description || '')}</div></div><span class="hint">${list.book_count} books</span></div>`).join('') : '<div class="empty">No lists yet.</div>';
+}
+async function loadDashboard() {
+  const [dashboard, listsData] = await Promise.all([api('/api/reading/dashboard'), api('/api/reading/lists')]);
+  listsCache = listsData.lists;
+  const summary = dashboard.summary;
+  $('metric-total').textContent = summary.total;
+  $('metric-reading').textContent = summary.by_status.reading || 0;
+  $('metric-finished').textContent = summary.by_status.finished || 0;
+  $('metric-notes').textContent = summary.notes;
+  const latestById = new Map(dashboard.books.map(item=>[item.book.id,item]));
+  const all = dashboard.books.map(item=>({...item.book,latest_progress:item.progress,notes_count:item.notes_count}));
+  const query = $('search-books').value.trim().toLowerCase();
+  const status = $('filter-status').value;
+  renderBooks(all.filter(book=>(!status || book.status===status) && (!query || `${book.title} ${book.author||''} ${book.description||''}`.toLowerCase().includes(query))));
+}
+async function loadListsAndBooks() { await loadLists(); await loadDashboard(); }
+$('add-book-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = new FormData(event.currentTarget);
+  try {
+    await api('/api/reading/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))});
+    event.currentTarget.reset(); showMessage('Book added to your library.'); await loadDashboard();
+  } catch(e){showMessage(e.message,true);}
+});
+$('add-list-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = new FormData(event.currentTarget);
+  try { await api('/api/reading/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))}); event.currentTarget.reset(); await loadListsAndBooks(); }
+  catch(e){alert(e.message);}
+});
+$('search-books').addEventListener('input',()=>loadDashboard().catch(e=>showMessage(e.message,true)));
+$('filter-status').addEventListener('change',()=>loadDashboard().catch(e=>showMessage(e.message,true)));
+loadListsAndBooks().catch(error=>showMessage(error.message,true));
+</script>
+{% endif %}
+</body>
+</html>
+
+
+def test_missing_session_secret_keeps_reading_locked(client, monkeypatch):
+    monkeypatch.delenv("KAIVOR_SESSION_SECRET")
+    response = client.get("/api/reading/dashboard")
+    assert response.status_code == 503

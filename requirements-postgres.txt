@@ -1,0 +1,2 @@
+# Hosted Render Linux only; psycopg-binary has no compatible Android/Termux wheel.
+psycopg[binary]>=3.2,<4
