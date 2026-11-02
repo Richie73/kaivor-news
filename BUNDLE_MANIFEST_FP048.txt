@@ -1,0 +1,15 @@
+Kaivor FP048 bundle manifest
+
+Replacement files:
+- templates/reading.html
+
+New files:
+- tests/test_reading_fp048.py
+
+Documentation:
+- README_INSTALL_FP048.txt
+- CHANGELOG_FP048.txt
+- BUNDLE_MANIFEST_FP048.txt
+
+Database migration: NONE
+Secrets or credentials: NONE

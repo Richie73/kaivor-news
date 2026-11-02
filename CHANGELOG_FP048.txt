@@ -1,0 +1,8 @@
+FP048 — Responsive Reading Experience
+
+- Replaced full dashboard reloads after common mutations with targeted local cache updates.
+- Added optimistic status/progress updates with rollback on request failure.
+- Added busy states to mutating controls to discourage duplicate submissions.
+- Added local book/list/note count updates after server confirmation.
+- Kept the initial dashboard snapshot as the authoritative initial load.
+- No database migration, backend API change, or credential change.

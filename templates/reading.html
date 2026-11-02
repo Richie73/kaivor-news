@@ -126,6 +126,7 @@ textarea{min-height:76px;resize:vertical}.full{grid-column:1/-1}
 </main>
 
 <script>
+// FP048: keep successful mutations local; dashboard reload is reserved for initial load/recovery.
 const STATUSES = {
   want_to_read: 'Want to read', reading: 'Reading', paused: 'Paused',
   finished: 'Finished', abandoned: 'Abandoned'
@@ -148,6 +149,43 @@ let listsCache = [];
 function showMessage(message, isError=false) {
   $('form-message').textContent = message;
   $('form-message').style.color = isError ? '#fca5a5' : '#a1a1aa';
+}
+function setBusy(button, busy, busyLabel='Saving…') {
+  if (!button) return;
+  if (busy) {
+    if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = busyLabel;
+    button.setAttribute('aria-busy', 'true');
+  } else {
+    button.disabled = false;
+    button.textContent = button.dataset.originalLabel || button.textContent;
+    delete button.dataset.originalLabel;
+    button.removeAttribute('aria-busy');
+  }
+}
+function refreshSummaryFromCache() {
+  const counts = {want_to_read:0,reading:0,paused:0,finished:0,abandoned:0};
+  allBooksCache.forEach(book => { if (Object.prototype.hasOwnProperty.call(counts, book.status)) counts[book.status] += 1; });
+  $('metric-total').textContent = allBooksCache.length;
+  $('metric-reading').textContent = counts.reading;
+  $('metric-finished').textContent = counts.finished;
+  $('metric-notes').textContent = allBooksCache.reduce((sum, book) => sum + Number(book.notes_count || 0), 0);
+}
+function renderLists() {
+  $('reading-lists').innerHTML = listsCache.length ? listsCache.map(list=>`<div class="list-item"><div><strong>${escapeHtml(list.name)}</strong><div class="hint">${escapeHtml(list.description || '')}</div></div><span class="hint">${Number(list.book_count || 0)} books</span></div>`).join('') : '<div class="empty">No lists yet.</div>';
+}
+function updateCachedBook(id, patch, rerender=true) {
+  const index = allBooksCache.findIndex(book => Number(book.id) === Number(id));
+  if (index < 0) return;
+  allBooksCache[index] = {...allBooksCache[index], ...patch};
+  refreshSummaryFromCache();
+  if (rerender) applyBookFilters();
+}
+function removeCachedBook(id) {
+  allBooksCache = allBooksCache.filter(book => Number(book.id) !== Number(id));
+  refreshSummaryFromCache();
+  applyBookFilters();
 }
 function formatFormat(value) {
   return ({ebook:'Ebook',audiobook:'Audiobook',print:'Print',magazine:'Magazine',newspaper:'Newspaper',other:'Other'})[value] || value;
@@ -197,15 +235,17 @@ function renderBooks(books) {
       const description = window.prompt('Description', book.description || '');
       if (description === null) return;
       try {
-        await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,author,description})});
-        await loadDashboard();
+        const result = await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,author,description})});
+        updateCachedBook(id, result.book);
       } catch(e) { alert(e.message); }
     });
     card.querySelector('.delete-book').addEventListener('click', async () => {
       const book = booksCache.find(item => Number(item.id) === id);
       if (!book || !window.confirm(`Permanently delete “${book.title}” and its notes and progress? This cannot be undone.`)) return;
-      try { await api(`/api/reading/books/${id}`, {method:'DELETE'}); await loadDashboard(); }
-      catch(e) { alert(e.message); }
+      const button = card.querySelector('.delete-book');
+      setBusy(button, true, 'Deleting…');
+      try { await api(`/api/reading/books/${id}`, {method:'DELETE'}); removeCachedBook(id); }
+      catch(e) { setBusy(button, false); alert(e.message); }
     });
     card.querySelector('.toggle-history').addEventListener('click', async () => {
       const area = card.querySelector('.history-area');
@@ -216,15 +256,39 @@ function renderBooks(books) {
         area.innerHTML = data.progress.length ? `<div class="note-list">${data.progress.map(item => `<div class="note">${escapeHtml(item.progress_value)} ${escapeHtml(item.progress_unit)}<div class="hint">${escapeHtml(item.recorded_at || '')}</div></div>`).join('')}</div>` : '<div class="hint">No progress recorded yet.</div>';
       } catch(e) { area.textContent = e.message; }
     });
-    card.querySelector('.save-status').addEventListener('click', async () => {
-      try { await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:card.querySelector('.status-select').value})}); await loadDashboard(); }
-      catch(e){alert(e.message);}
+    card.querySelector('.save-status').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      const previous = booksCache.find(item => Number(item.id) === id)?.status;
+      const status = card.querySelector('.status-select').value;
+      if (status === previous) return;
+      updateCachedBook(id, {status});
+      setBusy(document.querySelector(`.book-card[data-id="${id}"] .save-status`), true, 'Saving…');
+      try {
+        const result = await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+        updateCachedBook(id, result.book);
+      } catch(e) { updateCachedBook(id, {status:previous}); alert(e.message); }
+      finally { setBusy(document.querySelector(`.book-card[data-id="${id}"] .save-status`), false); }
     });
-    card.querySelector('.record-progress').addEventListener('click', async () => {
+    card.querySelector('.record-progress').addEventListener('click', async event => {
+      const button = event.currentTarget;
       const value = card.querySelector('.progress-value').value;
+      const unit = card.querySelector('.progress-unit').value;
       if (value === '') return alert('Enter a progress value first.');
-      try { await api(`/api/reading/books/${id}/progress`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value,unit:card.querySelector('.progress-unit').value})}); await loadDashboard(); }
-      catch(e){alert(e.message);}
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue) || numericValue < 0 || (unit === 'percent' && numericValue > 100)) return alert('Enter a valid progress value.');
+      const current = allBooksCache.find(item => Number(item.id) === id);
+      const previousProgress = current?.latest_progress || null;
+      const previousStatus = current?.status;
+      const optimisticProgress = {progress_value:numericValue, progress_unit:unit, recorded_at:new Date().toISOString()};
+      const optimisticStatus = unit === 'percent' && numericValue >= 100 ? 'finished' : (unit === 'percent' && numericValue > 0 && previousStatus === 'want_to_read' ? 'reading' : previousStatus);
+      updateCachedBook(id, {latest_progress:optimisticProgress, status:optimisticStatus});
+      setBusy(document.querySelector(`.book-card[data-id="${id}"] .record-progress`), true, 'Saving…');
+      try {
+        const result = await api(`/api/reading/books/${id}/progress`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value,unit})});
+        updateCachedBook(id, {latest_progress:result.progress, status:optimisticStatus});
+        document.querySelector(`.book-card[data-id="${id}"] .progress-value`).value = '';
+      } catch(e) { updateCachedBook(id, {latest_progress:previousProgress, status:previousStatus}); alert(e.message); }
+      finally { setBusy(document.querySelector(`.book-card[data-id="${id}"] .record-progress`), false); }
     });
     card.querySelector('.toggle-notes').addEventListener('click', async () => {
       const area = card.querySelector('.notes-area');
@@ -236,24 +300,47 @@ function renderBooks(books) {
           <form class="note-form stack" style="margin-top:9px"><textarea name="note" placeholder="Add a note, idea or observation" required></textarea><input name="page_reference" placeholder="Page / chapter (optional)"><button type="submit">Save note</button></form>`;
         area.querySelector('.note-form').addEventListener('submit', async event => {
           event.preventDefault();
-          const form = new FormData(event.currentTarget);
-          try { await api(`/api/reading/books/${id}/notes`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:form.get('note'),page_reference:form.get('page_reference')})}); await loadDashboard(); }
-          catch(e){alert(e.message);}
+          const formElement = event.currentTarget;
+          const form = new FormData(formElement);
+          const submitButton = formElement.querySelector('button[type="submit"]');
+          setBusy(submitButton, true, 'Saving…');
+          try {
+            const result = await api(`/api/reading/books/${id}/notes`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:form.get('note'),page_reference:form.get('page_reference')})});
+            const current = allBooksCache.find(item => Number(item.id) === id);
+            updateCachedBook(id, {notes_count:Number(current?.notes_count || 0) + 1}, false);
+            const note = result.note;
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            noteElement.textContent = note.note;
+            if (note.page_reference) { const ref = document.createElement('div'); ref.className='hint'; ref.textContent=note.page_reference; noteElement.appendChild(ref); }
+            area.querySelector('.note-list')?.appendChild(noteElement);
+            formElement.reset();
+            card.querySelector('.toggle-notes').textContent = `Show notes (${Number(current?.notes_count || 0) + 1})`;
+          } catch(e){alert(e.message);}
+          finally { setBusy(submitButton, false); }
         });
       } catch(e) { area.textContent = e.message; }
     });
     card.querySelector('.add-to-list').addEventListener('click', async () => {
       const listId = card.querySelector('.list-select').value;
       if (!listId) return alert('Choose a reading list first.');
-      try { await api(`/api/reading/lists/${listId}/books`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book_id:id})}); alert('Added to reading list.'); await loadDashboard(); }
-      catch(e){alert(e.message);}
+      const button = card.querySelector('.add-to-list');
+      setBusy(button, true, 'Adding…');
+      try {
+        await api(`/api/reading/lists/${listId}/books`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book_id:id})});
+        const list = listsCache.find(item => String(item.id) === String(listId));
+        if (list) list.book_count = Number(list.book_count || 0) + 1;
+        renderLists();
+        alert('Added to reading list.');
+      } catch(e){alert(e.message);}
+      finally { setBusy(button, false); }
     });
   });
 }
 async function loadDashboard() {
   const dashboard = await api('/api/reading/dashboard');
   listsCache = dashboard.lists || [];
-  $('reading-lists').innerHTML = listsCache.length ? listsCache.map(list=>`<div class="list-item"><div><strong>${escapeHtml(list.name)}</strong><div class="hint">${escapeHtml(list.description || '')}</div></div><span class="hint">${list.book_count} books</span></div>`).join('') : '<div class="empty">No lists yet.</div>';
+  renderLists();
   const summary = dashboard.summary;
   $('metric-total').textContent = summary.total;
   $('metric-reading').textContent = summary.by_status.reading || 0;
@@ -269,15 +356,26 @@ function applyBookFilters() {
 }
 $('add-book-form').addEventListener('submit', async event => {
   event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  setBusy(submitButton, true, 'Adding…');
   try {
-    await api('/api/reading/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))});
-    formElement.reset(); showMessage('Book added to your library.'); await loadDashboard();
+    const result = await api('/api/reading/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))});
+    allBooksCache.unshift({...result.book,latest_progress:null,notes_count:0});
+    formElement.reset(); refreshSummaryFromCache(); applyBookFilters(); showMessage('Book added to your library.');
   } catch(e){showMessage(e.message,true);}
+  finally { setBusy(submitButton, false); }
 });
 $('add-list-form').addEventListener('submit', async event => {
   event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
-  try { await api('/api/reading/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))}); formElement.reset(); await loadDashboard(); }
-  catch(e){alert(e.message);}
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  setBusy(submitButton, true, 'Creating…');
+  try {
+    const result = await api('/api/reading/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))});
+    listsCache.push({...result.list,book_count:0}); renderLists(); formElement.reset();
+    // Refresh cards so their list selectors include the new list, without querying the server.
+    applyBookFilters();
+  } catch(e){alert(e.message);}
+  finally { setBusy(submitButton, false); }
 });
 $('search-books').addEventListener('input',applyBookFilters);
 $('filter-status').addEventListener('change',applyBookFilters);
