@@ -176,6 +176,9 @@ function renderBooks(books) {
         <button type="button" class="record-progress full">Save progress</button>
         <select class="list-select full" aria-label="Choose reading list"><option value="">Add to a list…</option>${listsCache.map(list=>`<option value="${list.id}">${escapeHtml(list.name)}</option>`).join('')}</select>
         <button type="button" class="add-to-list full">Add to selected list</button>
+        <div class="row full"><button type="button" class="edit-book">Edit book</button><button type="button" class="delete-book danger">Delete book</button></div>
+        <button type="button" class="toggle-history full">Progress history</button>
+        <div class="history-area full" hidden></div>
         <button type="button" class="toggle-notes full">Show notes (${Number(book.notes_count || 0)})</button>
         <div class="notes-area full" hidden></div>
       </div>
@@ -183,6 +186,35 @@ function renderBooks(books) {
   }).join('');
   $('book-list').querySelectorAll('.book-card').forEach(card => {
     const id = Number(card.dataset.id);
+    card.querySelector('.edit-book').addEventListener('click', async () => {
+      const book = booksCache.find(item => Number(item.id) === id);
+      if (!book) return;
+      const title = window.prompt('Book title', book.title);
+      if (title === null) return;
+      const author = window.prompt('Author', book.author || '');
+      if (author === null) return;
+      const description = window.prompt('Description', book.description || '');
+      if (description === null) return;
+      try {
+        await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,author,description})});
+        await loadDashboard();
+      } catch(e) { alert(e.message); }
+    });
+    card.querySelector('.delete-book').addEventListener('click', async () => {
+      const book = booksCache.find(item => Number(item.id) === id);
+      if (!book || !window.confirm(`Permanently delete “${book.title}” and its notes and progress? This cannot be undone.`)) return;
+      try { await api(`/api/reading/books/${id}`, {method:'DELETE'}); await loadDashboard(); await loadLists(); }
+      catch(e) { alert(e.message); }
+    });
+    card.querySelector('.toggle-history').addEventListener('click', async () => {
+      const area = card.querySelector('.history-area');
+      if (!area.hidden) { area.hidden = true; return; }
+      area.hidden = false; area.textContent = 'Loading progress history…';
+      try {
+        const data = await api(`/api/reading/books/${id}/progress`);
+        area.innerHTML = data.progress.length ? `<div class="note-list">${data.progress.map(item => `<div class="note">${escapeHtml(item.progress_value)} ${escapeHtml(item.progress_unit)}<div class="hint">${escapeHtml(item.recorded_at || '')}</div></div>`).join('')}</div>` : '<div class="hint">No progress recorded yet.</div>';
+      } catch(e) { area.textContent = e.message; }
+    });
     card.querySelector('.save-status').addEventListener('click', async () => {
       try { await api(`/api/reading/books/${id}`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:card.querySelector('.status-select').value})}); await loadDashboard(); }
       catch(e){alert(e.message);}

@@ -1,0 +1,1 @@
+reading/repository.py\nreading/postgres_repository.py\nreading_web.py\ntemplates/reading.html\ntests/test_reading_web_fp046.py\nREADME_INSTALL_FP046.txt\nCHANGELOG_FP046.txt\n

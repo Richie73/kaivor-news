@@ -1,0 +1,1 @@
+FP046: Reading Intelligence UI controls, progress history, and percentage-based status transitions. No schema changes.

@@ -164,6 +164,15 @@ class PostgresReadingRepository:
             ).fetchone()
             return self._progress(row)
 
+    def list_progress(self, book_id):
+        """Return progress records newest first for a book."""
+        with self._connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM public.reading_progress WHERE book_id = %s ORDER BY recorded_at DESC, id DESC",
+                (book_id,),
+            ).fetchall()
+            return [self._progress(row) for row in rows]
+
     def latest_progress(self, book_id):
         with self._connection() as conn:
             row = conn.execute(

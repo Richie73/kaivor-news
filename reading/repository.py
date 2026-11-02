@@ -153,6 +153,12 @@ class ReadingRepository:
             row = conn.execute("SELECT * FROM reading_progress WHERE id = ?", (cur.lastrowid,)).fetchone()
             return ReadingProgress(**dict(row))
 
+    def list_progress(self, book_id: int) -> list[ReadingProgress]:
+        """Return progress records newest first for a book."""
+        with self._connection() as conn:
+            rows = conn.execute("SELECT * FROM reading_progress WHERE book_id = ? ORDER BY recorded_at DESC, id DESC", (book_id,)).fetchall()
+            return [ReadingProgress(**dict(row)) for row in rows]
+
     def latest_progress(self, book_id: int) -> ReadingProgress | None:
         with self._connection() as conn:
             row = conn.execute("""SELECT * FROM reading_progress WHERE book_id = ?

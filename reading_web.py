@@ -270,6 +270,14 @@ def reading_book_notes(book_id: int):
         return _json_error(str(exc))
 
 
+@reading_bp.get("/api/reading/books/<int:book_id>/progress")
+def reading_book_progress_history(book_id: int):
+    service = _service()
+    if not service.repository.get_book(book_id):
+        return _json_error("Book not found.", 404)
+    return jsonify({"success": True, "progress": [_progress_dict(item) for item in service.repository.list_progress(book_id)]})
+
+
 @reading_bp.post("/api/reading/books/<int:book_id>/progress")
 def reading_book_progress(book_id: int):
     data = request.get_json(silent=True) or {}
@@ -278,7 +286,17 @@ def reading_book_progress(book_id: int):
     try:
         value = float(data.get("value"))
         unit = str(data.get("unit") or "percent")
-        progress = _service().record_progress(book_id, value, unit)
+        service = _service()
+        progress = service.record_progress(book_id, value, unit)
+        # Percentage progress provides an unambiguous status transition.
+        # Non-percentage units never alter status because their total is unknown.
+        if unit == "percent":
+            if value >= 100:
+                service.update_status(book_id, "finished")
+            elif value > 0:
+                book = service.repository.get_book(book_id)
+                if book and book.status == "want_to_read":
+                    service.update_status(book_id, "reading")
         return jsonify({"success": True, "progress": _progress_dict(progress)}), 201
     except (TypeError, ValueError) as exc:
         return _json_error(str(exc) or "Progress value must be numeric.")
