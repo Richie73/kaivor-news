@@ -1,0 +1,13 @@
+FP047 — Reading Performance & Reliability
+
+- Fixed add-book and add-list JavaScript form reset errors caused by accessing
+  event.currentTarget after an asynchronous request.
+- Added a bulk dashboard_snapshot repository operation for SQLite and
+  PostgreSQL.
+- Removed per-book latest-progress and note-count queries from the dashboard.
+- Returned reading lists as part of the dashboard payload.
+- Removed duplicate list loading on initial page load.
+- Changed search and status filters to filter the client-side book cache.
+- Added regression tests for dashboard payload completeness and frontend
+  request/reset behaviour.
+- No schema migration and no credential changes.

@@ -1,0 +1,18 @@
+Kaivor FP047 bundle manifest
+
+Replacement files:
+- reading/repository.py
+- reading/postgres_repository.py
+- reading_web.py
+- templates/reading.html
+
+New file:
+- tests/test_reading_fp047.py
+
+Documentation:
+- README_INSTALL_FP047.txt
+- CHANGELOG_FP047.txt
+- BUNDLE_MANIFEST_FP047.txt
+
+Database migration: NONE
+Secrets or credentials: NONE

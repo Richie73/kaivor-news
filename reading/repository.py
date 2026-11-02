@@ -202,6 +202,87 @@ class ReadingRepository:
             cursor = conn.execute("DELETE FROM reading_books WHERE id = ?", (int(book_id),))
             return cursor.rowcount > 0
 
+    def dashboard_snapshot(self) -> dict:
+        """Load the complete Reading dashboard using one database connection.
+
+        The latest progress and note counts are joined in SQL to avoid the
+        per-book query/connection pattern used by the original dashboard.
+        """
+        with self._connection() as conn:
+            rows = conn.execute("""
+                SELECT b.*,
+                       p.id AS progress_id,
+                       p.book_id AS progress_book_id,
+                       p.progress_value AS progress_value,
+                       p.progress_unit AS progress_unit,
+                       p.recorded_at AS progress_recorded_at,
+                       COALESCE(n.notes_count, 0) AS notes_count
+                FROM reading_books AS b
+                LEFT JOIN reading_progress AS p
+                  ON p.id = (
+                    SELECT p2.id FROM reading_progress AS p2
+                    WHERE p2.book_id = b.id
+                    ORDER BY p2.recorded_at DESC, p2.id DESC
+                    LIMIT 1
+                  )
+                LEFT JOIN (
+                    SELECT book_id, COUNT(*) AS notes_count
+                    FROM reading_notes GROUP BY book_id
+                ) AS n ON n.book_id = b.id
+                ORDER BY b.updated_at DESC, b.id DESC
+            """).fetchall()
+
+            books = []
+            for row in rows:
+                data = dict(row)
+                progress = None
+                if data["progress_id"] is not None:
+                    progress = ReadingProgress(
+                        id=data["progress_id"],
+                        book_id=data["progress_book_id"],
+                        progress_value=data["progress_value"],
+                        progress_unit=data["progress_unit"],
+                        recorded_at=data["progress_recorded_at"],
+                    )
+                book_data = {key: data[key] for key in (
+                    "id", "title", "author", "book_format", "status", "provider",
+                    "provider_item_id", "description", "created_at", "updated_at"
+                )}
+                books.append({
+                    "book": Book(**book_data),
+                    "progress": progress,
+                    "notes_count": int(data["notes_count"] or 0),
+                })
+
+            counts = {
+                row["status"]: int(row["count"])
+                for row in conn.execute(
+                    "SELECT status, COUNT(*) AS count FROM reading_books GROUP BY status"
+                ).fetchall()
+            }
+            total = sum(counts.values())
+            notes = int(conn.execute("SELECT COUNT(*) FROM reading_notes").fetchone()[0])
+            lists = int(conn.execute("SELECT COUNT(*) FROM reading_lists").fetchone()[0])
+            list_rows = conn.execute("""
+                SELECT l.id, l.name, l.description, l.created_at,
+                       COUNT(i.book_id) AS book_count
+                FROM reading_lists AS l
+                LEFT JOIN reading_list_items AS i ON i.list_id = l.id
+                GROUP BY l.id
+                ORDER BY l.name COLLATE NOCASE
+            """).fetchall()
+
+        return {
+            "summary": {
+                "total": total,
+                "by_status": counts,
+                "notes": notes,
+                "lists": lists,
+            },
+            "books": books,
+            "lists": [dict(row) for row in list_rows],
+        }
+
     def summary(self) -> dict:
         """Return aggregate counts without exposing note contents."""
         with self._connection() as conn:

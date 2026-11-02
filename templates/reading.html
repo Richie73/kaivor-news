@@ -142,6 +142,7 @@ const api = async (url, options={}) => {
   return data;
 };
 let booksCache = [];
+let allBooksCache = [];
 let listsCache = [];
 
 function showMessage(message, isError=false) {
@@ -203,7 +204,7 @@ function renderBooks(books) {
     card.querySelector('.delete-book').addEventListener('click', async () => {
       const book = booksCache.find(item => Number(item.id) === id);
       if (!book || !window.confirm(`Permanently delete “${book.title}” and its notes and progress? This cannot be undone.`)) return;
-      try { await api(`/api/reading/books/${id}`, {method:'DELETE'}); await loadDashboard(); await loadLists(); }
+      try { await api(`/api/reading/books/${id}`, {method:'DELETE'}); await loadDashboard(); }
       catch(e) { alert(e.message); }
     });
     card.querySelector('.toggle-history').addEventListener('click', async () => {
@@ -244,46 +245,43 @@ function renderBooks(books) {
     card.querySelector('.add-to-list').addEventListener('click', async () => {
       const listId = card.querySelector('.list-select').value;
       if (!listId) return alert('Choose a reading list first.');
-      try { await api(`/api/reading/lists/${listId}/books`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book_id:id})}); alert('Added to reading list.'); await loadLists(); }
+      try { await api(`/api/reading/lists/${listId}/books`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book_id:id})}); alert('Added to reading list.'); await loadDashboard(); }
       catch(e){alert(e.message);}
     });
   });
 }
-async function loadLists() {
-  const data = await api('/api/reading/lists');
-  listsCache = data.lists;
-  $('reading-lists').innerHTML = listsCache.length ? listsCache.map(list=>`<div class="list-item"><div><strong>${escapeHtml(list.name)}</strong><div class="hint">${escapeHtml(list.description || '')}</div></div><span class="hint">${list.book_count} books</span></div>`).join('') : '<div class="empty">No lists yet.</div>';
-}
 async function loadDashboard() {
-  const [dashboard, listsData] = await Promise.all([api('/api/reading/dashboard'), api('/api/reading/lists')]);
-  listsCache = listsData.lists;
+  const dashboard = await api('/api/reading/dashboard');
+  listsCache = dashboard.lists || [];
+  $('reading-lists').innerHTML = listsCache.length ? listsCache.map(list=>`<div class="list-item"><div><strong>${escapeHtml(list.name)}</strong><div class="hint">${escapeHtml(list.description || '')}</div></div><span class="hint">${list.book_count} books</span></div>`).join('') : '<div class="empty">No lists yet.</div>';
   const summary = dashboard.summary;
   $('metric-total').textContent = summary.total;
   $('metric-reading').textContent = summary.by_status.reading || 0;
   $('metric-finished').textContent = summary.by_status.finished || 0;
   $('metric-notes').textContent = summary.notes;
-  const latestById = new Map(dashboard.books.map(item=>[item.book.id,item]));
-  const all = dashboard.books.map(item=>({...item.book,latest_progress:item.progress,notes_count:item.notes_count}));
+  allBooksCache = dashboard.books.map(item=>({...item.book,latest_progress:item.progress,notes_count:item.notes_count}));
+  applyBookFilters();
+}
+function applyBookFilters() {
   const query = $('search-books').value.trim().toLowerCase();
   const status = $('filter-status').value;
-  renderBooks(all.filter(book=>(!status || book.status===status) && (!query || `${book.title} ${book.author||''} ${book.description||''}`.toLowerCase().includes(query))));
+  renderBooks(allBooksCache.filter(book=>(!status || book.status===status) && (!query || `${book.title} ${book.author||''} ${book.description||''}`.toLowerCase().includes(query))));
 }
-async function loadListsAndBooks() { await loadLists(); await loadDashboard(); }
 $('add-book-form').addEventListener('submit', async event => {
-  event.preventDefault(); const form = new FormData(event.currentTarget);
+  event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
   try {
     await api('/api/reading/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))});
-    event.currentTarget.reset(); showMessage('Book added to your library.'); await loadDashboard();
+    formElement.reset(); showMessage('Book added to your library.'); await loadDashboard();
   } catch(e){showMessage(e.message,true);}
 });
 $('add-list-form').addEventListener('submit', async event => {
-  event.preventDefault(); const form = new FormData(event.currentTarget);
-  try { await api('/api/reading/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))}); event.currentTarget.reset(); await loadListsAndBooks(); }
+  event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement);
+  try { await api('/api/reading/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form.entries()))}); formElement.reset(); await loadDashboard(); }
   catch(e){alert(e.message);}
 });
-$('search-books').addEventListener('input',()=>loadDashboard().catch(e=>showMessage(e.message,true)));
-$('filter-status').addEventListener('change',()=>loadDashboard().catch(e=>showMessage(e.message,true)));
-loadListsAndBooks().catch(error=>showMessage(error.message,true));
+$('search-books').addEventListener('input',applyBookFilters);
+$('filter-status').addEventListener('change',applyBookFilters);
+loadDashboard().catch(error=>showMessage(error.message,true));
 </script>
 {% endif %}
 </body>

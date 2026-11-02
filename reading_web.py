@@ -134,20 +134,19 @@ def reading_logout():
 @reading_bp.get("/api/reading/dashboard")
 def reading_dashboard():
     service = _service()
-    books = service.repository.list_books()
-    summary = service.dashboard()
-    latest = []
-    for book in books:
-        progress = service.repository.latest_progress(book.id)
-        latest.append({
-            "book": _book_dict(book),
-            "progress": _progress_dict(progress) if progress else None,
-            "notes_count": len(service.repository.list_notes(book.id)),
-        })
+    snapshot = service.repository.dashboard_snapshot()
     return jsonify({
         "success": True,
-        "summary": summary,
-        "books": latest,
+        "summary": snapshot["summary"],
+        "books": [
+            {
+                "book": _book_dict(item["book"]),
+                "progress": _progress_dict(item["progress"]) if item["progress"] else None,
+                "notes_count": item["notes_count"],
+            }
+            for item in snapshot["books"]
+        ],
+        "lists": snapshot["lists"],
         "statuses": list(READING_STATUSES),
         "formats": list(BOOK_FORMATS),
         "borrowbox": {

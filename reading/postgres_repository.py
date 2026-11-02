@@ -230,6 +230,85 @@ class PostgresReadingRepository:
             ).fetchone()
             return row is not None
 
+    def dashboard_snapshot(self):
+        """Load books, latest progress, note counts, lists and totals efficiently."""
+        with self._connection() as conn:
+            rows = conn.execute("""
+                SELECT b.*,
+                       p.id AS progress_id,
+                       p.book_id AS progress_book_id,
+                       p.progress_value AS progress_value,
+                       p.progress_unit AS progress_unit,
+                       p.recorded_at AS progress_recorded_at,
+                       COALESCE(n.notes_count, 0) AS notes_count
+                FROM public.reading_books AS b
+                LEFT JOIN LATERAL (
+                    SELECT id, book_id, progress_value, progress_unit, recorded_at
+                    FROM public.reading_progress
+                    WHERE book_id = b.id
+                    ORDER BY recorded_at DESC, id DESC
+                    LIMIT 1
+                ) AS p ON TRUE
+                LEFT JOIN (
+                    SELECT book_id, COUNT(*) AS notes_count
+                    FROM public.reading_notes GROUP BY book_id
+                ) AS n ON n.book_id = b.id
+                ORDER BY b.updated_at DESC, b.id DESC
+            """).fetchall()
+
+            books = []
+            for row in rows:
+                data = self._normalise(row)
+                progress = None
+                if data["progress_id"] is not None:
+                    progress = self._progress({
+                        "id": data["progress_id"],
+                        "book_id": data["progress_book_id"],
+                        "progress_value": data["progress_value"],
+                        "progress_unit": data["progress_unit"],
+                        "recorded_at": data["progress_recorded_at"],
+                    })
+                book_data = {key: data[key] for key in (
+                    "id", "title", "author", "book_format", "status", "provider",
+                    "provider_item_id", "description", "created_at", "updated_at"
+                )}
+                books.append({
+                    "book": self._book(book_data),
+                    "progress": progress,
+                    "notes_count": int(data["notes_count"] or 0),
+                })
+
+            counts_rows = conn.execute(
+                "SELECT status, COUNT(*) AS count FROM public.reading_books GROUP BY status"
+            ).fetchall()
+            counts = {row["status"]: int(row["count"]) for row in counts_rows}
+            total = sum(counts.values())
+            notes = int(conn.execute(
+                "SELECT COUNT(*) AS count FROM public.reading_notes"
+            ).fetchone()["count"])
+            lists_count = int(conn.execute(
+                "SELECT COUNT(*) AS count FROM public.reading_lists"
+            ).fetchone()["count"])
+            list_rows = conn.execute("""
+                SELECT l.id, l.name, l.description, l.created_at,
+                       COUNT(i.book_id) AS book_count
+                FROM public.reading_lists AS l
+                LEFT JOIN public.reading_list_items AS i ON i.list_id = l.id
+                GROUP BY l.id
+                ORDER BY l.name
+            """).fetchall()
+
+        return {
+            "summary": {
+                "total": total,
+                "by_status": counts,
+                "notes": notes,
+                "lists": lists_count,
+            },
+            "books": books,
+            "lists": [self._normalise(row) for row in list_rows],
+        }
+
     def summary(self):
         with self._connection() as conn:
             rows = conn.execute(
