@@ -6,8 +6,6 @@ Main Application Launcher
 import sys
 
 from core.logger import Logger
-from core.app import run_application
-
 from commands.ai import run as run_ai
 from commands.test import run as run_tests
 from commands.wallet import run as run_wallet
@@ -21,6 +19,8 @@ from commands.models import run as models_command
 from commands.capabilities import run as capabilities_command
 from commands.analytics import run as analytics_command
 from commands.recommend import run as recommend_command
+from commands.reading import run as reading_command
+from commands.agents import run as agents_command
 
 def run_cli():
     """Handle command-line mode."""
@@ -44,6 +44,8 @@ def run_cli():
     "capabilities": capabilities_command,
     "analytics": analytics_command,
     "recommend": recommend_command,
+    "reading": reading_command,
+    "agents": agents_command,
 }
 
     action = commands.get(command)
@@ -61,6 +63,8 @@ def main():
 
     if run_cli():
         return
+
+    from core.app import run_application
 
     run_application()
 

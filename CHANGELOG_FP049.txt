@@ -1,0 +1,11 @@
+FP049 — Agent Collaboration Foundation
+=======================================
+- Added portable AgentTask, AgentPermissions and AgentResult contracts.
+- Added a pluggable BaseAgent interface and in-process AgentRegistry.
+- Added SQLite persistence for task lifecycle and structured results.
+- Added orchestration with pending/running/completed/failed/awaiting_approval states.
+- Added explicit approval gate for write, external-action and secret-access tasks.
+- Added result identity validation and safe error-code persistence.
+- Added lazy Kaivor AI adapter and `python kaivor.py agents` inspection command.
+- Added offline regression tests.
+- No Meta integration, external actions, schema migration or new dependency.

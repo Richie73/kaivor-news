@@ -1,0 +1,25 @@
+Kaivor FP049 bundle manifest
+
+New files:
+- core/agents/__init__.py
+- core/agents/models.py
+- core/agents/base.py
+- core/agents/registry.py
+- core/agents/store.py
+- core/agents/orchestrator.py
+- core/agents/kaivor_ai.py
+- commands/agents.py
+- tests/test_agents_fp049.py
+
+Replacement files:
+- kaivor.py
+
+Documentation:
+- README_INSTALL_FP049.txt
+- CHANGELOG_FP049.txt
+- BUNDLE_MANIFEST_FP049.txt
+
+Database migration: NONE (runtime SQLite table auto-created)
+New dependencies: NONE
+Secrets or credentials: NONE
+Meta Muse integration: NOT INCLUDED
