@@ -432,6 +432,27 @@ function scrollKaivorToTop(behavior = 'smooth') {
 function activateCategoryChip(element) {
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     element.classList.add('active');
+
+    // Keep the selected category visible in the horizontally scrolling tab rail.
+    // Use the rail's own scroll position so the page itself does not move vertically.
+    const rail = element.closest('.chips');
+    if (!rail) return;
+
+    const targetLeft = Math.max(
+        0,
+        element.offsetLeft - (rail.clientWidth - element.offsetWidth) / 2
+    );
+    const reducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (typeof rail.scrollTo === 'function') {
+        rail.scrollTo({
+            left: targetLeft,
+            behavior: reducedMotion ? 'auto' : 'smooth'
+        });
+    } else {
+        rail.scrollLeft = targetLeft;
+    }
 }
 
 function animateCategoryTitle(title, direction) {
