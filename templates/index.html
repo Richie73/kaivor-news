@@ -162,6 +162,35 @@
     background: rgba(148,163,184,.12);
 }
 
+
+        /* FP066: mobile navigation and scroll controls */
+        #kaivor-scroll-top {
+            position: fixed;
+            right: 18px;
+            bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+            z-index: 1200;
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #10b981;
+            color: #06130e;
+            border: 1px solid #34d399;
+            box-shadow: 0 5px 18px rgba(0,0,0,.4);
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        #kaivor-scroll-top.is-visible { display: flex; }
+        #kaivor-scroll-top:focus-visible { outline: 3px solid #d1fae5; outline-offset: 3px; }
+        body.kaivor-swipe-active { overscroll-behavior-x: contain; }
+        @media (prefers-reduced-motion: reduce) {
+            html:focus-within { scroll-behavior: auto; }
+        }
+
 </style>
 </head>
 <body>
@@ -280,6 +309,9 @@
     </div>
 </div>
 
+
+<button id="kaivor-scroll-top" type="button" aria-label="Scroll to top" title="Scroll to top">↑</button>
+
 <script>
 const savedIds = new Set({{ saved_ids | list | tojson }});
 
@@ -387,9 +419,24 @@ function articleFromCard(card) {
     };
 }
 
-function filterCategory(category, element) {
+
+function scrollKaivorToTop(behavior = 'smooth') {
+    if (typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: 0, left: 0, behavior });
+    } else {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }
+}
+
+function activateCategoryChip(element) {
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     element.classList.add('active');
+}
+
+function filterCategory(category, element) {
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
     document.getElementById('section-title').textContent = category === 'All' ? 'Top Stories' : category + ' Stories';
     const container = document.getElementById('articles-container');
     const cards = Array.from(container.querySelectorAll('.card'));
@@ -409,11 +456,70 @@ function filterCategory(category, element) {
     document.getElementById('status').textContent = category.toLowerCase() === 'sport'
         ? 'Football is prioritised first; other sports remain available below.'
         : 'Stories are deduplicated and saved locally on this device.';
+    if (wasDifferent) scrollKaivorToTop();
+}
+
+function initializeMobileNewsNavigation() {
+    const topButton = document.getElementById('kaivor-scroll-top');
+    if (!topButton || topButton.dataset.initialized === 'true') return;
+    topButton.dataset.initialized = 'true';
+
+    const updateTopButton = () => {
+        topButton.classList.toggle('is-visible', window.scrollY > 420);
+    };
+    window.addEventListener('scroll', updateTopButton, { passive: true });
+    topButton.addEventListener('click', () => scrollKaivorToTop());
+    updateTopButton();
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTarget = null;
+    let trackingTouch = false;
+    const swipeCategories = () => Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
+
+    document.addEventListener('touchstart', event => {
+        if (!event.touches || event.touches.length !== 1) {
+            trackingTouch = false;
+            return;
+        }
+        const target = event.target;
+        if (target.closest('input, textarea, select, button, a, [contenteditable="true"], .chips, .ai-drawer, #ask-modal-backdrop')) {
+            trackingTouch = false;
+            return;
+        }
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+        touchStartTarget = target;
+        trackingTouch = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', event => {
+        if (!trackingTouch || !event.changedTouches || !event.changedTouches.length) return;
+        trackingTouch = false;
+        const deltaX = event.changedTouches[0].clientX - touchStartX;
+        const deltaY = event.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(deltaX) < 75 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+        if (touchStartTarget && touchStartTarget.closest('.card a, .btn-group, .evidence-details')) return;
+
+        const chips = swipeCategories();
+        if (chips.length < 2) return;
+        const activeIndex = chips.findIndex(chip => chip.classList.contains('active'));
+        const currentIndex = activeIndex >= 0 ? activeIndex : 0;
+        const nextIndex = Math.max(0, Math.min(chips.length - 1, currentIndex + (deltaX < 0 ? 1 : -1)));
+        if (nextIndex !== currentIndex) {
+            const nextChip = chips[nextIndex];
+            const match = nextChip.getAttribute('onclick').match(/filterCategory\('([^']+)'/);
+            if (match) filterCategory(match[1], nextChip);
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', () => { trackingTouch = false; }, { passive: true });
 }
 
 async function showSaved(element) {
-    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
-    element.classList.add('active');
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
+    if (wasDifferent) scrollKaivorToTop();
     document.getElementById('section-title').textContent = 'Saved Stories';
     const container = document.getElementById('articles-container');
     try {
@@ -471,8 +577,9 @@ function escapeHtml(value) { const div=document.createElement('div'); div.textCo
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 
 async function showRelevanceProfile(element){
-    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
-    element.classList.add('active');
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
+    if (wasDifferent) scrollKaivorToTop();
     document.getElementById('section-title').textContent = 'Personal Relevance';
     const container=document.getElementById('articles-container');
     try{
@@ -922,6 +1029,7 @@ function updateStickyNavigationOffset() {
 window.addEventListener('resize', updateStickyNavigationOffset);
 document.addEventListener('DOMContentLoaded',()=>{
     updateStickyNavigationOffset();
+    initializeMobileNewsNavigation();
     formatArticleDates();
     initializeMarketTicker();
     updateFinanceTicker();
