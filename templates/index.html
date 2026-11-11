@@ -60,8 +60,10 @@
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding: 10px 12px;
+            padding: 10px 24px 10px 12px;
             margin: 0 -16px 16px;
+            scroll-padding-inline: 12px;
+            overscroll-behavior-x: contain;
             background: #0b0b0b;
             border-bottom: 1px solid #26262a;
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.28);
@@ -69,7 +71,7 @@
             box-sizing: border-box;
             -webkit-overflow-scrolling: touch;
         }
-        .chip { background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
+        .chip { flex: 0 0 auto; background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
         .chip.active { background:#10b981; color:#000; font-weight:600; border-color:#10b981; }
         .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         button,.btn-link { background:#1f2f2a; color:#10b981; border:1px solid #2a473b; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
@@ -429,31 +431,42 @@ function scrollKaivorToTop(behavior = 'smooth') {
     }
 }
 
-function activateCategoryChip(element) {
-    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
-    element.classList.add('active');
-
-    // Keep the selected category visible in the horizontally scrolling tab rail.
-    // Use the rail's own scroll position so the page itself does not move vertically.
-    const rail = element.closest('.chips');
+function scrollCategoryChipIntoView(element, behavior = 'smooth') {
+    const rail = element && element.closest('.chips');
     if (!rail) return;
 
-    const targetLeft = Math.max(
-        0,
-        element.offsetLeft - (rail.clientWidth - element.offsetWidth) / 2
+    // Measure against the visible rail rather than relying on offsetLeft,
+    // which can be relative to a different offset parent.
+    const railRect = rail.getBoundingClientRect();
+    const chipRect = element.getBoundingClientRect();
+    const chipCenter = rail.scrollLeft + chipRect.left - railRect.left + (chipRect.width / 2);
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    const targetLeft = Math.min(
+        maxScroll,
+        Math.max(0, chipCenter - (rail.clientWidth / 2))
     );
     const reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const scrollBehavior = reducedMotion ? 'auto' : behavior;
 
     if (typeof rail.scrollTo === 'function') {
-        rail.scrollTo({
-            left: targetLeft,
-            behavior: reducedMotion ? 'auto' : 'smooth'
-        });
+        rail.scrollTo({ left: targetLeft, behavior: scrollBehavior });
     } else {
         rail.scrollLeft = targetLeft;
     }
 }
+
+function activateCategoryChip(element) {
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    element.classList.add('active');
+    scrollCategoryChipIntoView(element);
+}
+
+// Keep every rail item reachable, including link-based items such as Reading.
+document.addEventListener('click', event => {
+    const element = event.target.closest && event.target.closest('.chips .chip');
+    if (element) scrollCategoryChipIntoView(element, 'auto');
+}, true);
 
 function animateCategoryTitle(title, direction) {
     const titleElement = document.getElementById('section-title');
