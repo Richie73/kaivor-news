@@ -434,10 +434,34 @@ function activateCategoryChip(element) {
     element.classList.add('active');
 }
 
+function animateCategoryTitle(title, direction) {
+    const titleElement = document.getElementById('section-title');
+    if (!titleElement) return;
+
+    titleElement.textContent = title;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof titleElement.animate !== 'function') return;
+
+    // Moving to the next category brings its title in from the right;
+    // moving backwards brings it in from the left.
+    const startX = direction === 'right' ? -28 : 28;
+    titleElement.animate(
+        [
+            { opacity: 0.35, transform: `translateX(${startX}px)` },
+            { opacity: 1, transform: 'translateX(0)' }
+        ],
+        { duration: 230, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    );
+}
+
 function filterCategory(category, element) {
     const wasDifferent = !element.classList.contains('active');
+    const categoryChips = Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
+    const previousIndex = categoryChips.findIndex(chip => chip.classList.contains('active'));
+    const nextIndex = categoryChips.indexOf(element);
+    const direction = nextIndex >= 0 && previousIndex >= 0 && nextIndex < previousIndex ? 'right' : 'left';
     activateCategoryChip(element);
-    document.getElementById('section-title').textContent = category === 'All' ? 'Top Stories' : category + ' Stories';
+    animateCategoryTitle(category === 'All' ? 'Top Stories' : category + ' Stories', direction);
     const container = document.getElementById('articles-container');
     const cards = Array.from(container.querySelectorAll('.card'));
     if (category.toLowerCase() === 'sport') {
