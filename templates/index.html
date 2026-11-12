@@ -247,9 +247,9 @@
         <div class="chip" onclick="filterCategory('UK',this)">UK</div>
         <div class="chip" onclick="filterCategory('Sport',this)">Sport</div>
         <div class="chip" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
-        <div class="chip" onclick="showSaved(this)">★ Saved</div>
-        <div class="chip" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
-        <a class="chip" href="/reading" style="text-decoration:none;">📚 Reading</a>
+        <div class="chip" data-scroll-to-end="true" onclick="showSaved(this)">★ Saved</div>
+        <div class="chip" data-scroll-to-end="true" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
+        <a class="chip" data-scroll-to-end="true" href="/reading" style="text-decoration:none;">📚 Reading</a>
     </div>
 
     <h3 id="section-title" style="font-size:14px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Top Stories</h3>
@@ -456,16 +456,60 @@ function scrollCategoryChipIntoView(element, behavior = 'smooth') {
     }
 }
 
+function scrollCategoryRailToEnd(element, behavior = 'smooth') {
+    const rail = element && element.closest('.chips');
+    if (!rail) return;
+
+    // Use the rail's real scroll extent. This intentionally aligns the final
+    // utility actions (Saved, Relevance and Reading) with the right edge.
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    const reducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const scrollBehavior = reducedMotion ? 'auto' : behavior;
+
+    if (typeof rail.scrollTo === 'function') {
+        rail.scrollTo({ left: maxScroll, behavior: scrollBehavior });
+    } else {
+        rail.scrollLeft = maxScroll;
+    }
+}
+
 function activateCategoryChip(element) {
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     element.classList.add('active');
-    scrollCategoryChipIntoView(element);
+    if (element.dataset.scrollToEnd === 'true') {
+        scrollCategoryRailToEnd(element);
+    } else {
+        scrollCategoryChipIntoView(element);
+    }
 }
 
-// Keep every rail item reachable, including link-based items such as Reading.
+// Reading navigates away, so let the rail visibly reach its end before
+// following the link. Saved and Relevance stay on this page and are handled
+// by activateCategoryChip() above.
 document.addEventListener('click', event => {
-    const element = event.target.closest && event.target.closest('.chips .chip');
-    if (element) scrollCategoryChipIntoView(element, 'auto');
+    const link = event.target.closest && event.target.closest('.chips a[data-scroll-to-end="true"]');
+    if (!link) return;
+
+    event.preventDefault();
+    const destination = link.href;
+    scrollCategoryRailToEnd(link);
+
+    let navigated = false;
+    const navigate = () => {
+        if (navigated) return;
+        navigated = true;
+        window.location.assign(destination);
+    };
+
+    const rail = link.closest('.chips');
+    if (rail && 'onscrollend' in rail) {
+        rail.addEventListener('scrollend', navigate, { once: true });
+        // Fallback in case a browser does not emit scrollend for a no-op scroll.
+        window.setTimeout(navigate, 900);
+    } else {
+        window.setTimeout(navigate, 450);
+    }
 }, true);
 
 function animateCategoryTitle(title, direction) {
@@ -533,7 +577,13 @@ function initializeMobileNewsNavigation() {
     let touchStartY = 0;
     let touchStartTarget = null;
     let trackingTouch = false;
-    const swipeCategories = () => Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
+    // Swipe through all top-level destinations, including utility sections.
+    const swipeCategories = () => Array.from(document.querySelectorAll(
+        '.chips .chip[onclick^="filterCategory("], ' +
+        '.chips .chip[onclick^="showSaved("], ' +
+        '.chips .chip[onclick^="showRelevanceProfile("], ' +
+        '.chips a[data-scroll-to-end="true"]'
+    ));
 
     document.addEventListener('touchstart', event => {
         if (!event.touches || event.touches.length !== 1) {
@@ -566,8 +616,19 @@ function initializeMobileNewsNavigation() {
         const nextIndex = Math.max(0, Math.min(chips.length - 1, currentIndex + (deltaX < 0 ? 1 : -1)));
         if (nextIndex !== currentIndex) {
             const nextChip = chips[nextIndex];
-            const match = nextChip.getAttribute('onclick').match(/filterCategory\('([^']+)'/);
-            if (match) filterCategory(match[1], nextChip);
+            const action = nextChip.getAttribute('onclick') || '';
+
+            if (action.startsWith('filterCategory(')) {
+                const match = action.match(/filterCategory\('([^']+)'\)/);
+                if (match) filterCategory(match[1], nextChip);
+            } else if (action.startsWith('showSaved(')) {
+                showSaved(nextChip);
+            } else if (action.startsWith('showRelevanceProfile(')) {
+                showRelevanceProfile(nextChip);
+            } else if (nextChip.matches('a[href]')) {
+                // Reuse the normal click path and FP067c end-scroll handler.
+                nextChip.click();
+            }
         }
     }, { passive: true });
 
