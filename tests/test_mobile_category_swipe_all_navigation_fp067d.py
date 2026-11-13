@@ -33,14 +33,16 @@ def test_swipe_sequence_includes_categories_saved_relevance_and_reading():
 
 def test_swipe_dispatches_each_navigation_type():
     handler = swipe_handler()
-    assert "action.startsWith('filterCategory(')" in handler
-    assert "filterCategory(match[1], nextChip)" in handler
-    assert "action.startsWith('showSaved(')" in handler
-    assert "showSaved(nextChip)" in handler
-    assert "action.startsWith('showRelevanceProfile(')" in handler
-    assert "showRelevanceProfile(nextChip)" in handler
-    assert "nextChip.matches('a[href]')" in handler
-    assert "nextChip.click()" in handler
+    # FP072: the dispatch no longer parses inline onclick attributes — the
+    # FP067d regex (/filterCategory\('([^']+)'\)/) never matched the real
+    # attributes (filterCategory('All',this) has a second argument), so
+    # swiping between categories silently did nothing. Every destination
+    # is now activated the same way a tap activates it.
+    assert ".click()" in handler
+    assert "getAttribute('onclick')" not in handler
+    assert "filterCategory(match[1]" not in handler
+    assert "showSaved(nextChip)" not in handler
+    assert "showRelevanceProfile(nextChip)" not in handler
 
 
 def test_reading_swipe_reuses_fp067c_end_scroll_click_handler():

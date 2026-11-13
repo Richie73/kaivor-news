@@ -617,20 +617,14 @@ function initializeMobileNewsNavigation() {
         const currentIndex = activeIndex >= 0 ? activeIndex : 0;
         const nextIndex = Math.max(0, Math.min(chips.length - 1, currentIndex + (deltaX < 0 ? 1 : -1)));
         if (nextIndex !== currentIndex) {
-            const nextChip = chips[nextIndex];
-            const action = nextChip.getAttribute('onclick') || '';
-
-            if (action.startsWith('filterCategory(')) {
-                const match = action.match(/filterCategory\('([^']+)'\)/);
-                if (match) filterCategory(match[1], nextChip);
-            } else if (action.startsWith('showSaved(')) {
-                showSaved(nextChip);
-            } else if (action.startsWith('showRelevanceProfile(')) {
-                showRelevanceProfile(nextChip);
-            } else if (nextChip.matches('a[href]')) {
-                // Reuse the normal click path and FP067c end-scroll handler.
-                nextChip.click();
-            }
+            // FP072: activate the next destination the same way a tap does.
+            // The FP067d dispatch parsed the inline onclick with a regex
+            // that required a closing paren right after the category name,
+            // which never matched the real attributes (they carry a second
+            // `,this` argument), so swiping between categories silently did
+            // nothing. click() reuses each chip's own handler, whatever its
+            // signature.
+            chips[nextIndex].click();
         }
     }, { passive: true });
 

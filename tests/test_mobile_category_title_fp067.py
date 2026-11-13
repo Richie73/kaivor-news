@@ -43,7 +43,10 @@ def test_fp066_swipe_navigation_is_preserved():
     assert "document.addEventListener('touchstart'" in html
     assert "document.addEventListener('touchend'" in html
     assert "Math.abs(deltaX) < 75" in html
-    assert "filterCategory(match[1], nextChip)" in html
+    # FP072: the swipe activates the next chip with click() instead of
+    # parsing its inline onclick (the FP067d regex never matched the
+    # real filterCategory('X',this) attributes).
+    assert "chips[nextIndex].click()" in html
 
 
 def test_fp066_scroll_to_top_is_preserved():

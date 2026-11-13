@@ -40,7 +40,10 @@ def test_swipe_navigation_uses_category_chips_and_horizontal_threshold():
     assert "Math.abs(deltaX) < 75" in html
     assert "Math.abs(deltaX) < Math.abs(deltaY) * 1.25" in html
     assert "'.chip[onclick^=\"filterCategory(\"]'" in html
-    assert "filterCategory(match[1], nextChip)" in html
+    # FP072: the swipe activates the next chip with click() instead of
+    # parsing its inline onclick (the FP067d regex never matched the
+    # real filterCategory('X',this) attributes).
+    assert "chips[nextIndex].click()" in html
 
 
 def test_swipe_ignores_interactive_controls_and_chip_scroller():

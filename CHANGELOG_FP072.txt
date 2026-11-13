@@ -1,0 +1,72 @@
+FP072 — Fix the category swipe
+=================================
+
+Background (13 Nov 2026)
+- After the FP068/FP068.1/FP069 push (a5ffa8d) and Render redeploy,
+  Richie reported the category scroll "isn't working at all now":
+  swiping left/right on the news page no longer changed category.
+- Cause (found in templates/index.html): the FP067d swipe dispatch
+  parsed each chip's inline onclick with the regex
+  /filterCategory\('([^']+)'\)/ — but the chips' real attributes are
+  filterCategory('All',this), filterCategory('World',this), and so on,
+  with a second `,this` argument. The regex requires `')` immediately
+  after the category name, so it never matched any of the ten
+  filterCategory chips, and the swipe silently did nothing for them.
+  Only Saved, Relevance (separate branches) and Reading (click())
+  still worked.
+- The old production template (cf4c37f) used /filterCategory\('([^']+)'/
+  — no trailing \) — which DOES match, so the swipe worked before.
+  FP067d (0b6836c, 12 Nov, "Fix mobile swipe navigation beyond
+  puzzles") rewrote the dispatch, added the \), and broke it. The bug
+  went live with the a5ffa8d redeploy on 13 Nov. The FP070 verification
+  checked the swipe SELECTOR (which chips are included) but not the
+  dispatch regex, so it was missed.
+- The chip rail's own drag-scroll was never affected: it is native
+  overflow-x scrolling, all touch listeners are passive, and the swipe
+  handler excludes touches starting on the rail.
+
+The fix
+- In templates/index.html, the touchend dispatch no longer parses
+  inline onclick attributes at all. When the swipe lands on a different
+  destination, it activates that chip with chips[nextIndex].click() —
+  the same way a tap activates it. Each chip's own handler runs with
+  the correct element, whatever its signature, so no future change to
+  an onclick attribute can silently break the swipe again.
+- Unchanged: the swipe threshold (75px), the vertical-gesture guard
+  (horizontal must beat vertical x 1.25), the touchstart exclusions
+  (inputs, buttons, links, the chip rail, the AI drawer), the
+  touchend exclusions (.card a, .btn-group, .evidence-details), the
+  13-destination swipe sequence (10 categories + Saved + Relevance +
+  Reading), and the FP067c Reading click handler (rail scrolls to the
+  end before navigating).
+
+Tests
+- 5 new tests in tests/test_swipe_dispatch_fp072.py: the dispatch uses
+  click() and contains no onclick parsing or regex matching; the buggy
+  regex is gone from the template; all 13 swipe destinations are
+  click-activatable (10 filterCategory chips with onclick, Saved and
+  Relevance with onclick, Reading as a link); the swipe still moves to
+  the adjacent destination and clamps at the ends; the swipe guards
+  are unchanged.
+- tests/test_mobile_category_swipe_all_navigation_fp067d.py updated:
+  the dispatch test now asserts the click() dispatch and the absence
+  of onclick parsing (the old assertions enshrined the buggy regex
+  dispatch without ever checking the regex matched the real
+  attributes).
+- tests/test_mobile_news_navigation_fp066.py updated the same way: its
+  swipe test asserted filterCategory(match[1], nextChip), the buggy
+  dispatch, and now asserts chips[nextIndex].click().
+- tests/test_mobile_category_title_fp067.py updated the same way: its
+  FP066-preservation test asserted the same buggy dispatch line.
+- Full suite (local, test-only secrets stub): 444 passed, 11 failed,
+  2 skipped. The 11 failures are the same known set as the FP069/FP071
+  baseline (6 test_credential_migration_fp037 stub artifacts, 2 MCP
+  httpx environment-only, 3 NewsData tests that need the device's real
+  config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP072.txt.
+
+Out of scope (unchanged): the chip rail layout and drag-scroll; the
+category filter logic (filterCategory); the refresh pipeline (FP071);
+Render deploy (follows the normal push flow after the Termux install,
+with a manual dashboard deploy if auto-deploy does not fire — it did
+not fire for the FP071 push on 13 Nov).
