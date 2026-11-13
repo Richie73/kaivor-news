@@ -1,0 +1,20 @@
+Kaivor FP078 bundle manifest
+
+REPLACEMENT:
+- render.yaml
+
+NEW:
+- migrations/mcp/002_agent_tasks_render.sql
+- tests/test_mcp_deploy_fp078.py
+- README_INSTALL_FP078.txt
+- CHANGELOG_FP078.txt
+- BUNDLE_MANIFEST_FP078.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied by installing these files; the migration
+runs separately (see README_INSTALL_FP078.txt Step 3).
+No deployment is performed.

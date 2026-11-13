@@ -30,3 +30,30 @@ services:
         value: "true"
       - key: KAIVOR_READING_REQUIRE_POSTGRES
         value: "true"
+  # FP078: standalone Kaivor MCP service (Streamable HTTP) for the Muse
+  # link. No healthCheckPath: the service exposes no health endpoint, so
+  # Render falls back to its port check. The bearer token, agent database
+  # URL and OpenRouter key are dashboard secrets (sync: false) — never
+  # committed. The agent database is the existing Reading Postgres:
+  # the migration (migrations/mcp/002_agent_tasks_render.sql) adds one
+  # agent_tasks table to it under a least-privilege kaivor_mcp role.
+  - type: web
+    name: kaivor-mcp
+    runtime: python
+    buildCommand: pip install -r requirements.txt -r requirements-mcp.txt -r requirements-postgres.txt
+    startCommand: python run_mcp.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: KAIVOR_MCP_ENV
+        value: "production"
+      - key: KAIVOR_MCP_HOST
+        value: "0.0.0.0"
+      - key: KAIVOR_MCP_BEARER_TOKEN
+        sync: false
+      - key: KAIVOR_AGENT_DATABASE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: KAIVOR_MCP_ALLOWED_MEMORY_CATEGORIES
+        value: ""

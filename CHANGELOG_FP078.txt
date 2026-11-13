@@ -1,0 +1,96 @@
+FP078 — Link Muse to Kaivor (deploy the MCP server)
+==================================================
+
+Background (13 Nov 2026)
+- Richie asked "Can I link you to it?" — connecting Muse to Kaivor.
+  Kaivor already had a dedicated remote MCP server in the code
+  (FP051–FP056, production-readiness work), built for exactly this:
+  it defaults the connector identity to "meta_muse". It was never
+  deployed or exposed anywhere — render.yaml defined only the
+  kaivor-news service.
+- This milestone deploys it as a second Render service, kaivor-mcp,
+  and sets up the Muse side as a custom connector. It does NOT
+  change the news app.
+
+What the link can and cannot do
+- Muse can: search Kaivor's knowledge (only memory categories
+  Richie allowlists — none are allowlisted yet, so search starts
+  disabled); submit read-only research tasks to Kaivor; check a
+  task's status; read a task's result.
+- Muse cannot: change anything in Kaivor, or make Kaivor do things
+  in the outside world. The tools are read-only by design.
+- Honest limits, found while building this:
+  1. Knowledge search runs against Kaivor's memory store, which
+     lives on the service's own disk and starts empty on Render.
+     Until memories exist in the deployed environment, search
+     returns nothing even after categories are allowlisted. The
+     task tools are the live value on day one.
+  2. Task execution runs Kaivor's own AI engine, which needs an
+     OpenRouter key on the new service. The key currently in the
+     Render dashboard is the one exposed in FP069 and never
+     rotated — rotate it first (see README_INSTALL_FP078.txt),
+     then put the new key on both services.
+  3. Render's free instances spin down when idle, so the first
+     call after a quiet spell can take up to a minute. The news
+     app has the same behaviour.
+
+What was built (code side)
+- render.yaml: a second web service, kaivor-mcp. Start command
+  "python run_mcp.py" (uvicorn, port from Render). Build installs
+  requirements.txt + requirements-mcp.txt + requirements-postgres.txt
+  (the MCP service needs psycopg for its Postgres task store).
+  Env: KAIVOR_MCP_ENV=production, KAIVOR_MCP_HOST=0.0.0.0, and
+  KAIVOR_MCP_ALLOWED_MEMORY_CATEGORIES left empty (search disabled
+  by default). Secrets are dashboard-only (sync: false):
+  KAIVOR_MCP_BEARER_TOKEN, KAIVOR_AGENT_DATABASE_URL,
+  OPENROUTER_API_KEY. No healthCheckPath: the service exposes no
+  health endpoint (FastMCP serves only /mcp; the observability
+  middleware only special-cases /metrics), so Render falls back to
+  its port check.
+- migrations/mcp/002_agent_tasks_render.sql: FP059's migration
+  adapted for Render Postgres. FP059 was written for Supabase and
+  one REVOKE line names roles that do not exist on Render, so the
+  original errors there. This file drops only that line; the table,
+  indexes, grants, RLS and policy are byte-identical to FP059
+  (asserted by test).
+- The agent database is the EXISTING Reading Postgres — no new
+  database, no new cost. The migration adds one agent_tasks table
+  to it, and the service connects as a least-privilege kaivor_mcp
+  role that can only SELECT/INSERT/UPDATE that one table. It
+  cannot touch the Reading tables.
+- Auth is the single-token path: KAIVOR_MCP_BEARER_TOKEN (32+
+  non-whitespace characters) with identity meta_muse. The
+  multi-connector KAIVOR_MCP_CONNECTORS path was not used — one
+  connector, one token.
+
+Tests
+- 5 new tests in tests/test_mcp_deploy_fp078.py (string checks
+  only — PyYAML is not installed in Termux, so the render.yaml
+  checks cannot parse YAML; the file was also validated as real
+  YAML by hand before shipping): the mcp service block has the
+  right start/build commands, production env, host, and exactly
+  three dashboard secrets, with no healthCheckPath; the news
+  service block is intact; the Render migration has the same
+  table/grants/RLS/policy as FP059, no Supabase roles, and no real
+  password; the table definition matches FP059 byte-for-byte; the
+  run_mcp.py entrypoint exists and wires build_mcp_app with
+  MCPRuntimeConfig.from_environment.
+- Full suite (local, test-only secrets stub): 491 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as the
+  FP069–FP077 baseline. No new failures.
+- Phone suite after install: see README_INSTALL_FP078.txt.
+
+Muse side (after the service is live)
+- Custom connector "custom.kaivor" under
+  ~/workspace/custom-connectors/, built with the
+  custom_connector_setup skill: credentials.request_api_access
+  (api_hosts kaivor-mcp.onrender.com, API key in the Authorization
+  header), the MCP client helper from templates/mcp_client.py,
+  verified with list-tools plus a harmless search call, then a
+  real task submit/run/status/result round-trip.
+- The connector work is NOT in this commit — it lives on Muse's
+  side, not in the Kaivor repo.
+
+Out of scope (unchanged): the news app (main.py, templates);
+FP059's original migration file (kept as-is); memory categories
+(none allowlisted yet — Richie's call, later); ROADMAP.md.
