@@ -1,0 +1,42 @@
+FP076 — More puzzles in the Puzzles category
+==========================================
+
+Background (13 Nov 2026)
+- Richie asked for more puzzles. The Puzzles category held only 4
+  link cards (NYT Wordle, Guardian crosswords, Independent
+  crosswords & Sudoku, NYT Mini Crossword). This milestone takes it
+  to 12. The category is links out to the publishers' puzzle pages
+  — no puzzles are hosted inside Kaivor itself.
+
+What was built
+- 8 new entries in puzzle_items() (main.py), all free to play with
+  no account needed for the daily puzzle:
+  - NYT Connections — group 16 words into 4 sets.
+  - NYT Strands — find the hidden theme words in a letter grid.
+  - Quordle — 4 Wordles at once in 9 guesses.
+  - Nerdle — Wordle with numbers; guess the calculation in 6 tries.
+  - Sudoku.com — daily Sudoku, easy to extreme.
+  - Lichess puzzles — chess puzzles from real games, rated to level.
+  - Worldle — guess the country from its outline.
+  - Waffle — swap letters to make six words in 15 moves.
+- Every URL was checked live before building: 6 via a page fetch
+  (Quordle, Nerdle, Sudoku.com, Lichess, Worldle, Waffle) and the
+  2 NYT pages via the live browser (nytimes.com blocks the fetch
+  tool). All 8 loaded the right game. The Connections page shows a
+  "Subscribe for unlimited play" message — the daily puzzle itself
+  is free, as with Wordle.
+
+Tests
+- 4 new tests in tests/test_puzzles_fp076.py: 12 entries with all
+  8 new titles present; every entry complete (Puzzles category,
+  title, description, source, "Daily", https link); links and
+  titles unique.
+- Full suite (local, test-only secrets stub): see README_INSTALL_FP076.txt.
+- Phone suite after install: see README_INSTALL_FP076.txt.
+
+Out of scope (unchanged): playable puzzles inside Kaivor itself
+(each would be its own mini-app — a possible later milestone);
+the 4 original puzzle links; ROADMAP.md; Render deploy (follows
+the normal push flow after the Termux install, with a manual
+dashboard deploy if auto-deploy does not fire — it did not fire
+for the FP071 push on 13 Nov).

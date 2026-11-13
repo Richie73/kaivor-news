@@ -60,6 +60,7 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_add_feed",
     "api_ai_brief",
     "api_ask_ai",
+    "api_chat",
     "api_finance_refresh",
     "api_refresh",
     "api_relevance_profile",  # PUT only; GET is skipped by the method check
@@ -481,6 +482,70 @@ def puzzle_items():
             "source": "The New York Times",
             "published": "Daily",
             "link": "https://www.nytimes.com/crosswords/game/mini",
+        },
+        {
+            "title": "The New York Times - Connections",
+            "description": "Group 16 words into 4 connected sets. A new puzzle every day.",
+            "category": "Puzzles",
+            "source": "The New York Times",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/games/connections",
+        },
+        {
+            "title": "The New York Times - Strands",
+            "description": "Find the hidden theme words in a grid of letters. A new puzzle every day.",
+            "category": "Puzzles",
+            "source": "The New York Times",
+            "published": "Daily",
+            "link": "https://www.nytimes.com/games/strands",
+        },
+        {
+            "title": "Quordle - Daily Word Puzzle",
+            "description": "Solve 4 Wordles at once in 9 guesses. Daily puzzle plus unlimited practice.",
+            "category": "Puzzles",
+            "source": "Quordle",
+            "published": "Daily",
+            "link": "https://www.quordle.com",
+        },
+        {
+            "title": "Nerdle - Daily Numbers Game",
+            "description": "Wordle with numbers — guess the hidden calculation in 6 tries.",
+            "category": "Puzzles",
+            "source": "Nerdle",
+            "published": "Daily",
+            "link": "https://www.nerdlegame.com",
+        },
+        {
+            "title": "Sudoku.com - Daily Sudoku",
+            "description": "Daily Sudoku from easy to extreme, plus unlimited puzzles.",
+            "category": "Puzzles",
+            "source": "Sudoku.com",
+            "published": "Daily",
+            "link": "https://sudoku.com",
+        },
+        {
+            "title": "Lichess - Chess Puzzles",
+            "description": "Chess puzzles from real games, rated to your level. Free, no account needed.",
+            "category": "Puzzles",
+            "source": "Lichess",
+            "published": "Daily",
+            "link": "https://lichess.org/training",
+        },
+        {
+            "title": "Worldle - Guess the Country",
+            "description": "Guess the country from its outline, with distance and direction clues. A new country every day.",
+            "category": "Puzzles",
+            "source": "Worldle",
+            "published": "Daily",
+            "link": "https://worldle.teuteuf.fr",
+        },
+        {
+            "title": "Waffle - Daily Word Game",
+            "description": "Swap the letters to make six words in 15 moves or fewer. A new waffle every day.",
+            "category": "Puzzles",
+            "source": "Waffle",
+            "published": "Daily",
+            "link": "https://wafflegame.net",
         },
     ]
 
@@ -1465,6 +1530,80 @@ def api_ask_ai():
     return jsonify({
         "success": False,
         "error": "AI could not answer this question right now.",
+        "details": " | ".join(errors),
+    }), 503
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    """General chat hub: multi-turn conversation with the configured AI provider.
+
+    FP077. The client sends the conversation history; the server validates
+    it, prepends the Kaivor system prompt and calls the same provider chain
+    as /api/ask_ai (OpenRouter first, then OpenAI). Behind the FP069 PIN
+    gate like every other AI route, so the key cannot be burned by
+    unauthenticated callers.
+    """
+    data = request.json or {}
+    raw_messages = data.get("messages")
+    if not isinstance(raw_messages, list) or not raw_messages:
+        return jsonify({"success": False, "error": "A list of chat messages is required."}), 400
+    if len(raw_messages) > 20:
+        return jsonify({"success": False, "error": "Chat history is limited to the last 20 messages."}), 400
+    messages = []
+    for item in raw_messages:
+        if not isinstance(item, dict):
+            return jsonify({"success": False, "error": "Each chat message must have a role and content."}), 400
+        role = str(item.get("role") or "").strip()
+        content = str(item.get("content") or "").strip()
+        if role not in {"user", "assistant"} or not content:
+            return jsonify({"success": False, "error": "Each chat message must have a role and content."}), 400
+        if len(content) > 4000:
+            return jsonify({"success": False, "error": "A chat message is limited to 4000 characters."}), 400
+        messages.append({"role": role, "content": content})
+
+    providers = []
+    if os.environ.get("OPENROUTER_API_KEY"):
+        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", os.environ["OPENROUTER_API_KEY"], "deepseek/deepseek-chat"))
+    if os.environ.get("OPENAI_API_KEY"):
+        providers.append(("OpenAI", "https://api.openai.com/v1/chat/completions", os.environ["OPENAI_API_KEY"], "gpt-4o-mini"))
+
+    if not providers:
+        return jsonify({"success": False, "error": "No AI provider is configured. Add an OpenRouter or OpenAI API key in Sources & API Settings."}), 503
+
+    system_prompt = {
+        "role": "system",
+        "content": "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so.",
+    }
+    errors = []
+    for provider, url, key, model in providers:
+        try:
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            payload = {
+                "model": model,
+                "messages": [system_prompt, *messages],
+                "temperature": 0.7,
+            }
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            if response.status_code == 200:
+                content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                if content:
+                    return jsonify({"success": True, "reply": content, "provider": provider})
+                errors.append(f"{provider}: empty response")
+            else:
+                try:
+                    detail = response.json().get("error", {}).get("message", "")
+                except Exception:
+                    detail = ""
+                errors.append(f"{provider}: HTTP {response.status_code}" + (f" — {detail[:180]}" if detail else ""))
+        except requests.RequestException as exc:
+            errors.append(f"{provider}: connection error ({type(exc).__name__})")
+        except Exception:
+            errors.append(f"{provider}: unexpected provider response")
+
+    return jsonify({
+        "success": False,
+        "error": "AI could not reply right now.",
         "details": " | ".join(errors),
     }), 503
 
