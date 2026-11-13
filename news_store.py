@@ -13,13 +13,14 @@ import tempfile
 from pathlib import Path
 from threading import RLock
 from typing import Any
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "config"
 DATA_DIR = BASE_DIR / "data"
 SOURCES_FILE = CONFIG_DIR / "news_sources.json"
 SAVED_FILE = DATA_DIR / "news_saved.json"
-SECRETS_FILE = CONFIG_DIR / "news_secrets.json"
+PRIVATE_SECRETS_FILE = Path.home() / ".config" / "kaivor" / "news_secrets.json"
 
 _LOCK = RLock()
 
@@ -64,6 +65,23 @@ def article_id(article: dict[str, Any]) -> str:
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
 
 
+def _clean_image_url(value: Any) -> str:
+    """Sanitise an article image URL, or "" when it is not usable.
+
+    Only http(s) URLs are kept: the URL is rendered in the browser as
+    an <img src>, so javascript:/data: URIs and relative paths are
+    rejected. This is the central choke point — every article passes
+    through normalise_article on refresh and on save.
+    """
+    url = str(value or "").strip()
+    if len(url) > 2048:
+        return ""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return ""
+    return url
+
+
 def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
     item = {
         "id": article_id(article),
@@ -77,6 +95,7 @@ def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
         "feed_url": str(article.get("feed_url") or "").strip(),
         "sport_focus": str(article.get("sport_focus") or "").strip(),
         "link": str(article.get("link") or "#").strip(),
+        "image_url": _clean_image_url(article.get("image_url")),
         "cluster_id": str(article.get("cluster_id") or "").strip(),
         "source_count": int(article.get("source_count") or 1),
         "report_count": int(article.get("report_count") or max(1, int(article.get("related_count") or 0) + 1)),
@@ -163,39 +182,78 @@ def is_saved(article_id_value: str) -> bool:
     return any(item["id"] == article_id_value for item in load_saved_articles())
 
 
+def _secret_aliases() -> dict[str, str]:
+    return {
+        "openrouter": "OPENROUTER_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "guardian": "GUARDIAN_API_KEY",
+        "brave": "BRAVE_API_KEY",
+        "newsdata": "NEWSDATA_API_KEY",
+        "deepseek": "DEEPSEEK_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "GOOGLE_API_KEY",
+    }
+
+
+def _read_secret_dict(path: Path) -> dict[str, str]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            value = json.load(handle)
+        return {str(k): str(v).strip() for k, v in value.items()
+                if isinstance(value, dict) and str(v).strip()} if isinstance(value, dict) else {}
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {}
+
+
 def load_secrets() -> dict[str, str]:
-    """Load local secrets and let existing environment variables take priority."""
+    """Load provider credentials from environment variables and private storage.
+
+    Project-local credential files are never read.
+    """
     with _LOCK:
-        value = _read_json(SECRETS_FILE, {})
-        if not isinstance(value, dict):
-            value = {}
-        aliases = {
-            "openrouter": "OPENROUTER_API_KEY",
-            "openai": "OPENAI_API_KEY",
-            "guardian": "GUARDIAN_API_KEY",
-            "brave": "BRAVE_API_KEY",
-            "newsdata": "NEWSDATA_API_KEY",
-        }
+        private = _read_secret_dict(PRIVATE_SECRETS_FILE)
         result: dict[str, str] = {}
-        for key, env_name in aliases.items():
-            env_value = os.environ.get(env_name, "").strip()
-            file_value = str(value.get(key, "")).strip()
-            result[key] = env_value or file_value
+        for key, env_name in _secret_aliases().items():
+            result[key] = os.environ.get(env_name, "").strip() or private.get(key, "")
         return result
 
 
 def save_secret(secret_type: str, api_key: str) -> bool:
-    aliases = {"openrouter", "openai", "guardian", "brave", "newsdata"}
-    if secret_type not in aliases or not api_key.strip():
+    """Persist a provider key in the private user store, never the project tree."""
+    aliases = set(_secret_aliases())
+    secret_type = str(secret_type).strip().lower()
+    api_key = str(api_key).strip()
+    if secret_type not in aliases or not api_key:
         return False
     with _LOCK:
-        current = _read_json(SECRETS_FILE, {})
-        if not isinstance(current, dict):
-            current = {}
-        current[secret_type] = api_key.strip()
-        _write_json(SECRETS_FILE, current)
+        path = PRIVATE_SECRETS_FILE
         try:
-            SECRETS_FILE.chmod(0o600)
+            path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            try:
+                path.parent.chmod(0o700)
+            except OSError:
+                pass
+            current = _read_secret_dict(path)
+            current[secret_type] = api_key
+            fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
+            try:
+                os.fchmod(fd, 0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    json.dump(current, handle, indent=2, ensure_ascii=False)
+                    handle.write("\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(tmp_name, path)
+                try:
+                    path.chmod(0o600)
+                except OSError:
+                    pass
+            finally:
+                try:
+                    os.unlink(tmp_name)
+                except FileNotFoundError:
+                    pass
+            return True
         except OSError:
-            pass
-    return True
+            return False
+

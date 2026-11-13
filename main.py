@@ -304,7 +304,7 @@ def fetch_guardian_articles(category):
     try:
         url = (
             "https://content.guardianapis.com/search"
-            f"?section={section}&api-key={guardian_key}&show-fields=trailText"
+            f"?section={section}&api-key={guardian_key}&show-fields=trailText,thumbnail"
         )
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
@@ -320,6 +320,7 @@ def fetch_guardian_articles(category):
                         "published": item.get("webPublicationDate", "Recent")[:16],
                         "published_ts": _published_timestamp(item.get("webPublicationDate")),
                         "link": item.get("webUrl", "#"),
+                        "image_url": fields.get("thumbnail", ""),
                         "feed_tier": "primary",
                         "feed_url": "https://content.guardianapis.com/search",
                     }
@@ -405,6 +406,7 @@ def fetch_newsdata_articles():
                 "published": published_raw[:16] or "Recent",
                 "published_ts": _published_timestamp(published_raw),
                 "link": link,
+                "image_url": str(item.get("image_url") or ""),
                 "feed_tier": "supplemental",
                 "feed_url": "https://newsdata.io/api/1/latest",
             }

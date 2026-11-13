@@ -214,6 +214,75 @@ def entry_datetime(entry: Any) -> datetime | None:
     return None
 
 
+_IMG_SRC_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"']", re.IGNORECASE)
+
+
+def _http_image_url(value: Any) -> str:
+    """Return value as a usable image URL, or "" when it is not one.
+
+    Only http(s) URLs are accepted: the URL is rendered in the browser
+    as an <img src>, so javascript:/data: URIs and relative paths are
+    rejected rather than trusted.
+    """
+    url = str(value or "").strip()
+    if len(url) > 2048:
+        return ""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return ""
+    return url
+
+
+def entry_image_url(entry: Any) -> str:
+    """Best lead image for an RSS entry, or "" when the feed has none.
+
+    Publishers attach the story's own image in several places; try them
+    in order: media:content (largest image wins), media:thumbnail, image
+    enclosures, then the first <img> in the summary HTML.
+    """
+    media = entry.get("media_content") or []
+    best = ""
+    best_width = -1
+    for candidate in media if isinstance(media, list) else []:
+        if not isinstance(candidate, dict):
+            continue
+        medium = str(candidate.get("medium") or "").lower()
+        mime = str(candidate.get("type") or "").lower()
+        if medium and medium != "image":
+            continue
+        if mime and not mime.startswith("image/"):
+            continue
+        url = _http_image_url(candidate.get("url"))
+        if not url:
+            continue
+        try:
+            width = int(candidate.get("width") or 0)
+        except (TypeError, ValueError):
+            width = 0
+        if width > best_width:
+            best, best_width = url, width
+    if best:
+        return best
+    for thumbnail in entry.get("media_thumbnail") or []:
+        if isinstance(thumbnail, dict):
+            url = _http_image_url(thumbnail.get("url"))
+            if url:
+                return url
+    for enclosure in entry.get("enclosures") or []:
+        if isinstance(enclosure, dict):
+            mime = str(enclosure.get("type") or "").lower()
+            if mime and not mime.startswith("image/"):
+                continue
+            url = _http_image_url(enclosure.get("href"))
+            if url:
+                return url
+    summary = entry.get("summary", entry.get("description", "")) or ""
+    match = _IMG_SRC_RE.search(str(summary))
+    if match:
+        return _http_image_url(match.group(1))
+    return ""
+
+
 def iso_datetime(dt: datetime | None) -> str:
     if not dt:
         return ""
@@ -308,6 +377,7 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
             "published": iso_datetime(published_dt) or "Recent",
             "published_ts": published_dt.timestamp() if published_dt else 0,
             "link": link,
+            "image_url": entry_image_url(entry),
             "feed_tier": feed.get("tier", "custom"),
             "feed_url": url,
             "sport_focus": sport_focus,

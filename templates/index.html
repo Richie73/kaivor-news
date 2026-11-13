@@ -52,6 +52,7 @@
         .card h3 a { color:#f3f4f6; text-decoration:none; }
         .source-tag { font-size:11px; color:#10b981; text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
         .source-name { font-size:11px; color:#6b7280; margin-bottom:8px; }
+        .card-image { width:100%; height:auto; max-height:220px; object-fit:cover; border-radius:9px; margin:0 0 8px; display:block; background:#1f1f23; }
         .chips {
             position: sticky;
             top: calc(var(--kaivor-header-height, 82px) - 2px);
@@ -318,6 +319,7 @@
             <span class="source-tag">{{ article.category }}</span>
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div>
+            {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% endif %}
             <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
             <div class="published" style="font-size:11px;color:#6b7280;margin-bottom:8px;">{{ article.published | display_date }}</div>
             <div class="intel-row">
@@ -458,6 +460,7 @@ function articleFromCard(card) {
         source: card.querySelector('.source-name').textContent.trim(),
         published: card.querySelector('.published')?.textContent.trim() || '',
         link: card.querySelector('h3 a').href,
+        image_url: card.querySelector('.card-image')?.src || '',
         confidence: card.querySelector('.intel-badge')?.textContent.trim() || 'Uncorroborated',
         evidence_status: card.querySelector('.intel-badge')?.textContent.trim() || 'Single-source',
         source_count: Number(card.dataset.sourceCount || 1),
@@ -705,6 +708,7 @@ async function showSaved(element) {
                 <span class="source-tag">${escapeHtml(article.category)}</span>
                 <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
                 <div class="source-name">${escapeHtml(article.source)}</div>
+                ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : ''}
                 <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
                 <div class="published" data-published="${escapeHtml(article.published)}" style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escapeHtml(formatDisplayDate(article.published))}</div>
                 <div class="intel-row">

@@ -1,0 +1,73 @@
+FP075 — Story pictures: publisher images on news cards
+=======================================================
+
+Background (13 Nov 2026)
+- Richie asked whether pictures genuinely relevant to each news
+  story could be added. The answer was yes, and the pictures were
+  already there: publishers attach each story's own lead image to
+  the feed or API response, and the app was ignoring all of them.
+  He approved the build the same evening.
+
+What was built
+- RSS images (news_freshness.py): new helper entry_image_url(entry)
+  picks the best lead image for a feed entry, in priority order:
+  media:content (largest image wins; video excluded),
+  media:thumbnail, image enclosures, then the first <img> in the
+  summary HTML. Returns "" when the feed carries no image, so those
+  cards simply stay as they are. Only http(s) URLs are accepted —
+  javascript:/data: URIs and relative paths are rejected, and an
+  unsafe candidate never blocks a valid later one. The item dict
+  gains "image_url".
+- Guardian (main.py): the API request now asks for
+  show-fields=trailText,thumbnail and the mapping carries
+  fields.thumbnail into "image_url".
+- NewsData (main.py): the mapping now carries the API's image_url
+  field, previously ignored.
+- normalise_article (news_store.py) gains "image_url" with a
+  _clean_image_url sanitiser (http(s) only, 2048-char cap). This
+  is the step that makes the whole thing work: normalise_article
+  rebuilds every article with a fixed key list and runs on every
+  refresh (via deduplicate_articles) and on every save, so without
+  this the image would have been dropped before it reached the
+  template. enrich_articles copies dicts and updates in place, so
+  it preserves image_url untouched.
+- Cards (templates/index.html): a .card-image (full width, capped
+  at 220px tall, cropped with object-fit: cover, dark placeholder
+  background) sits between the source name and the title, in both
+  the server-rendered list and the Saved Stories view. Images are
+  lazy-loaded, sent with referrerpolicy="no-referrer" (some
+  publishers block hotlinked images when a Referer is sent), and
+  hide themselves on error so a dead link never leaves a broken
+  icon. articleFromCard reads the rendered image's src, so saving
+  a story keeps its picture.
+- No new API calls, no new keys, no cost: the images arrive with
+  the data the app already fetches, and the browser loads them
+  straight from the publishers' servers.
+
+Tests
+- 13 new tests in tests/test_story_images_fp075.py: media:content
+  largest-image selection and video exclusion; thumbnail,
+  enclosure and summary-img fallbacks; empty result when no image;
+  unsafe URL rejection (javascript:, data:, relative) including a
+  valid candidate after an unsafe one; the RSS fetch path carrying
+  image_url through; normalise_article keeping, dropping and
+  defaulting image_url; the Guardian request asking for thumbnail
+  and mapping it; the NewsData mapping; and the template rendering
+  the image in both card views with lazy loading, no-referrer and
+  the onerror hide, plus articleFromCard keeping the image on save.
+- Full suite (local, test-only secrets stub): 471 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as the
+  FP069/FP071/FP072/FP073/FP074 baseline (6
+  test_credential_migration_fp037 stub artifacts, 2 MCP httpx
+  environment-only, 3 NewsData tests that need the device's real
+  config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP075.txt.
+
+Out of scope (unchanged): OpenGraph scraping (fetching every
+article page for og:image was not needed — the feeds already carry
+the images); AI-generated images (not genuinely relevant to a real
+news story, and a generated picture of a real event could mislead);
+the modules/weather.py engine stub; ROADMAP.md; Render deploy
+(follows the normal push flow after the Termux install, with a
+manual dashboard deploy if auto-deploy does not fire — it did not
+fire for the FP071 push on 13 Nov).
