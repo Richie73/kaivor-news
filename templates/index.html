@@ -73,6 +73,30 @@
         }
         .chip { flex: 0 0 auto; background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
         .chip.active { background:#10b981; color:#000; font-weight:600; border-color:#10b981; }
+        /* FP073: weather section */
+        .weather-card { background:#161618; border:1px solid #26262a; border-radius:12px; padding:14px; margin-bottom:16px; }
+        .weather-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
+        .weather-place { font-size:15px; font-weight:700; color:#fff; }
+        .weather-updated { font-size:11px; color:#6b7280; margin-left:8px; }
+        .weather-now { font-size:13px; color:#9ca3af; }
+        .weather-now-main { display:flex; align-items:baseline; gap:10px; }
+        .weather-icon { font-size:26px; }
+        .weather-temp { font-size:30px; font-weight:700; color:#fff; line-height:1; }
+        .weather-condition { font-size:13px; color:#d1d5db; }
+        .weather-now-detail { font-size:12px; color:#9ca3af; margin-top:6px; }
+        .weather-days { display:flex; gap:8px; margin-top:12px; }
+        .weather-day { flex:1; background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 6px; text-align:center; }
+        .weather-day-name { font-size:11px; color:#9ca3af; text-transform:uppercase; letter-spacing:.5px; }
+        .weather-day-icon { font-size:20px; margin:4px 0; }
+        .weather-day-temp { font-size:13px; font-weight:600; color:#fff; }
+        .weather-day-rain { font-size:11px; color:#7dd3fc; margin-top:2px; }
+        .weather-search { display:flex; gap:8px; margin-top:12px; }
+        .weather-search input { flex:1; background:#1f1f23; color:#fff; border:1px solid #383842; border-radius:8px; padding:8px 10px; font:inherit; font-size:13px; min-width:0; }
+        .weather-results { margin-top:8px; display:flex; flex-direction:column; gap:6px; font-size:13px; color:#9ca3af; }
+        .weather-result { text-align:left; background:#1f1f23; color:#d1d5db; border:1px solid #383842; border-radius:8px; padding:8px 10px; font:inherit; font-size:13px; cursor:pointer; }
+        .weather-recent { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center; }
+        .weather-recent-label { font-size:11px; color:#6b7280; }
+        .weather-recent-chip { background:#1f1f23; color:#a7f3d0; border:1px solid #2a473b; border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; }
         .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         button,.btn-link { background:#1f2f2a; color:#10b981; border:1px solid #2a473b; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
         button:hover,.btn-link:hover { background:#2a473b; }
@@ -252,6 +276,24 @@
         <div class="chip" data-scroll-to-end="true" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
         <a class="chip" data-scroll-to-end="true" href="/reading" style="text-decoration:none;">📚 Reading</a>
     </div>
+
+    <!-- FP073: weather section. Data comes from Open-Meteo (free, no key),
+         fetched directly by the browser. Local place is Puddington, Wirral;
+         search finds any other place by name and remembers recent places. -->
+    <section id="weather-section" class="weather-card" aria-label="Weather">
+        <div class="weather-head">
+            <div><span id="weather-place" class="weather-place">Puddington, Wirral</span><span id="weather-updated" class="weather-updated"></span></div>
+            <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
+        </div>
+        <div id="weather-now" class="weather-now">Loading weather…</div>
+        <div id="weather-days" class="weather-days"></div>
+        <div class="weather-search">
+            <input type="text" id="weather-search-input" placeholder="Search a place…" autocomplete="off" aria-label="Search for a place">
+            <button type="button" onclick="searchWeatherPlace()">Search</button>
+        </div>
+        <div id="weather-search-results" class="weather-results" aria-live="polite"></div>
+        <div id="weather-recent" class="weather-recent"></div>
+    </section>
 
     <h3 id="section-title" style="font-size:14px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Top Stories</h3>
     <div id="status" class="status">Stories are deduplicated and saved locally on this device.</div>
@@ -1144,9 +1186,266 @@ function updateStickyNavigationOffset() {
 }
 
 window.addEventListener('resize', updateStickyNavigationOffset);
+// FP073 WEATHER: BEGIN
+// Weather section. Data comes from Open-Meteo (free, no API key), fetched
+// directly by the browser — no server route, no secrets. The local place
+// is Puddington, Wirral; search finds any other place by name (Open-Meteo
+// geocoding) and recent places are remembered in localStorage.
+// The pure helpers below (weatherCodeInfo, windDirectionLabel,
+// buildForecastUrl, buildGeocodeUrl, formatPlaceName, dayLabel) are
+// covered by a node logic test — see tests/test_weather_section_fp073.py.
+// Keep them free of DOM access so the test can run them in node.
+const WEATHER_DEFAULT_PLACE = { name: 'Puddington, Wirral', latitude: 53.25332, longitude: -3.00877 };
+const WEATHER_RECENT_KEY = 'kaivor-weather-recent';
+const WEATHER_LAST_KEY = 'kaivor-weather-last';
+const WEATHER_MAX_RECENT = 5;
+
+const WEATHER_CODE_INFO = {
+    0: { text: 'Clear sky', icon: '☀️' },
+    1: { text: 'Mainly clear', icon: '🌤️' },
+    2: { text: 'Partly cloudy', icon: '⛅' },
+    3: { text: 'Overcast', icon: '☁️' },
+    45: { text: 'Fog', icon: '🌫️' },
+    48: { text: 'Depositing rime fog', icon: '🌫️' },
+    51: { text: 'Light drizzle', icon: '🌦️' },
+    53: { text: 'Drizzle', icon: '🌦️' },
+    55: { text: 'Dense drizzle', icon: '🌦️' },
+    56: { text: 'Light freezing drizzle', icon: '🌧️' },
+    57: { text: 'Dense freezing drizzle', icon: '🌧️' },
+    61: { text: 'Slight rain', icon: '🌧️' },
+    63: { text: 'Rain', icon: '🌧️' },
+    65: { text: 'Heavy rain', icon: '🌧️' },
+    66: { text: 'Light freezing rain', icon: '🌧️' },
+    67: { text: 'Heavy freezing rain', icon: '🌧️' },
+    71: { text: 'Slight snow', icon: '🌨️' },
+    73: { text: 'Snow', icon: '🌨️' },
+    75: { text: 'Heavy snow', icon: '🌨️' },
+    77: { text: 'Snow grains', icon: '🌨️' },
+    80: { text: 'Slight rain showers', icon: '🌦️' },
+    81: { text: 'Rain showers', icon: '🌦️' },
+    82: { text: 'Violent rain showers', icon: '🌦️' },
+    85: { text: 'Slight snow showers', icon: '🌨️' },
+    86: { text: 'Heavy snow showers', icon: '🌨️' },
+    95: { text: 'Thunderstorm', icon: '⛈️' },
+    96: { text: 'Thunderstorm with slight hail', icon: '⛈️' },
+    99: { text: 'Thunderstorm with heavy hail', icon: '⛈️' }
+};
+
+function weatherCodeInfo(code) {
+    return WEATHER_CODE_INFO[code] || { text: 'Unknown', icon: '❓' };
+}
+
+function windDirectionLabel(degrees) {
+    const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round((((degrees % 360) + 360) % 360) / 22.5) % 16;
+    return points[index];
+}
+
+function buildForecastUrl(latitude, longitude) {
+    const params = new URLSearchParams({
+        latitude: String(latitude),
+        longitude: String(longitude),
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m',
+        daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+        timezone: 'auto',
+        forecast_days: '3'
+    });
+    return 'https://api.open-meteo.com/v1/forecast?' + params.toString();
+}
+
+function buildGeocodeUrl(query) {
+    const params = new URLSearchParams({ name: query, count: '5', language: 'en', format: 'json' });
+    return 'https://geocoding-api.open-meteo.com/v1/search?' + params.toString();
+}
+
+function formatPlaceName(result) {
+    const parts = [result.name, result.admin1, result.country].filter(part => part);
+    return [...new Set(parts)].join(', ');
+}
+
+function dayLabel(isoDate, index) {
+    if (index === 0) return 'Today';
+    if (index === 1) return 'Tomorrow';
+    const date = new Date(isoDate + 'T12:00:00');
+    return date.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+let weatherCurrentPlace = null;
+
+function weatherRecentPlaces() {
+    try {
+        const raw = localStorage.getItem(WEATHER_RECENT_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function weatherRememberPlace(place) {
+    try {
+        const recent = weatherRecentPlaces().filter(item => item.name !== place.name);
+        recent.unshift(place);
+        localStorage.setItem(WEATHER_RECENT_KEY, JSON.stringify(recent.slice(0, WEATHER_MAX_RECENT)));
+        localStorage.setItem(WEATHER_LAST_KEY, JSON.stringify(place));
+    } catch (error) {
+        // Storage unavailable (private mode, quota) — weather still works.
+    }
+}
+
+function weatherLastPlace() {
+    try {
+        const raw = localStorage.getItem(WEATHER_LAST_KEY);
+        if (!raw) return null;
+        const place = JSON.parse(raw);
+        if (place && typeof place.latitude === 'number' && typeof place.longitude === 'number' && place.name) return place;
+        return null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function renderRecentPlaces() {
+    const container = document.getElementById('weather-recent');
+    if (!container) return;
+    const recent = weatherRecentPlaces().filter(place => !weatherCurrentPlace || place.name !== weatherCurrentPlace.name);
+    container.innerHTML = '';
+    if (!recent.length) return;
+    const label = document.createElement('span');
+    label.className = 'weather-recent-label';
+    label.textContent = 'Recent:';
+    container.appendChild(label);
+    recent.forEach(place => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'weather-recent-chip';
+        button.textContent = place.name;
+        button.addEventListener('click', () => loadWeather(place));
+        container.appendChild(button);
+    });
+}
+
+async function loadWeather(place) {
+    weatherCurrentPlace = place;
+    const placeEl = document.getElementById('weather-place');
+    const nowEl = document.getElementById('weather-now');
+    const daysEl = document.getElementById('weather-days');
+    const updatedEl = document.getElementById('weather-updated');
+    if (placeEl) placeEl.textContent = place.name;
+    if (nowEl) nowEl.textContent = 'Loading weather…';
+    if (daysEl) daysEl.innerHTML = '';
+    if (updatedEl) updatedEl.textContent = '';
+    renderRecentPlaces();
+    try {
+        const response = await fetch(buildForecastUrl(place.latitude, place.longitude));
+        if (!response.ok) throw new Error('forecast request failed: ' + response.status);
+        const data = await response.json();
+        renderWeather(place, data);
+        weatherRememberPlace(place);
+        renderRecentPlaces();
+    } catch (error) {
+        if (nowEl) nowEl.textContent = 'Weather unavailable — check your connection and try again.';
+    }
+}
+
+function renderWeather(place, data) {
+    const nowEl = document.getElementById('weather-now');
+    const daysEl = document.getElementById('weather-days');
+    const updatedEl = document.getElementById('weather-updated');
+    if (!data || !data.current || !nowEl) return;
+    const current = data.current;
+    const info = weatherCodeInfo(current.weather_code);
+    const temp = Math.round(Number(current.temperature_2m));
+    const feels = Math.round(Number(current.apparent_temperature));
+    const humidity = Math.round(Number(current.relative_humidity_2m));
+    const rain = Number(current.precipitation);
+    const windSpeed = Math.round(Number(current.wind_speed_10m));
+    const windDir = windDirectionLabel(Number(current.wind_direction_10m) || 0);
+    nowEl.innerHTML =
+        '<div class="weather-now-main"><span class="weather-icon">' + info.icon + '</span>' +
+        '<span class="weather-temp">' + temp + '°</span>' +
+        '<span class="weather-condition">' + escapeHtml(info.text) + '</span></div>' +
+        '<div class="weather-now-detail">Feels like ' + feels + '° · Wind ' + windSpeed + ' km/h ' + windDir +
+        ' · Humidity ' + humidity + '% · Rain ' + rain + ' mm</div>';
+    if (updatedEl && current.time) {
+        updatedEl.textContent = 'Updated ' + String(current.time).slice(11, 16);
+    }
+    if (daysEl && data.daily && Array.isArray(data.daily.time)) {
+        const days = data.daily.time.map((isoDate, index) => {
+            const dayInfo = weatherCodeInfo(data.daily.weather_code[index]);
+            const max = Math.round(Number(data.daily.temperature_2m_max[index]));
+            const min = Math.round(Number(data.daily.temperature_2m_min[index]));
+            const rainChance = data.daily.precipitation_probability_max
+                ? Math.round(Number(data.daily.precipitation_probability_max[index])) : null;
+            return '<div class="weather-day"><div class="weather-day-name">' + dayLabel(isoDate, index) + '</div>' +
+                '<div class="weather-day-icon">' + dayInfo.icon + '</div>' +
+                '<div class="weather-day-temp">' + max + '° / ' + min + '°</div>' +
+                '<div class="weather-day-rain">' + (rainChance === null ? '' : '💧 ' + rainChance + '%') + '</div></div>';
+        }).join('');
+        daysEl.innerHTML = days;
+    }
+}
+
+async function searchWeatherPlace() {
+    const input = document.getElementById('weather-search-input');
+    const resultsEl = document.getElementById('weather-search-results');
+    if (!input || !resultsEl) return;
+    const query = input.value.trim();
+    if (query.length < 2) {
+        resultsEl.textContent = 'Type at least 2 letters to search.';
+        return;
+    }
+    resultsEl.textContent = 'Searching…';
+    try {
+        const response = await fetch(buildGeocodeUrl(query));
+        if (!response.ok) throw new Error('geocode request failed: ' + response.status);
+        const data = await response.json();
+        const results = (data && data.results) || [];
+        if (!results.length) {
+            resultsEl.textContent = 'No places found for "' + query + '".';
+            return;
+        }
+        resultsEl.innerHTML = '';
+        results.forEach(result => {
+            const place = { name: formatPlaceName(result), latitude: result.latitude, longitude: result.longitude };
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'weather-result';
+            button.textContent = place.name;
+            button.addEventListener('click', () => {
+                resultsEl.innerHTML = '';
+                input.value = '';
+                loadWeather(place);
+            });
+            resultsEl.appendChild(button);
+        });
+    } catch (error) {
+        resultsEl.textContent = 'Search unavailable — check your connection and try again.';
+    }
+}
+
+function refreshWeather() {
+    if (weatherCurrentPlace) loadWeather(weatherCurrentPlace);
+}
+
+function initializeWeatherSection() {
+    const input = document.getElementById('weather-search-input');
+    if (input) {
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchWeatherPlace();
+            }
+        });
+    }
+    loadWeather(weatherLastPlace() || WEATHER_DEFAULT_PLACE);
+}
+// FP073 WEATHER: END
+
 document.addEventListener('DOMContentLoaded',()=>{
     updateStickyNavigationOffset();
     initializeMobileNewsNavigation();
+    initializeWeatherSection();
     formatArticleDates();
     initializeMarketTicker();
     updateFinanceTicker();

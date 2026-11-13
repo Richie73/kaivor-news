@@ -905,7 +905,6 @@ def index():
             {
                 "gold": "2,650.00",
                 "bitcoin": "64,200.00",
-                "weather": "15°C",
                 "SP500": "5,750.00",
                 "Brent_Oil": "75.00",
                 "GBP_USD": "1.33",

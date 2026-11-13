@@ -1,0 +1,85 @@
+FP073 — Weather section (Wirral local, any place by search)
+==================================================================
+
+Background (13 Nov 2026)
+- There was no weather section in Kaivor News: modules/weather.py was
+  a 3-line stub printing "Coming soon...", the only "weather" in the
+  app was a hardcoded "15°C" in the market ticker's fallback data in
+  main.py (never displayed — the template has no weather ticker item),
+  and ROADMAP.md listed "Weather integration" under v0.5 (Planned).
+  Richie asked for the weather section next, covering local weather
+  and other locations, with other places found by searching any place
+  by name.
+
+What was built
+- A weather section on the news page, between the category chips and
+  the Top Stories heading. It shows the current conditions (temperature,
+  condition, feels-like, wind speed and direction, humidity, rainfall)
+  and a 3-day forecast (today, tomorrow, day after: high/low, condition
+  icon, rain chance), plus a search box and recent places.
+- Local place: Puddington, Wirral (53.25332, -3.00877 — verified
+  against the Open-Meteo geocoding API, which returns the Wirral
+  Puddington in Cheshire). It is the default on first run; the last
+  viewed place is remembered and restored on later visits.
+- Search: typing a place name queries the Open-Meteo geocoding API
+  (up to 5 matches, shown as buttons; tapping one loads its weather).
+  Recent places (up to 5) are kept in localStorage and shown as quick
+  chips; the current place is excluded from the list.
+- Data source: Open-Meteo (https://api.open-meteo.com/v1/forecast
+  and https://geocoding-api.open-meteo.com/v1/search). Free, no API key,
+  fetched directly by the browser — no server route, no secrets, no
+  config change. The forecast response shape was verified live before
+  building (current.temperature_2m, current.weather_code,
+  daily.temperature_2m_max/min, daily.precipitation_probability_max,
+  timezone auto). There is no Content-Security-Policy in the app and
+  the service worker ignores cross-origin requests, so nothing blocks
+  the browser-to-Open-Meteo calls. Failures degrade to a plain
+  "Weather unavailable" message — no fake data, no crash.
+- WMO weather-code mapping covers all documented codes 0–99
+  (clear, cloud, fog, drizzle, rain, snow, showers, thunderstorm,
+  hail) with a short label and an icon each; unknown codes show
+  "Unknown". Wind direction uses a 16-point compass.
+- The fake "15°C" is removed from the market fallback dict in main.py
+  (it was dead data — the template never displayed it). The
+  modules/weather.py engine stub is untouched: it belongs to the
+  unwired engine scaffolding, not the news app.
+
+Files
+- templates/index.html: weather CSS, the section markup, and the
+  weather JavaScript (delimited by // FP073 WEATHER: BEGIN/END
+  markers), plus one line calling initializeWeatherSection() from
+  the DOMContentLoaded handler.
+- main.py: one line removed (the fake "weather": "15°C").
+- tests/test_weather_section_fp073.py: 8 tests (below).
+
+Tests
+- 8 new tests in tests/test_weather_section_fp073.py: section markup
+  present; default place is Puddington, Wirral at the verified
+  coordinates; Open-Meteo endpoints and parameters; WMO mapping
+  covers the main conditions; recents/last-place localStorage keys
+  and the 5-place cap; init wired into DOMContentLoaded; the fake
+  15°C is gone from main.py; and a node logic test that extracts the
+  FP073 JavaScript block and executes the pure helpers (weather codes,
+  wind directions incl. wraparound, URL builders, place formatting,
+  day labels) — added because the FP067d regex bug proved
+  source-string tests alone do not catch logic bugs. The node test
+  skips where node is not installed (e.g. a phone without node).
+  The node test earned its place during the build: it caught a real
+  bug in formatPlaceName, whose dedup filter dropped the place name
+  itself (Paris came out as "Île-de-France, France"). Fixed by
+  deduping with a Set instead.
+- Full suite (local, test-only secrets stub): 452 passed, 11 failed,
+  2 skipped. The 11 failures are the same known set as the FP069/
+  FP071/FP072 baseline (6 test_credential_migration_fp037 stub
+  artifacts, 2 MCP httpx environment-only, 3 NewsData tests that need
+  the device's real config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP073.txt.
+
+Out of scope (unchanged): the market ticker (no weather item added);
+the modules/weather.py engine stub; ROADMAP.md (a roadmap refresh is
+a separate follow-up); hourly forecast (daily only — the 3-day
+high/low and rain chance cover the site-work decision); geolocation
+(the default is fixed to home rather than the device position);
+Render deploy (follows the normal push flow after the Termux install,
+with a manual dashboard deploy if auto-deploy does not fire — it did
+not fire for the FP071 push on 13 Nov).
