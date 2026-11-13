@@ -127,6 +127,7 @@ _cron_refresh_state = {
 REFRESH_MAX_ATTEMPTS = 2
 REFRESH_RETRY_BACKOFF_SECONDS = 5
 REFRESH_FAILURE_COOLDOWN_SECONDS = 60
+REFRESH_ISOLATED_TIMEOUT_SECONDS = 240
 
 DEFAULT_RSS_SOURCES = {}
 
@@ -330,11 +331,6 @@ def fetch_guardian_articles(category):
 
 def fetch_newsdata_articles():
     # Fetch optional NewsData.io articles; errors never break refreshes.
-    api_key = provider_secrets.get_provider_key("newsdata")
-    if not api_key:
-        print("NEWSDATA: skipped (API key not configured)", flush=True)
-        return []
-
     category_map = {
         "world": "World",
         "technology": "Technology",
@@ -346,6 +342,13 @@ def fetch_newsdata_articles():
     }
     articles = []
     try:
+        # FP071: the key lookup lives inside the try so a credential problem
+        # (missing helper, unreadable store) degrades to zero articles
+        # instead of killing the whole refresh.
+        api_key = provider_secrets.get_provider_key("newsdata")
+        if not api_key:
+            print("NEWSDATA: skipped (API key not configured)", flush=True)
+            return []
         response = requests.get(
             "https://newsdata.io/api/1/latest",
             params={
@@ -555,12 +558,16 @@ def fetch_fresh_news():
     return enriched
 
 
-def _fetch_fresh_news_isolated(timeout_seconds: int = 90):
+def _fetch_fresh_news_isolated(timeout_seconds: int = REFRESH_ISOLATED_TIMEOUT_SECONDS):
     """Run collection in a killable child process with a hard wall-clock limit.
 
     Python threads cannot safely be force-stopped. Isolating network collection
     means a stuck provider cannot leave the web process's refresh flag locked
     forever; subprocess.run kills the child when the timeout expires.
+
+    FP071: 240s. The full pipeline takes ~34s on a phone but ~85-100s on
+    Render's free tier (RSS collection alone is ~36s there), so the old 90s
+    limit cut healthy refreshes off.
     """
     runner_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "news_refresh_runner.py")
     completed = subprocess.run(

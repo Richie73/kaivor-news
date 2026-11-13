@@ -1,0 +1,19 @@
+Kaivor FP071 bundle manifest
+
+REPLACEMENT:
+- main.py
+- tests/test_news_refresh_isolation.py
+
+NEW:
+- tests/test_refresh_reliability_fp071.py
+- README_INSTALL_FP071.txt
+- CHANGELOG_FP071.txt
+- BUNDLE_MANIFEST_FP071.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

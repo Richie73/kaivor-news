@@ -1,0 +1,67 @@
+FP071 — Make the news refresh reliable on slow hosts
+=====================================================
+
+Background (13 Nov 2026)
+- After the FP068/FP068.1/FP069 push (a5ffa8d) and Render redeploy, the
+  live site's Top Stories went empty and stayed empty. The redeploy had
+  wiped the live article store, and every cron refresh failed.
+- First failure (found in the Render logs): the refresh child died at
+  the NewsData stage with AttributeError. a5ffa8d's main.py calls
+  provider_secrets.get_provider_key("newsdata"), but the deployed
+  config/secrets.py (old version) did not define get_provider_key —
+  the rewritten config/secrets.py that defines it had been left out of
+  the push. Fixed by committing it (1591379); the live refresh then got
+  past NewsData.
+- Second failure (found in the live health check): with the crash gone,
+  the refresh ran the full 90s subprocess timeout on both attempts
+  (185.16s total for the run) and was killed. The full pipeline takes
+  ~34s on the phone but ~85-100s on Render's free tier — RSS collection
+  alone is ~36s there (14.5s on the phone) and enrichment ~16s on the
+  phone scales up the same way — so the old 90s limit cut healthy
+  refreshes off. This milestone fixes that, and hardens the NewsData
+  step so a credential problem can never kill a refresh again.
+
+Longer refresh window
+- New constant REFRESH_ISOLATED_TIMEOUT_SECONDS = 240 in main.py.
+- _fetch_fresh_news_isolated() now defaults to that constant (was a
+  hardcoded 90). An explicit timeout_seconds argument still overrides
+  it. The 240s limit gives Render ~2.5x headroom over its ~85-100s
+  runs. The refresh runs in a background thread, so a longer window
+  does not block web requests; the cron worker's running flag still
+  prevents overlapping runs, and the 2-attempt / 60s-cooldown behaviour
+  is unchanged.
+
+NewsData can no longer kill a refresh
+- In fetch_newsdata_articles(), the get_provider_key("newsdata") call
+  (and the missing-key early return) moved INSIDE the existing try
+  block. A credential failure — missing helper, unreadable store, any
+  exception from the lookup — is now caught by the existing handler,
+  logged as "NEWSDATA: optional provider unavailable (<Type>)", and
+  the function returns zero articles. The function's own comment
+  ("errors never break refreshes") is now true for key-lookup failures
+  as well as for request/parse failures.
+- No behaviour change when the key is present: the request, parsing,
+  category mapping and quality filtering are untouched.
+
+Tests
+- 5 new tests in tests/test_refresh_reliability_fp071.py: the isolated
+  timeout default is 240s (and equals the constant); an explicit
+  timeout override still applies; a get_provider_key AttributeError
+  (the exact 13 Nov live failure) returns [] without a network call;
+  a get_provider_key OSError returns [] without a network call; the
+  NewsData happy path is unchanged after the restructure.
+- tests/test_news_refresh_isolation.py updated: the timeout assertion
+  now checks the constant (240s), and the TimeoutExpired fixture uses
+  240s.
+- Full suite (local, test-only secrets stub): 439 passed, 11 failed,
+  2 skipped. The 11 failures are the same known set as the FP069
+  baseline (6 test_credential_migration_fp037 stub artifacts, 2 MCP
+  httpx environment-only, 3 NewsData tests that need the device's real
+  config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP071.txt.
+
+Out of scope (unchanged): feed list and registry; enrichment logic
+(no speed-up attempted — the timeout gives the headroom instead);
+cron schedule and retry/cooldown policy; Render deploy (follows the
+normal push flow after the Termux install); OpenRouter key rotation
+(still Richie's action at OpenRouter).

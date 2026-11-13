@@ -17,7 +17,8 @@ def test_isolated_fetch_parses_article_list():
         result = main._fetch_fresh_news_isolated()
 
     assert result == [{"title": "Example", "category": "World"}]
-    assert run.call_args.kwargs["timeout"] == 90
+    # FP071: the isolated timeout is 240s (was 90s); Render needs ~85-100s.
+    assert run.call_args.kwargs["timeout"] == main.REFRESH_ISOLATED_TIMEOUT_SECONDS
     assert run.call_args.kwargs["check"] is False
     assert run.call_args.kwargs["stdout"] == main.subprocess.PIPE
 
@@ -43,7 +44,7 @@ def test_isolated_fetch_rejects_invalid_json():
 
 
 def test_isolated_fetch_propagates_hard_timeout():
-    with patch.object(main.subprocess, "run", side_effect=TimeoutExpired(cmd="runner", timeout=90)):
+    with patch.object(main.subprocess, "run", side_effect=TimeoutExpired(cmd="runner", timeout=240)):
         with pytest.raises(TimeoutExpired):
             main._fetch_fresh_news_isolated()
 
