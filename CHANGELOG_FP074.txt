@@ -1,0 +1,68 @@
+FP074 — Weather upgrades: hourly, gusts, 7-day, summary
+=========================================================
+
+Background (13 Nov 2026)
+- FP073 added the weather section (current conditions + 3-day
+  forecast, search, recents). Richie's verdict: "That works fine but
+  pretty basic." He approved four upgrades: hourly forecast for
+  today, wind gusts, a 7-day forecast instead of 3 days, and a
+  one-line summary of the day's weather.
+
+What was built
+- Hourly strip: the next 12 hours from now, as a horizontally
+  scrollable strip — each hour shows the time ("Now" for the first
+  hour), condition icon, temperature, and rain chance when it is 20%
+  or higher. The strip starts at the first full hour at or after the
+  current time: Open-Meteo's current time can fall on a 15-minute
+  mark (its interval is 900s) while hourly times are on the hour,
+  so a plain index lookup would be off by one.
+- Wind gusts: the current details now read "Wind 8 km/h S (gusts
+  12)" using wind_gusts_10m from the same forecast call.
+- 7-day forecast: forecast_days 3 → 7. The days strip is now
+  horizontally scrollable (fixed-width cells) so 7 days fit on a
+  phone screen; day labels are unchanged (Today, Tomorrow, weekday).
+- One-line summary: a sentence above the current conditions, derived
+  from the next 12 hours of hourly rain chances ("wet" = 50% or
+  higher): "Dry for the next 12 hours.", "Dry until 14:00, then
+  rain.", "Rain now, easing by 23:00.", "Rain for the next 12
+  hours." Only the first change is reported, so the line stays one
+  sentence. When no hourly data is available the line stays blank
+  rather than guessing.
+- The forecast request (buildForecastUrl) now asks for
+  wind_gusts_10m in current, hourly temperature_2m /
+  precipitation_probability / weather_code, and 7 forecast days.
+  The response shape (hourly parallel arrays, current.wind_gusts_10m,
+  7 daily entries) was verified live before building. Still Open-Meteo,
+  still free, still no key, still fetched directly by the browser.
+- The new helpers (hourlyStartIndex, weatherSummary) live in the
+  same FP073-marked JavaScript block as the FP073 helpers and are
+  pure functions with no DOM access, so the node logic test can run
+  them. The block markers were left as FP073 (they mark the weather
+  block's origin, not its contents).
+
+Tests
+- 6 new tests in tests/test_weather_upgrades_fp074.py: the forecast
+  request asks for hourly, gusts and 7 days; the hourly strip and
+  summary markup exist; the days strip scrolls horizontally with
+  fixed-width cells; gusts appear in the current details; the
+  hourly rendering uses the next 12 hours from the computed start
+  index; and a node logic test for the summary sentences (all four
+  cases plus the out-of-range case), the hour slicing (exact hour,
+  15-minute offset, missing time) and the forecast URL.
+- tests/test_weather_section_fp073.py updated: its forecast_days
+  assertions now expect 7 (source and node URL check), and its
+  current-parameters assertion now includes wind_gusts_10m.
+- Full suite (local, test-only secrets stub): 458 passed, 11 failed,
+  2 skipped. The 11 failures are the same known set as the FP069/
+  FP071/FP072/FP073 baseline (6 test_credential_migration_fp037 stub
+  artifacts, 2 MCP httpx environment-only, 3 NewsData tests that need
+  the device's real config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP074.txt.
+
+Out of scope (unchanged): the search box and recents (FP073);
+minutely rain radar (not requested — the hourly strip covers rain
+timing); weather warnings (no free UK warning feed in Open-Meteo);
+the modules/weather.py engine stub; ROADMAP.md; Render deploy
+(follows the normal push flow after the Termux install, with a
+manual dashboard deploy if auto-deploy does not fire — it did not
+fire for the FP071 push on 13 Nov).

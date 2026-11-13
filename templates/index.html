@@ -84,8 +84,18 @@
         .weather-temp { font-size:30px; font-weight:700; color:#fff; line-height:1; }
         .weather-condition { font-size:13px; color:#d1d5db; }
         .weather-now-detail { font-size:12px; color:#9ca3af; margin-top:6px; }
-        .weather-days { display:flex; gap:8px; margin-top:12px; }
-        .weather-day { flex:1; background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 6px; text-align:center; }
+        .weather-summary { font-size:13px; color:#a7f3d0; margin-bottom:8px; }
+        .weather-strip-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
+        .weather-hourly { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+        .weather-hourly::-webkit-scrollbar { display:none; }
+        .weather-hour { flex:0 0 auto; min-width:56px; background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 6px; text-align:center; }
+        .weather-hour-time { font-size:11px; color:#9ca3af; }
+        .weather-hour-icon { font-size:18px; margin:4px 0; }
+        .weather-hour-temp { font-size:13px; font-weight:600; color:#fff; }
+        .weather-hour-rain { font-size:11px; color:#7dd3fc; margin-top:2px; min-height:14px; }
+        .weather-days { display:flex; gap:8px; margin-top:0; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+        .weather-days::-webkit-scrollbar { display:none; }
+        .weather-day { flex:0 0 auto; min-width:64px; background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 6px; text-align:center; }
         .weather-day-name { font-size:11px; color:#9ca3af; text-transform:uppercase; letter-spacing:.5px; }
         .weather-day-icon { font-size:20px; margin:4px 0; }
         .weather-day-temp { font-size:13px; font-weight:600; color:#fff; }
@@ -285,7 +295,11 @@
             <div><span id="weather-place" class="weather-place">Puddington, Wirral</span><span id="weather-updated" class="weather-updated"></span></div>
             <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
         </div>
+        <div id="weather-summary" class="weather-summary"></div>
         <div id="weather-now" class="weather-now">Loading weather…</div>
+        <div class="weather-strip-label">Next 12 hours</div>
+        <div id="weather-hourly" class="weather-hourly"></div>
+        <div class="weather-strip-label">7-day forecast</div>
         <div id="weather-days" class="weather-days"></div>
         <div class="weather-search">
             <input type="text" id="weather-search-input" placeholder="Search a place…" autocomplete="off" aria-label="Search for a place">
@@ -1245,10 +1259,11 @@ function buildForecastUrl(latitude, longitude) {
     const params = new URLSearchParams({
         latitude: String(latitude),
         longitude: String(longitude),
-        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m',
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        hourly: 'temperature_2m,precipitation_probability,weather_code',
         daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
         timezone: 'auto',
-        forecast_days: '3'
+        forecast_days: '7'
     });
     return 'https://api.open-meteo.com/v1/forecast?' + params.toString();
 }
@@ -1268,6 +1283,36 @@ function dayLabel(isoDate, index) {
     if (index === 1) return 'Tomorrow';
     const date = new Date(isoDate + 'T12:00:00');
     return date.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+// FP074: hourly helpers. The current time can fall on a 15-minute mark
+// (Open-Meteo's current interval is 900s) while hourly times are on the
+// hour, so the strip starts at the first full hour at or after now.
+function hourlyStartIndex(times, currentTime) {
+    if (!currentTime) return 0;
+    const index = times.findIndex(time => time >= currentTime);
+    return index === -1 ? 0 : index;
+}
+
+// FP074: one-line summary of the next hours from hourly rain chances.
+// "Wet" means a 50% or higher chance of rain. Only the first change is
+// reported, so the line stays one sentence.
+function weatherSummary(times, rainChances, startIndex, hoursCount) {
+    const hours = hoursCount || 12;
+    const end = Math.min(times.length, startIndex + hours);
+    if (startIndex >= times.length || end <= startIndex) return '';
+    const wet = index => Number(rainChances[index]) >= 50;
+    const label = index => String(times[index]).slice(11, 16);
+    if (wet(startIndex)) {
+        for (let i = startIndex + 1; i < end; i++) {
+            if (!wet(i)) return 'Rain now, easing by ' + label(i) + '.';
+        }
+        return 'Rain for the next ' + (end - startIndex) + ' hours.';
+    }
+    for (let i = startIndex + 1; i < end; i++) {
+        if (wet(i)) return 'Dry until ' + label(i) + ', then rain.';
+    }
+    return 'Dry for the next ' + (end - startIndex) + ' hours.';
 }
 
 let weatherCurrentPlace = null;
@@ -1329,10 +1374,14 @@ async function loadWeather(place) {
     weatherCurrentPlace = place;
     const placeEl = document.getElementById('weather-place');
     const nowEl = document.getElementById('weather-now');
+    const summaryEl = document.getElementById('weather-summary');
+    const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
     if (placeEl) placeEl.textContent = place.name;
     if (nowEl) nowEl.textContent = 'Loading weather…';
+    if (summaryEl) summaryEl.textContent = '';
+    if (hourlyEl) hourlyEl.innerHTML = '';
     if (daysEl) daysEl.innerHTML = '';
     if (updatedEl) updatedEl.textContent = '';
     renderRecentPlaces();
@@ -1350,6 +1399,8 @@ async function loadWeather(place) {
 
 function renderWeather(place, data) {
     const nowEl = document.getElementById('weather-now');
+    const summaryEl = document.getElementById('weather-summary');
+    const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
     if (!data || !data.current || !nowEl) return;
@@ -1361,14 +1412,36 @@ function renderWeather(place, data) {
     const rain = Number(current.precipitation);
     const windSpeed = Math.round(Number(current.wind_speed_10m));
     const windDir = windDirectionLabel(Number(current.wind_direction_10m) || 0);
+    const gusts = typeof current.wind_gusts_10m === 'number' ? Math.round(current.wind_gusts_10m) : null;
     nowEl.innerHTML =
         '<div class="weather-now-main"><span class="weather-icon">' + info.icon + '</span>' +
         '<span class="weather-temp">' + temp + '°</span>' +
         '<span class="weather-condition">' + escapeHtml(info.text) + '</span></div>' +
         '<div class="weather-now-detail">Feels like ' + feels + '° · Wind ' + windSpeed + ' km/h ' + windDir +
+        (gusts !== null ? ' (gusts ' + gusts + ')' : '') +
         ' · Humidity ' + humidity + '% · Rain ' + rain + ' mm</div>';
     if (updatedEl && current.time) {
         updatedEl.textContent = 'Updated ' + String(current.time).slice(11, 16);
+    }
+    if (data.hourly && Array.isArray(data.hourly.time) && data.hourly.precipitation_probability) {
+        const start = hourlyStartIndex(data.hourly.time, current.time);
+        if (summaryEl) {
+            summaryEl.textContent = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 12);
+        }
+        if (hourlyEl) {
+            const hours = data.hourly.time.slice(start, start + 12).map((isoTime, offset) => {
+                const index = start + offset;
+                const hourInfo = weatherCodeInfo(data.hourly.weather_code[index]);
+                const hourTemp = Math.round(Number(data.hourly.temperature_2m[index]));
+                const hourRain = Math.round(Number(data.hourly.precipitation_probability[index]));
+                const timeLabel = offset === 0 ? 'Now' : String(isoTime).slice(11, 16);
+                return '<div class="weather-hour"><div class="weather-hour-time">' + timeLabel + '</div>' +
+                    '<div class="weather-hour-icon">' + hourInfo.icon + '</div>' +
+                    '<div class="weather-hour-temp">' + hourTemp + '°</div>' +
+                    '<div class="weather-hour-rain">' + (hourRain >= 20 ? '💧 ' + hourRain + '%' : '') + '</div></div>';
+            }).join('');
+            hourlyEl.innerHTML = hours;
+        }
     }
     if (daysEl && data.daily && Array.isArray(data.daily.time)) {
         const days = data.daily.time.map((isoDate, index) => {
