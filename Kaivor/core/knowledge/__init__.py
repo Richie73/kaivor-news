@@ -1,1 +1,0 @@
-"""Kaivor Knowledge Engine"""
