@@ -53,6 +53,14 @@
         .source-tag { font-size:11px; color:#10b981; text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
         .source-name { font-size:11px; color:#6b7280; margin-bottom:8px; }
         .card-image { width:100%; height:auto; max-height:220px; object-fit:cover; border-radius:9px; margin:0 0 8px; display:block; background:#1f1f23; }
+        .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+        .chat-msg { padding:10px 12px; border-radius:12px; font-size:14px; line-height:1.5; max-width:88%; }
+        .chat-msg.user { align-self:flex-end; background:#14532d; color:#f3f4f6; }
+        .chat-msg.assistant { align-self:flex-start; background:#1f1f23; color:#e5e7eb; }
+        .chat-msg.system { align-self:center; background:none; color:#6b7280; font-size:12px; text-align:center; max-width:100%; }
+        .chat-form { display:flex; gap:8px; }
+        .chat-form input { flex:1; padding:10px 12px; background:#1f1f23; border:1px solid #2f2f36; color:#fff; border-radius:8px; font-size:14px; }
+        .chat-form button { padding:10px 16px; }
         .chips {
             position: sticky;
             top: calc(var(--kaivor-header-height, 82px) - 2px);
@@ -285,6 +293,7 @@
         <div class="chip" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
         <div class="chip" data-scroll-to-end="true" onclick="showSaved(this)">★ Saved</div>
         <div class="chip" data-scroll-to-end="true" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
+        <div class="chip" data-scroll-to-end="true" onclick="showChat(this)">💬 Chat</div>
         <a class="chip" data-scroll-to-end="true" href="/reading" style="text-decoration:none;">📚 Reading</a>
     </div>
 
@@ -643,6 +652,7 @@ function initializeMobileNewsNavigation() {
         '.chips .chip[onclick^="filterCategory("], ' +
         '.chips .chip[onclick^="showSaved("], ' +
         '.chips .chip[onclick^="showRelevanceProfile("], ' +
+        '.chips .chip[onclick^="showChat("], ' +
         '.chips a[data-scroll-to-end="true"]'
     ));
 
@@ -747,6 +757,95 @@ async function showSaved(element) {
         document.getElementById('status').textContent = 'Could not load saved stories.';
     }
 }
+
+// FP077 CHAT: BEGIN
+const CHAT_HISTORY_KEY = 'kaivor-chat-history';
+const CHAT_HISTORY_LIMIT = 30;
+
+function loadChatHistory() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+        return Array.isArray(saved) ? saved.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') : [];
+    } catch (error) { return []; }
+}
+
+function saveChatHistory(messages) {
+    try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-CHAT_HISTORY_LIMIT))); } catch (error) { /* storage full or unavailable — chat still works */ }
+}
+
+function chatMessageHtml(message) {
+    if (message.role === 'user') return `<div class="chat-msg user">${escapeHtml(message.content)}</div>`;
+    return `<div class="chat-msg assistant">${renderAiMarkdown(message.content)}</div>`;
+}
+
+function renderChatLog() {
+    const log = document.getElementById('chat-log');
+    if (!log) return;
+    const history = loadChatHistory();
+    log.innerHTML = history.length
+        ? history.map(chatMessageHtml).join('')
+        : '<div class="chat-msg system">Ask Kaivor anything — news, work, ideas, whatever is on your mind.</div>';
+    log.scrollTop = log.scrollHeight;
+}
+
+function showChat(element) {
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
+    if (wasDifferent) scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Chat with Kaivor';
+    document.getElementById('status').textContent = 'Your conversation stays on this device.';
+    const container = document.getElementById('articles-container');
+    container.innerHTML = `
+        <div class="card" data-category="Chat">
+            <div id="chat-log" class="chat-log"></div>
+            <form id="chat-form" class="chat-form" onsubmit="sendChatMessage(event)">
+                <input id="chat-input" type="text" placeholder="Ask Kaivor anything…" autocomplete="off" maxlength="4000">
+                <button type="submit">Send</button>
+            </form>
+            <button onclick="clearChatHistory()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:12px;padding:4px 0;cursor:pointer;">Clear chat</button>
+        </div>`;
+    renderChatLog();
+    document.getElementById('chat-input').focus();
+}
+
+function clearChatHistory() {
+    try { localStorage.removeItem(CHAT_HISTORY_KEY); } catch (error) { /* ignore */ }
+    renderChatLog();
+}
+
+async function sendChatMessage(event) {
+    event.preventDefault();
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const history = loadChatHistory();
+    history.push({role: 'user', content: text});
+    saveChatHistory(history);
+    input.value = '';
+    renderChatLog();
+    const log = document.getElementById('chat-log');
+    const thinking = document.createElement('div');
+    thinking.className = 'chat-msg assistant';
+    thinking.textContent = '…';
+    log.appendChild(thinking);
+    log.scrollTop = log.scrollHeight;
+    try {
+        const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20)})});
+        const data = await res.json();
+        thinking.remove();
+        if (data.success && data.reply) {
+            history.push({role: 'assistant', content: data.reply});
+        } else {
+            history.push({role: 'assistant', content: data.error || 'Kaivor could not reply right now.'});
+        }
+    } catch (error) {
+        thinking.remove();
+        history.push({role: 'assistant', content: 'Could not reach Kaivor. Check your connection and try again.'});
+    }
+    saveChatHistory(history);
+    renderChatLog();
+}
+// FP077 CHAT: END
 
 function escapeHtml(value) { const div=document.createElement('div'); div.textContent=value ?? ''; return div.innerHTML; }
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }

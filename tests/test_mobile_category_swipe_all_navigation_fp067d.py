@@ -20,7 +20,7 @@ def swipe_handler():
     return match.group(1)
 
 
-def test_swipe_sequence_includes_categories_saved_relevance_and_reading():
+def test_swipe_sequence_includes_categories_saved_relevance_chat_and_reading():
     html = source()
     match = re.search(r"const swipeCategories = \(\) => Array\.from\(document\.querySelectorAll\((.*?)\)\);", html, re.S)
     assert match
@@ -28,6 +28,7 @@ def test_swipe_sequence_includes_categories_saved_relevance_and_reading():
     assert 'filterCategory(' in selector
     assert 'showSaved(' in selector
     assert 'showRelevanceProfile(' in selector
+    assert 'showChat(' in selector
     assert 'a[data-scroll-to-end="true"]' in selector
 
 

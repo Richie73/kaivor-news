@@ -26,6 +26,7 @@ GUARDED_CALLS = [
     ("POST", "/api/story_intelligence", {"article": {}}, 400),
     ("POST", "/api/why_matters", {"article": {}}, 400),
     ("POST", "/api/ai_brief", {"article": {}}, 400),
+    ("POST", "/api/chat", {"messages": "not-a-list"}, 400),
     ("PUT", "/api/relevance_profile", {"profile": "not-a-dict"}, 400),
 ]
 

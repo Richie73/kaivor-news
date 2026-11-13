@@ -1,0 +1,70 @@
+FP077 — General chat hub
+========================
+
+Background (13 Nov 2026)
+- Richie asked what upgrades would make Kaivor a more all-round AI
+  tool. Of the suggestions (RAMS drafting, receipt capture, general
+  chat, voice input, morning hub, MCP link, Readwise), he picked
+  the general chat hub: a place in the app to ask Kaivor anything,
+  not just about a story.
+
+What was built
+- New route POST /api/chat (main.py): the client sends the
+  conversation history; the server validates it (a list of 1–20
+  messages, roles user/assistant only, each 1–4000 characters),
+  prepends a short Kaivor system prompt, and calls the same
+  provider chain as /api/ask_ai (OpenRouter deepseek/deepseek-chat
+  first, then OpenAI gpt-4o-mini), returning {success, reply,
+  provider}. Temperature 0.7, timeout 30s. No provider configured
+  → 503; provider failure → 503 with details.
+- The route is behind the FP069 PIN gate ("api_chat" added to
+  _GUARDED_MUTATION_ENDPOINTS): without the unlock, calls fail
+  503/401 like every other AI route, so the key cannot be burned by
+  unauthenticated callers. One Reading unlock covers chat too.
+- Chat view (templates/index.html): a 💬 Chat chip after Relevance,
+  following the Saved/Relevance pattern — showChat(element) swaps
+  the articles container for a chat card (data-category="Chat", so
+  the category filter hides it without tripping over a missing
+  category). Message bubbles (green for Richie, dark for Kaivor),
+  a typing "…" while waiting, and error text shown as a Kaivor
+  message (including the unlock hint when locked). History lives in
+  localStorage (kaivor-chat-history, last 30 messages) and is
+  restored on open; a Clear chat button wipes it. The last 20
+  messages are sent with each request. Assistant replies render
+  through the existing renderAiMarkdown helper; user messages are
+  HTML-escaped.
+- The Chat chip is in the swipe destinations (swipeCategories
+  selector), so swiping across the rail reaches it like every other
+  view. Touches starting on the chat input or buttons are already
+  excluded from swipe tracking, so typing never navigates away.
+- No new keys, no new provider, no cost beyond the AI calls
+  themselves (same DeepSeek model as Ask AI).
+
+Tests
+- 8 new tests in tests/test_chat_hub_fp077.py: provider reply +
+  system prompt + history passthrough; history passthrough across
+  turns; bad payloads rejected (missing/empty/non-list messages,
+  system role, blank content, missing content, 21 messages, 4001
+  characters); no provider → 503; provider failure → 503; the route
+  is in the guarded set; the template has the chip, view, form,
+  log, storage key and /api/chat call; the chat chip is a swipe
+  destination.
+- tests/test_news_mutation_auth_fp069.py: /api/chat added to the
+  guarded-calls list (503 unconfigured, 401 locked, 400 authed).
+- tests/test_mobile_category_swipe_all_navigation_fp067d.py: the
+  swipe-destination test now also expects showChat.
+- Full suite (local, test-only secrets stub): 486 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as the
+  FP069–FP076 baseline (6 test_credential_migration_fp037 stub
+  artifacts, 2 MCP httpx environment-only, 3 NewsData tests that
+  need the device's real config/secrets.py). No new failures.
+- Phone suite after install: see README_INSTALL_FP077.txt.
+
+Out of scope (unchanged): voice input (suggested, not yet picked);
+RAMS drafting, receipt capture, morning hub, MCP link, Readwise
+(all suggested, awaiting Richie's pick); server-side chat history
+(history is per-device localStorage — it does not follow him
+between phone and computer); ROADMAP.md; Render deploy (follows
+the normal push flow after the Termux install, with a manual
+dashboard deploy if auto-deploy does not fire — it did not fire
+for the FP071 push on 13 Nov).
