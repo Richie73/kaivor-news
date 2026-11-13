@@ -5,13 +5,17 @@ configured PIN and signed Flask session; no BorrowBox credentials are collected.
 """
 from __future__ import annotations
 
-import hmac
 import os
 from dataclasses import asdict
 from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session, url_for
 
+from app_security import (
+    mark_authenticated,
+    pin_matches,
+    security_is_configured,
+)
 from reading.models import BOOK_FORMATS, READING_STATUSES
 from reading.providers import BorrowBoxProvider
 from reading.service import ReadingService, ReadingValidationError
@@ -21,15 +25,6 @@ reading_bp = Blueprint("reading", __name__)
 MAX_TEXT = 4000
 MAX_TITLE = 240
 MAX_AUTHOR = 240
-
-
-def _configured_pin() -> str:
-    return os.environ.get("KAIVOR_READING_PIN", "").strip()
-
-
-def _security_is_configured() -> bool:
-    session_secret = os.environ.get("KAIVOR_SESSION_SECRET", "")
-    return len(_configured_pin()) >= 8 and len(session_secret) >= 32
 
 
 def _db_path() -> str:
@@ -89,7 +84,7 @@ def _require_reading_access():
     # The page and login endpoint must remain reachable while locked.
     if request.endpoint in {"reading.reading_page", "reading.reading_login", "reading.reading_logout"}:
         return None
-    if not _security_is_configured():
+    if not security_is_configured():
         return _json_error(
             "Reading is locked until KAIVOR_READING_PIN (8+ characters) and KAIVOR_SESSION_SECRET (32+ characters) are configured.",
             503,
@@ -101,7 +96,7 @@ def _require_reading_access():
 
 @reading_bp.get("/reading")
 def reading_page():
-    configured = _security_is_configured()
+    configured = security_is_configured()
     authenticated = bool(configured and session.get("reading_authenticated"))
     return render_template(
         "reading.html",
@@ -113,15 +108,12 @@ def reading_page():
 
 @reading_bp.post("/reading/login")
 def reading_login():
-    expected = _configured_pin()
     supplied = str(request.form.get("pin") or "")
-    if not _security_is_configured():
+    if not security_is_configured():
         return redirect(url_for("reading.reading_page"))
-    if not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8")):
+    if not pin_matches(supplied):
         return redirect(url_for("reading.reading_page", error="1"))
-    session.clear()
-    session["reading_authenticated"] = True
-    session.permanent = True
+    mark_authenticated()
     return redirect(url_for("reading.reading_page"))
 
 

@@ -15,6 +15,8 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+from publisher_access import freedium_url_for
+
 MAX_BYTES = 1_500_000
 MAX_REDIRECTS = 4
 TIMEOUT = (3.05, 7)
@@ -22,7 +24,10 @@ USER_AGENT = "KaivorNews/FP028 (+article text retrieval; no browser execution)"
 SKIP_TAGS = {"script", "style", "noscript", "svg", "nav", "footer", "aside", "form", "button", "select", "option", "iframe", "template"}
 BLOCK_TAGS = {"p", "article", "main", "section", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "blockquote", "pre"}
 VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
-ARTICLE_MARKERS = ("article-body", "story-body", "article-content", "story-content", "entry-content", "post-content", "article__body", "story__body", "content-body", "article-text", "articlebody")
+# "prose" is the class the Freedium Mirror renders the article body in (per
+# the mirror's documented rendering); the article/main tags it also uses are
+# matched directly in _is_article_container.
+ARTICLE_MARKERS = ("article-body", "story-body", "article-content", "story-content", "entry-content", "post-content", "article__body", "story__body", "content-body", "article-text", "articlebody", "prose")
 BOILERPLATE_MARKERS = (
     "cookie", "consent", "paywall", "subscribe", "subscription", "newsletter",
     "recommendation", "related-stories", "related-articles", "social-share", "share-tools",
@@ -201,11 +206,9 @@ def _validate_public_url(url: str) -> tuple[bool, str]:
         return False, "invalid_url"
 
 
-def extract_article_text(url: str) -> dict[str, str | bool | int]:
+def _fetch_and_extract(url: str) -> dict[str, str | bool | int]:
     """Fetch an article from a public URL and return it only if text quality passes."""
     current = str(url or "").strip()
-    if len(current) > 2048:
-        return {"success": False, "status": "invalid_url", "message": "The article URL is too long."}
     for hop in range(MAX_REDIRECTS + 1):
         allowed, reason = _validate_public_url(current)
         if not allowed:
@@ -226,7 +229,7 @@ def extract_article_text(url: str) -> dict[str, str | bool | int]:
                     current = urljoin(current, location)
                     continue
                 if response.status_code != 200:
-                    return {"success": False, "status": "http_error", "message": f"The publisher returned HTTP {response.status_code}."}
+                    return {"success": False, "status": "http_error", "http_status": response.status_code, "message": f"The publisher returned HTTP {response.status_code}."}
                 content_type = response.headers.get("Content-Type", "").lower()
                 if "html" not in content_type and "xhtml" not in content_type:
                     return {"success": False, "status": "not_html", "message": "The publisher did not return an HTML article page."}
@@ -251,9 +254,45 @@ def extract_article_text(url: str) -> dict[str, str | bool | int]:
                     "quality_score": extracted["quality_score"],
                     "content_source": extracted["content_source"],
                     "final_url": current,
+                    "via_freedium": False,
                 }
             finally:
                 response.close()
         except requests.RequestException:
             return {"success": False, "status": "network_error", "message": "The publisher could not be reached."}
     return {"success": False, "status": "redirect_limit", "message": "The publisher redirected too many times."}
+
+
+def extract_article_text(url: str) -> dict[str, str | bool | int]:
+    """Fetch an article, falling back to the Freedium Mirror when direct extraction fails.
+
+    Direct extraction runs first and its result is returned unchanged unless it
+    fails with extraction_failed, or with an HTTP 403, on a Freedium-supported
+    publisher domain. Only then is one mirror attempt made, through the same
+    validated fetch path (SSRF checks, redirect limit, size cap, quality
+    gates). A failed mirror attempt returns the original direct result, so a
+    mirror outage costs nothing. Other HTTP errors are deliberately not
+    retried: a 404 means the article does not exist, and a 429 means the
+    publisher is rate-limiting us. The 403 retry was added in FP068.1 after a
+    live check showed FT refusing the direct fetch while the mirror served the
+    full article; the Economist's mirror page carries no article text, so its
+    quality gates still return the original 403 result.
+    """
+    current = str(url or "").strip()
+    if len(current) > 2048:
+        return {"success": False, "status": "invalid_url", "message": "The article URL is too long."}
+    result = _fetch_and_extract(current)
+    retryable = result["status"] == "extraction_failed" or (
+        result["status"] == "http_error" and result.get("http_status") == 403
+    )
+    if result["success"] or not retryable:
+        return result
+    mirror = freedium_url_for(current)
+    if not mirror:
+        return result
+    mirror_result = _fetch_and_extract(mirror)
+    if not mirror_result["success"]:
+        return result
+    mirror_result["content_source"] = "freedium_mirror"
+    mirror_result["via_freedium"] = True
+    return mirror_result

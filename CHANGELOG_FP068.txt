@@ -1,0 +1,53 @@
+FP068 — Freedium integration and Freedium publishers' news feeds
+
+Slice 1 — Freedium Mirror fallback for article extraction
+- When direct extraction fails with extraction_failed on a Freedium-supported
+  publisher domain (Medium, NYT, Washington Post, Bloomberg, Reuters, The
+  Economist, FT), the extractor retries once through the Freedium Mirror
+  (https://freedium-mirror.cfd/<article-url>).
+- The mirror attempt runs through the same validated fetch path: SSRF checks
+  on every URL, 4-redirect limit, 1.5 MB size cap, same timeouts, same
+  quality gates. A failed mirror attempt returns the original direct result,
+  so a mirror outage costs nothing.
+- Mirror successes are marked content_source "freedium_mirror" and
+  via_freedium true; the AI brief retrieval record now carries via_freedium
+  and the content_source allowlist in main.py accepts freedium_mirror.
+- HTTP errors are deliberately not retried: a publisher that actively
+  refuses the request is not hammered through a mirror.
+- Added "prose" to the article-container markers (the class the mirror
+  renders the article body in); the mirror's <article> inside <main> was
+  already matched. Verified live 12 Nov 2026: the mirror renders a Medium
+  article's full text inside <article>/<main>.
+
+Slice 2 — "Unlock via Freedium" link in the news UI
+- publisher_access.py now exposes freedium_url_for() and
+  freedium_access_info(); main.py passes article_freedium_access() to the
+  news template, which renders an "Unlock via Freedium" link for supported
+  articles. The NYT subscription link stays primary; Freedium is the
+  fallback label. publisher_access_info() behaviour is unchanged.
+
+Slice 3 — Freedium publishers' feeds in the matching news categories
+- 13 feeds added to DEFAULT_FEEDS in news_freshness.py (48 -> 61 feeds):
+  World +3 (Washington Post, Financial Times, The Economist International),
+  Technology +3 (Washington Post, Financial Times, Bloomberg),
+  Business +4 (Bloomberg Markets, Washington Post, Financial Times
+  Companies, The Economist Finance and Economics), Science +2 (NYT Science,
+  The Economist Science and Technology), UK +1 (The Economist Britain).
+- No additions for Sport, Android or Culture — no fitting feeds.
+- Reuters is deliberately left out: Reuters has no working public RSS feed
+  (confirmed Oct 2026; direct RSS removed in 2020). Reuters links still get
+  the slice-1 fallback when they arrive via NewsData.io or the Guardian API.
+- Medium is deliberately left out: Medium has no editorial feed, only noisy
+  community tag feeds. Medium links still get the slice-1 fallback.
+
+Tests
+- 25 new tests: tests/test_freedium_fallback_fp068.py (9),
+  tests/test_freedium_access_fp068.py (9),
+  tests/test_freedium_feeds_fp068.py (7). All pass; full suite 389 passed
+  with the same 5 pre-existing environment-only failures as the FP067
+  baseline (2 MCP httpx URL-parse failures, 3 NewsData tests that need the
+  device's real config/secrets.py).
+
+Out of scope (unchanged): FP057 bundle cleanup, README/ROADMAP refresh,
+FP058-FP067 changelog backfill, file cleanup, MCP work, Android share/intent.
+No deployment: Termux install first; Render redeploy is Richie's call.

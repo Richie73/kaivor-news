@@ -1,0 +1,50 @@
+Kaivor FP068.1 — Freedium live-check fixes (13 Nov 2026)
+=========================================================
+
+Follow-up to FP068, from the live smoke check run on the phone over SSH.
+All three fixes were verified live before being made.
+
+1. Washington Post Technology feed URL corrected (news_freshness.py)
+   - Was:    https://feeds.washingtonpost.com/rss/technology  (HTTP 404)
+   - Now:    https://feeds.washingtonpost.com/rss/business/technology
+   - The corrected URL was verified live (HTTP 200, 8,911 bytes).
+
+2. Feed fetch timeout raised 10s -> 20s (news_freshness.py)
+   - New constant FEED_FETCH_TIMEOUT_SECONDS = 20.
+   - Washington Post feeds take ~11s to respond (World 10.66s, Technology
+     10.71s measured live), just over the old 10s timeout, so they timed out
+     on every refresh. Fetches run in parallel, so one slow feed does not
+     block the refresh.
+
+3. Freedium Mirror fallback also retries on HTTP 403 (article_extractor.py)
+   - extract_article_text() now retries through the mirror when the direct
+     fetch fails with extraction_failed OR with HTTP 403 on a
+     Freedium-supported domain. Other HTTP errors are still not retried
+     (404: the article does not exist; 429: rate-limited).
+   - The http_error result now carries "http_status" (the numeric code) so
+     the retry decision reads the code instead of parsing the message.
+   - Live evidence: FT refuses the direct fetch (HTTP 403) while the mirror
+     serves the full article (75KB, <article> present), so the 403 retry
+     unlocks FT. The Economist's mirror page carries no article text, so
+     its quality gates still return the original 403 result — no harm.
+
+Tests
+-----
+- tests/test_freedium_feeds_fp068.py: Technology WaPo URL expectation updated.
+- tests/test_freedium_fallback_fp068.py: the old "403 is not retried" test is
+  replaced by four tests — 403 retried through the mirror (success),
+  403 with mirror failure returns the original 403, 404 not retried,
+  403 on a non-Freedium domain not retried. File now holds 12 tests.
+
+Files changed (4)
+------------------
+- article_extractor.py
+- news_freshness.py
+- tests/test_freedium_fallback_fp068.py
+- tests/test_freedium_feeds_fp068.py
+Plus this changelog.
+
+Install: copy the four files into ~/Kaivor (backing up the originals as
+*.before-fp068-1 first), then run:
+  python -m py_compile article_extractor.py news_freshness.py
+  python -m pytest -q tests/test_freedium_fallback_fp068.py tests/test_freedium_access_fp068.py tests/test_freedium_feeds_fp068.py tests/test_article_extractor_fp026.py tests/test_publisher_access_fp023.py tests/test_publisher_feeds_fp024.py tests/test_news_freshness.py tests/test_ai_brief_article_retrieval_fp026.py tests/test_ai_brief_retrieval_quality_fp028.py tests/test_article_retrieval_diagnostics_fp027.py

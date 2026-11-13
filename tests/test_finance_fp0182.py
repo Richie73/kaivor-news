@@ -1,11 +1,21 @@
 """Focused regression tests for FP018.2 finance endpoints; no network access."""
+import os
 import unittest
 from unittest.mock import patch
 import main
 
 class FinanceApiTests(unittest.TestCase):
     def setUp(self):
+        # FP069: /api/finance/refresh is behind the shared PIN gate.
+        self._env = patch.dict(os.environ, {
+            "KAIVOR_READING_PIN": "test-pin-1234",
+            "KAIVOR_SESSION_SECRET": "s" * 32,
+        })
+        self._env.start()
+        self.addCleanup(self._env.stop)
         self.client = main.app.test_client()
+        with self.client.session_transaction() as sess:
+            sess["reading_authenticated"] = True
         with main._cache_lock:
             main._finance_cache["data"] = {"Gold": 3000.0}
             main._finance_cache["last_updated"] = 1000.0

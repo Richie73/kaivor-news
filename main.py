@@ -11,10 +11,12 @@ from urllib.parse import urlparse
 
 import feedparser
 import requests
+
+from config import secrets as provider_secrets
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from news_quality import quality_rejection_reason
 from news_feed_quality import assess_feed, feed_quality_snapshot
-from publisher_access import publisher_access_info
+from publisher_access import freedium_access_info, publisher_access_info
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
 from brief_quality_validation import validate_brief
 from article_extractor import extract_article_text
@@ -48,6 +50,35 @@ app.config["SESSION_COOKIE_SECURE"] = os.environ.get("KAIVOR_COOKIE_SECURE", "fa
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 from reading_web import reading_bp
 app.register_blueprint(reading_bp)
+from app_security import check_mutation_access
+
+# Mutating news API routes (POST/PUT/DELETE) require the shared PIN +
+# signed-session gate (FP069): one unlock via the Reading section covers
+# them all. GET routes stay open for the PWA, and /api/cron/refresh keeps
+# its own bearer-token check and is deliberately not in this set.
+_GUARDED_MUTATION_ENDPOINTS = frozenset({
+    "api_add_feed",
+    "api_ai_brief",
+    "api_ask_ai",
+    "api_finance_refresh",
+    "api_refresh",
+    "api_relevance_profile",  # PUT only; GET is skipped by the method check
+    "api_remove_saved",
+    "api_save",
+    "api_set_key",
+    "api_story_intelligence",
+    "api_story_timeline",
+    "api_why_matters",
+})
+
+
+@app.before_request
+def _require_news_mutation_access():
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return None
+    if request.endpoint not in _GUARDED_MUTATION_ENDPOINTS:
+        return None
+    return check_mutation_access()
 
 
 def display_date(value):
@@ -299,7 +330,7 @@ def fetch_guardian_articles(category):
 
 def fetch_newsdata_articles():
     # Fetch optional NewsData.io articles; errors never break refreshes.
-    api_key = os.environ.get("NEWSDATA_API_KEY", "").strip()
+    api_key = provider_secrets.get_provider_key("newsdata")
     if not api_key:
         print("NEWSDATA: skipped (API key not configured)", flush=True)
         return []
@@ -405,6 +436,11 @@ def article_provider_label(article):
 def article_subscription_access(article):
     """Return safe publisher access metadata; never fetch article contents."""
     return publisher_access_info(article.get("source", ""), article.get("link", ""))
+
+
+def article_freedium_access(article):
+    """Return Freedium unlock metadata for an article; link only, never fetched here."""
+    return freedium_access_info(article.get("link", ""))
 
 
 def puzzle_items():
@@ -873,7 +909,7 @@ def index():
     with _news_lock:
         articles = list(_news_cache.get("articles", []))
     saved_ids = {item["id"] for item in load_saved_articles()}
-    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label, article_subscription_access=article_subscription_access)
+    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label, article_subscription_access=article_subscription_access, article_freedium_access=article_freedium_access)
 
 
 @app.route("/api/ticker", methods=["GET"])
@@ -1188,6 +1224,7 @@ def api_ai_brief():
         "duration_ms": 0,
         "fallback_used": False,
         "quality_score": 0,
+        "via_freedium": False,
         "content_source": "none",
     }
     source_type = str(article.get("source_type") or "article").strip().lower()
@@ -1219,13 +1256,14 @@ def api_ai_brief():
                 except (TypeError, ValueError):
                     quality_score = 0
                 content_source = str(extraction.get("content_source") or "unknown")
-                if content_source not in {"semantic_container", "page_text_fallback"}:
+                if content_source not in {"semantic_container", "page_text_fallback", "freedium_mirror"}:
                     content_source = "unknown"
                 retrieval.update({
                     "status": "full_text",
                     "character_count": len(extracted_text),
                     "quality_score": quality_score,
                     "content_source": content_source,
+                    "via_freedium": bool(extraction.get("via_freedium")),
                 })
             else:
                 article["retrieval_status"] = retrieval["status"]

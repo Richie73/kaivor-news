@@ -1,0 +1,21 @@
+Kaivor FP068 bundle manifest
+
+REPLACEMENT:
+- article_extractor.py
+- publisher_access.py
+- news_freshness.py
+- main.py
+- templates/index.html
+
+NEW:
+- tests/test_freedium_fallback_fp068.py
+- tests/test_freedium_access_fp068.py
+- tests/test_freedium_feeds_fp068.py
+- README_INSTALL_FP068.txt
+- CHANGELOG_FP068.txt
+- BUNDLE_MANIFEST_FP068.txt
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

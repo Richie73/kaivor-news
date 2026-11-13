@@ -1,0 +1,103 @@
+FP069 — Secure the live app
+
+Auth gate on the mutating API routes
+- All POST/PUT/DELETE news API routes now require the shared PIN +
+  signed-session gate: /api/set_key, /api/add_feed, /api/save,
+  /api/save/<id>, /api/refresh, /api/finance/refresh, /api/ai_brief,
+  /api/ask_ai, /api/story_timeline, /api/story_intelligence,
+  /api/why_matters, and PUT /api/relevance_profile.
+- The gate reuses the Reading section's PIN pattern (new shared module
+  app_security.py; reading_web.py now imports from it, behaviour
+  unchanged). One unlock via the Reading section covers both Reading and
+  the news mutations — one PIN, one session, no second mechanism.
+- When the PIN/secret are not configured, mutating routes answer 503 with
+  a clear "locked until configured" message naming the two variables.
+  When configured but the session is not unlocked, they answer 401
+  telling the user to unlock via the Reading section. Nothing fails
+  silently.
+- GET routes stay open for the PWA. /api/cron/refresh keeps its own
+  bearer-token check and is deliberately not covered by this gate.
+- Template: the Settings section now notes that saving keys and sources
+  needs the app unlocked via the Reading tab; the save button and the
+  market refresh now surface the server's error message instead of
+  failing silently.
+
+Exposed key purged
+- A live-format OpenRouter key was present in 5 stale copies of
+  config/local_config.py (releases/0.4.2-alpha_20260702_140025,
+  releases/0.4.2-alpha_20260702_143945, Kaivor/, and the two
+  Kaivor/releases/ copies). All five copies held the same key. Each
+  file's key value was replaced with the empty value, matching the live
+  root config/local_config.py. Verified by pattern only: no key value
+  was printed, copied or recorded anywhere.
+- Purging the files does NOT revoke the key. The key must still be
+  revoked/rotated at OpenRouter (Richie's action). The live app reads
+  its key from environment variables / the private store, not from
+  these files, so rotation breaks nothing.
+- Install-time find (13 Nov 2026): the phone's live tree held 7 MORE
+  copies of the same key in backups/20260702_*/config/local_config.py
+  (old backups, never in the snapshot because backups/ is excluded
+  from it). All 7 were purged the same way during the FP069 install
+  (key value replaced with the empty value; backup files kept).
+  After the purge, the only sk-or-v1- match left in the phone tree is
+  config/news_secrets.json — the sanctioned device secret store.
+
+Exclusion gaps closed
+- .gitignore now excludes config/local_config.py, releases/, Kaivor/
+  and kaivor_fp0172/ (and the duplicated "Kaivor News secrets" block
+  was removed).
+- scripts/kaivor_snapshot.sh now excludes the same paths from the
+  snapshot, and its safety check now scans archive CONTENTS for key
+  material (sk-or-v1- and sk-proj- patterns with a 20+ character floor,
+  plus bare sk-), with tests/ excluded from both scans: tests/ holds
+  deliberate token-shaped fake fixtures (e.g. test_kaimprove_fp035.py)
+  that would otherwise trip the check. A snapshot containing key
+  material is deleted and the script exits 1.
+- The docx §2 snapshot command needs the same exclusions; the .docx
+  itself was not edited (see README_INSTALL_FP069.txt).
+
+Bounded tidy-up (all deleted material is recoverable from the pre-FP069
+snapshot; nothing live referenced any of it — verified by import grep
+at implementation time)
+- Deleted directories: Kaivor/ (nested duplicate tree), kaivor_fp0172/
+  (partial duplicate), releases/ (two 0.4.2-alpha snapshots), app/
+  (dead prototype entry point).
+- Deleted files: run.py (only imported the dead app/ prototype),
+  test.py and update.py (both 0 bytes), and the 3 shell-accident
+  filenames at root (pasted find-command fragments).
+- 10 targets, 662 files removed. The .before-* backups and the FP057
+  reconciliation directory were kept.
+
+Tests
+- 42 new tests: tests/test_news_mutation_auth_fp069.py (38 — every
+  guarded route × unconfigured 503 / locked 401 / authenticated pass,
+  PIN/secret length boundaries, GET routes open, cron untouched, the
+  full Reading login/logout unlock flow) and
+  tests/test_snapshot_exclusions_fp069.py (4 — gitignore and snapshot
+  exclusions, content-scan patterns, no live-format key in the tree).
+- tests/conftest.py is new: an authed_client fixture (gate configured,
+  session unlocked) for tests that exercise mutating routes.
+- 5 existing test files updated to use the authenticated fixture:
+  test_ai_brief_article_retrieval_fp026.py,
+  test_ai_brief_retrieval_quality_fp028.py,
+  test_ai_brief_validation_fp031.py,
+  test_article_retrieval_diagnostics_fp027.py,
+  test_finance_fp0182.py.
+- Full suite: 434 passed, 11 failed, 2 skipped. The 11 failures are
+  the same 5 pre-existing environment-only failures as the baseline
+  (2 MCP httpx URL-parse, 3 NewsData tests needing the device's real
+  config/secrets.py) plus 6 test_credential_migration_fp037 setup
+  failures that are a local stub artifact (device-only file).
+- Install-time fix (13 Nov 2026): test_no_live_format_openrouter_key_
+  in_tree failed on the phone because it scanned the device's
+  sanctioned secret store (config/news_secrets.json), which
+  legitimately holds the live key. The test now excludes the
+  sanctioned secret paths (config/news_secrets.json,
+  config/*secrets*.json, config/secrets.py, .env) and asserts no key
+  material anywhere ELSE in the tree. On the phone the full suite
+  then passes: 445 passed, 0 failed, 2 skipped.
+
+Out of scope (unchanged): Render deploy (Richie's call after the
+Termux install); FP067d verification (proposed FP070); OpenRouter key
+rotation (Richie's action at OpenRouter); README/ROADMAP refresh;
+FP058-FP067 changelog backfill.

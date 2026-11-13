@@ -26,6 +26,10 @@ import requests
 
 DEFAULT_MAX_AGE_HOURS = max(1, int(os.environ.get("KAIVOR_NEWS_MAX_AGE_HOURS", "72")))
 DEFAULT_ITEMS_PER_FEED = max(5, int(os.environ.get("KAIVOR_NEWS_ITEMS_PER_FEED", "15")))
+# Washington Post feeds take ~11s to respond (FP068.1 live check), so the
+# fetch timeout must clear that with margin; fetches run in parallel, so one
+# slow feed does not block the refresh.
+FEED_FETCH_TIMEOUT_SECONDS = 20
 MAX_WORKERS = max(4, int(os.environ.get("KAIVOR_NEWS_MAX_WORKERS", "12")))
 _DIAGNOSTICS_LOCK = threading.Lock()
 _FEED_DIAGNOSTICS: dict[str, dict[str, Any]] = {}
@@ -81,15 +85,21 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         {"name": "The Independent", "url": "https://www.independent.co.uk/news/world/rss", "tier": "primary"},
         {"name": "CNN", "url": "http://rss.cnn.com/rss/edition_world.rss", "tier": "major"},
         {"name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "tier": "major"},
+        {"name": "The Washington Post", "url": "https://feeds.washingtonpost.com/rss/world", "tier": "major"},
+        {"name": "Financial Times", "url": "https://www.ft.com/world?format=rss", "tier": "major"},
+        {"name": "The Economist", "url": "https://www.economist.com/international/rss.xml", "tier": "major"},
     ],
     "Technology": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/technology/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/technology/rss", "tier": "primary"},
         {"name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", "tier": "primary"},
+        {"name": "The Washington Post", "url": "https://feeds.washingtonpost.com/rss/business/technology", "tier": "major"},
+        {"name": "Financial Times", "url": "https://www.ft.com/technology?format=rss", "tier": "major"},
         {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "tier": "specialist"},
         {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "tier": "specialist"},
         {"name": "Wired", "url": "https://www.wired.com/feed/rss", "tier": "specialist"},
         {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "tier": "specialist"},
+        {"name": "Bloomberg", "url": "https://www.bloomberg.com/feeds/technology/news.rss", "tier": "specialist"},
     ],
     "Android": [
         {"name": "Android Police", "url": "https://www.androidpolice.com/feed/", "tier": "specialist"},
@@ -115,10 +125,16 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         {"name": "The Independent", "url": "https://www.independent.co.uk/news/business/rss", "tier": "primary"},
         {"name": "CNBC", "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html", "tier": "major"},
         {"name": "NPR", "url": "https://feeds.npr.org/1006/rss.xml", "tier": "major"},
+        {"name": "Bloomberg", "url": "https://www.bloomberg.com/feeds/markets/news.rss", "tier": "major"},
+        {"name": "The Washington Post", "url": "https://feeds.washingtonpost.com/rss/business", "tier": "major"},
+        {"name": "Financial Times", "url": "https://www.ft.com/companies?format=rss", "tier": "major"},
+        {"name": "The Economist", "url": "https://www.economist.com/finance-and-economics/rss.xml", "tier": "major"},
     ],
     "Science": [
         {"name": "BBC News", "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "tier": "primary"},
         {"name": "The Guardian", "url": "https://www.theguardian.com/science/rss", "tier": "primary"},
+        {"name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml", "tier": "primary"},
+        {"name": "The Economist", "url": "https://www.economist.com/science-and-technology/rss.xml", "tier": "major"},
         {"name": "ScienceDaily", "url": "https://www.sciencedaily.com/rss/top/science.xml", "tier": "specialist"},
         {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/science", "tier": "specialist"},
     ],
@@ -127,6 +143,7 @@ DEFAULT_FEEDS: dict[str, list[dict[str, str]]] = {
         {"name": "The Guardian", "url": "https://www.theguardian.com/uk/rss", "tier": "primary"},
         {"name": "The Independent", "url": "https://www.independent.co.uk/news/uk/rss", "tier": "primary"},
         {"name": "Sky News", "url": "https://feeds.skynews.com/feeds/rss/uk.xml", "tier": "major"},
+        {"name": "The Economist", "url": "https://www.economist.com/britain/rss.xml", "tier": "major"},
     ],
     "Sport": [
         # Football-specific feeds are deliberately included ahead of general
@@ -243,7 +260,7 @@ def _fetch_feed(feed: dict[str, str], category: str, now: datetime, max_age_hour
         response = requests.get(
             url,
             headers={"User-Agent": "Kaivor-News/FP017.1"},
-            timeout=10,
+            timeout=FEED_FETCH_TIMEOUT_SECONDS,
         )
         if response.status_code != 200:
             finish("http_error", error=f"HTTP {response.status_code}")

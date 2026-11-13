@@ -50,12 +50,13 @@ data/provider_stats.json
 config/*secrets*.json
 *.sqlite3
 
-# Kaivor News secrets and local runtime data
-config/news_secrets.json
-data/news_saved.json
-data/provider_stats.json
-config/*secrets*.json
-*.sqlite3
-
 # Local Kaivor runtime data
 data/*
+
+# Stale local config and duplicate trees (FP069): local_config.py once held a
+# live provider key, and the duplicate trees carried stale copies of it.
+# Nothing live reads these paths; keep them out of snapshots and git.
+config/local_config.py
+releases/
+Kaivor/
+kaivor_fp0172/

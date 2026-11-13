@@ -4,7 +4,7 @@ from unittest.mock import patch
 import main
 
 
-def test_ai_brief_uses_retrieved_text_when_feed_description_is_short(monkeypatch):
+def test_ai_brief_uses_retrieved_text_when_feed_description_is_short(monkeypatch, authed_client):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     article = {
@@ -24,7 +24,7 @@ def test_ai_brief_uses_retrieved_text_when_feed_description_is_short(monkeypatch
         "text": "Full article body " * 40,
         "final_url": "https://example.com/roads",
     }) as extract:
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article})
+        response = authed_client.post("/api/ai_brief", json={"article": article})
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["success"] is True
@@ -32,7 +32,7 @@ def test_ai_brief_uses_retrieved_text_when_feed_description_is_short(monkeypatch
     assert "Full article body" in payload["brief"]
 
 
-def test_ai_brief_keeps_feed_description_when_retrieval_fails(monkeypatch):
+def test_ai_brief_keeps_feed_description_when_retrieval_fails(monkeypatch, authed_client):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     article = {
@@ -46,12 +46,12 @@ def test_ai_brief_keeps_feed_description_when_retrieval_fails(monkeypatch):
         "status": "http_error",
         "message": "Publisher returned an error.",
     }):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article})
+        response = authed_client.post("/api/ai_brief", json={"article": article})
     assert response.status_code == 200
     assert "Short feed teaser." in response.get_json()["brief"]
 
 
-def test_pasted_text_never_triggers_automatic_retrieval(monkeypatch):
+def test_pasted_text_never_triggers_automatic_retrieval(monkeypatch, authed_client):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     article = {
@@ -61,7 +61,7 @@ def test_pasted_text_never_triggers_automatic_retrieval(monkeypatch):
         "source_type": "pasted_text",
     }
     with patch.object(main, "extract_article_text") as extract:
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article})
+        response = authed_client.post("/api/ai_brief", json={"article": article})
     assert response.status_code == 200
     extract.assert_not_called()
     assert "pasted paragraph" in response.get_json()["brief"]

@@ -40,11 +40,11 @@ def no_provider_keys(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
 
-def test_valid_provider_brief_is_returned_with_validation(monkeypatch):
+def test_valid_provider_brief_is_returned_with_validation(monkeypatch, authed_client):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with patch.object(main.requests, "post", return_value=provider_response(valid_brief())):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_valid_provider_brief_is_returned_with_validation(monkeypatch):
     assert payload["brief_validation"]["issues"] == []
 
 
-def test_malformed_provider_response_is_diagnosed_and_valid_fallback_used(monkeypatch):
+def test_malformed_provider_response_is_diagnosed_and_valid_fallback_used(monkeypatch, authed_client):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     malformed = Mock()
@@ -63,7 +63,7 @@ def test_malformed_provider_response_is_diagnosed_and_valid_fallback_used(monkey
     with patch.object(main.requests, "post", return_value=malformed), patch.object(
         main, "build_ai_brief_fallback", return_value=valid_brief()
     ):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 200
@@ -75,7 +75,7 @@ def test_malformed_provider_response_is_diagnosed_and_valid_fallback_used(monkey
     ]
 
 
-def test_invalid_provider_brief_is_rejected_and_next_provider_is_tried(monkeypatch):
+def test_invalid_provider_brief_is_rejected_and_next_provider_is_tried(monkeypatch, authed_client):
     monkeypatch.setenv("OPENROUTER_API_KEY", "router-test-key")
     monkeypatch.setenv("OPENAI_API_KEY", "openai-test-key")
     with patch.object(
@@ -86,7 +86,7 @@ def test_invalid_provider_brief_is_rejected_and_next_provider_is_tried(monkeypat
             provider_response(valid_brief()),
         ],
     ) as post:
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 200
@@ -103,13 +103,13 @@ def test_invalid_provider_brief_is_rejected_and_next_provider_is_tried(monkeypat
     assert post.call_count == 2
 
 
-def test_provider_request_exception_is_reported_without_exception_details(monkeypatch):
+def test_provider_request_exception_is_reported_without_exception_details(monkeypatch, authed_client):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with patch.object(
         main.requests, "post", side_effect=RuntimeError("secret internal detail")
     ), patch.object(main, "build_ai_brief_fallback", return_value=valid_brief()):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 200
@@ -120,12 +120,12 @@ def test_provider_request_exception_is_reported_without_exception_details(monkey
     assert "secret internal detail" not in response.get_data(as_text=True)
 
 
-def test_invalid_deterministic_fallback_fails_closed_without_returning_brief(monkeypatch):
+def test_invalid_deterministic_fallback_fails_closed_without_returning_brief(monkeypatch, authed_client):
     no_provider_keys(monkeypatch)
     with patch.object(
         main, "build_ai_brief_fallback", return_value="Invalid short fallback."
     ):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 502
@@ -138,12 +138,12 @@ def test_invalid_deterministic_fallback_fails_closed_without_returning_brief(mon
     )
 
 
-def test_fallback_builder_exception_returns_safe_failure(monkeypatch):
+def test_fallback_builder_exception_returns_safe_failure(monkeypatch, authed_client):
     no_provider_keys(monkeypatch)
     with patch.object(
         main, "build_ai_brief_fallback", side_effect=RuntimeError("private detail")
     ):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 502
@@ -153,14 +153,14 @@ def test_fallback_builder_exception_returns_safe_failure(monkeypatch):
     assert "private detail" not in response.get_data(as_text=True)
 
 
-def test_provider_http_error_uses_safe_diagnostic(monkeypatch):
+def test_provider_http_error_uses_safe_diagnostic(monkeypatch, authed_client):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     response_mock = provider_response(valid_brief(), status_code=503)
     with patch.object(main.requests, "post", return_value=response_mock), patch.object(
         main, "build_ai_brief_fallback", return_value=valid_brief()
     ):
-        response = main.app.test_client().post("/api/ai_brief", json={"article": article()})
+        response = authed_client.post("/api/ai_brief", json={"article": article()})
 
     payload = response.get_json()
     assert response.status_code == 200

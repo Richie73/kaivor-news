@@ -1,0 +1,40 @@
+Kaivor FP069 bundle manifest
+
+REPLACEMENT:
+- main.py
+- reading_web.py
+- templates/index.html
+- scripts/kaivor_snapshot.sh
+- .gitignore
+- tests/test_ai_brief_article_retrieval_fp026.py
+- tests/test_ai_brief_retrieval_quality_fp028.py
+- tests/test_ai_brief_validation_fp031.py
+- tests/test_article_retrieval_diagnostics_fp027.py
+- tests/test_finance_fp0182.py
+
+NEW:
+- app_security.py
+- tests/conftest.py
+- tests/test_news_mutation_auth_fp069.py
+- tests/test_snapshot_exclusions_fp069.py
+- README_INSTALL_FP069.txt
+- CHANGELOG_FP069.txt
+- BUNDLE_MANIFEST_FP069.txt
+
+DELETED (recoverable from the pre-FP069 snapshot; nothing live referenced them):
+- Kaivor/ (nested duplicate tree)
+- kaivor_fp0172/ (partial duplicate tree)
+- releases/ (two 0.4.2-alpha snapshots)
+- app/ (dead prototype entry point)
+- run.py
+- test.py (0 bytes)
+- update.py (0 bytes)
+- 3 shell-accident filenames at root
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+The 5 stale local_config.py files holding the exposed key were purged
+(key value replaced with the empty value) and then deleted with their
+trees; the key itself must still be revoked/rotated at OpenRouter.
+No migration is applied.
+No deployment is performed.

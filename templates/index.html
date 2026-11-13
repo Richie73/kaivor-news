@@ -233,6 +233,7 @@
             <div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div>
             <div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div>
             <div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:6px;">Saving keys and sources needs the app unlocked — unlock via the 📚 Reading tab (same PIN).</div>
         </div>
     </details>
 
@@ -284,6 +285,7 @@
             <div class="btn-group">
                 <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
                 {% if article_subscription_access(article).supported %}<a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link" title="{{ article_subscription_access(article).label }}">Subscription Reader · {{ article_subscription_access(article).publisher }}</a>{% endif %}
+                {% if article_freedium_access(article).available %}<a href="{{ article_freedium_access(article).url }}" target="_blank" rel="noopener" class="btn-link" title="Open the full article through the Freedium Mirror reader">Unlock via Freedium</a>{% endif %}
                 <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
                 <button onclick="triggerWhyMatters(this)">Why it matters</button>
                 <button onclick="triggerStoryTimeline(this)">Timeline</button>
@@ -753,10 +755,12 @@ async function toggleSave(button) {
             const res=await fetch('/api/save/'+encodeURIComponent(article.id),{method:'DELETE'});
             const data=await res.json();
             if(data.success){savedIds.delete(article.id);button.textContent='Save';button.classList.remove('saved');}
+            else alert(data.error||'Could not remove saved story.');
         } else {
             const res=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article})});
             const data=await res.json();
             if(data.success){savedIds.add(article.id);button.textContent='Saved ✓';button.classList.add('saved');}
+            else alert(data.error||'Could not save story.');
         }
     } catch(error) { alert('Could not update saved story.'); }
 }
@@ -867,7 +871,7 @@ async function refreshMarkets() {
     try {
         const response = await fetch('/api/finance/refresh', {method:'POST', headers:{'Accept':'application/json'}});
         const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.message || 'Refresh could not start');
+        if (!response.ok || !result.success) throw new Error(result.error || result.message || 'Refresh could not start');
         setMarketStatus('Refreshing markets…');
         const deadline = Date.now() + 45000;
         let completed = false;
@@ -890,7 +894,7 @@ async function refreshMarkets() {
         }
         if (!completed) setMarketStatus('Still refreshing; check again shortly', 'stale');
     } catch (error) {
-        setMarketStatus('Refresh failed; showing previous values', 'error');
+        setMarketStatus('Refresh failed: ' + (error && error.message ? error.message : 'showing previous values'), 'error');
         console.error('Market refresh error:', error);
     } finally {
         marketRefreshInFlight = false;
