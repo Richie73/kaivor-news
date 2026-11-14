@@ -132,7 +132,9 @@ class _nullcontext:
 
 def test_route_injects_market_data_without_web(monkeypatch):
     _set_market(monkeypatch, MARKET_DATA)
-    response, captured = _chat_with_capture(monkeypatch, "Gold price right now")
+    # "should" keeps this on the model path (a pure price ask is
+    # answered directly from Market Watch — see FP080.1).
+    response, captured = _chat_with_capture(monkeypatch, "Gold price right now — should I buy some?")
     assert response.status_code == 200
     system_prompt = captured["payload"]["messages"][0]["content"]
     assert "Gold (per troy ounce): $2,650.00" in system_prompt
@@ -143,7 +145,7 @@ def test_route_combines_market_data_and_web(monkeypatch):
     _set_market(monkeypatch, MARKET_DATA)
     response, captured = _chat_with_capture(
         monkeypatch,
-        "Gold price right now",
+        "Gold price right now — should I buy some?",
         web=True,
         brave_results=[{"title": "Kitco gold", "url": "https://example.com/gold", "description": "Live chart."}],
     )
@@ -156,7 +158,7 @@ def test_route_combines_market_data_and_web(monkeypatch):
 
 def test_route_empty_store_prompts_refresh(monkeypatch):
     _set_market(monkeypatch, None)
-    response, captured = _chat_with_capture(monkeypatch, "Gold price right now")
+    response, captured = _chat_with_capture(monkeypatch, "Gold price right now — should I buy some?")
     assert response.status_code == 200
     assert "Refresh markets" in captured["payload"]["messages"][0]["content"]
 

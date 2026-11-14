@@ -328,6 +328,30 @@ _FINANCE_CHAT_ASSETS = (
     ("EUR_USD", "EUR/USD", (("eur", "usd"), ("euro", "dollar"), ("eur/usd",))),
 )
 _FINANCE_CHAT_PRICE_WORDS = ("price", "rate", "worth", "cost", "value", "trading", "how much", "current", "live", "now", "today", "per ounce", "per barrel", "high", "low")
+_FINANCE_FX_KEYS = {"GBP_USD", "GBP_EUR", "EUR_USD"}
+
+
+def _finance_snapshot():
+    """FP080: (data dict, last_updated epoch) from the finance cache."""
+    with _cache_lock:
+        return dict(_finance_cache.get("data") or {}), float(_finance_cache.get("last_updated") or 0)
+
+
+def _finance_age_text(last_updated):
+    """FP080: how long ago the market data was fetched, in plain words."""
+    age = time.time() - last_updated
+    if age < 60:
+        return "just now"
+    if age < 3600:
+        return f"{int(age // 60)} minutes ago"
+    return f"{age / 3600:.0f} hours ago"
+
+
+def _format_finance_value(key, value):
+    """FP080: a market value formatted like the homepage shows it."""
+    if key in _FINANCE_FX_KEYS:
+        return f"{value:.4f}"
+    return f"${value:,.2f}"
 
 
 def finance_context_for_chat(question):
@@ -354,9 +378,7 @@ def finance_context_for_chat(question):
             matched.append((key, label))
     if not matched:
         return "", []
-    with _cache_lock:
-        data = dict(_finance_cache.get("data") or {})
-        last_updated = float(_finance_cache.get("last_updated") or 0)
+    data, last_updated = _finance_snapshot()
     if not last_updated or not any(key in data for key, _ in matched):
         return (
             "The user asked about market prices, but this app's market data is not loaded yet "
@@ -364,25 +386,60 @@ def finance_context_for_chat(question):
             "homepage, then ask again. Do not guess a price.",
             [key for key, _ in matched],
         )
-    age = time.time() - last_updated
-    if age < 60:
-        age_text = "just now"
-    elif age < 3600:
-        age_text = f"{int(age // 60)} minutes ago"
-    else:
-        age_text = f"{age / 3600:.0f} hours ago"
+    age_text = _finance_age_text(last_updated)
     fetched = datetime.fromtimestamp(last_updated, tz=timezone.utc).strftime("%H:%M UTC")
     lines = [f"Live market data from this app (fetched {fetched}, {age_text}):"]
     for key, label in matched:
         value = data.get(key)
         if value is None:
             continue
-        if key in {"GBP_USD", "GBP_EUR", "EUR_USD"}:
-            lines.append(f"- {label}: {value:.4f}")
-        else:
-            lines.append(f"- {label}: ${value:,.2f}")
+        lines.append(f"- {label}: {_format_finance_value(key, value)}")
     lines.append("Give the figure with its fetch time. Do not invent a newer price.")
     return "\n".join(lines), [key for key, _ in matched]
+
+
+# FP080.1: words that mean the question is more than just "what is the
+# price" — advice, explanations, comparisons, forecasts. A message with
+# any of these goes to the AI model instead of the direct answer.
+_FINANCE_DIRECT_BLOCK_WORDS = (
+    "should", "why", "compare", "better", "invest", "buy", "sell",
+    "think", "mean", "happen", "going", "will", "would", "could",
+    "up", "down", "rise", "fall", "drop", "trend", "forecast", "news",
+    "outlook", "how does", "how do", "how is", "how are", "how can",
+    "how to", "how come",
+)
+
+
+def finance_direct_answer(question):
+    """FP080.1: direct server answer for a pure price ask.
+
+    Returns (answer, keys): answer is None unless the question is a
+    short price ask about tracked assets with no broader question in
+    it ("Gold price right now", "Give me the live gold price"). With
+    stored data the answer gives the figures with their fetch time;
+    without data it tells the user to tap 'Refresh markets'. The
+    answer bypasses the AI provider entirely, so it can never fall
+    back to a 'no live access' refusal, and it costs nothing.
+    """
+    text = (question or "").lower()
+    if not text or len(text.split()) > 10:
+        return None, []
+    if any(word in text for word in _FINANCE_DIRECT_BLOCK_WORDS):
+        return None, []
+    _, keys = finance_context_for_chat(question)
+    if not keys:
+        return None, []
+    data, last_updated = _finance_snapshot()
+    labels = {key: label for key, label, _ in _FINANCE_CHAT_ASSETS}
+    if not last_updated or not any(key in data for key in keys):
+        return ("The market data isn't loaded yet — tap 'Refresh markets' on the homepage, then ask again.", keys)
+    age_text = _finance_age_text(last_updated)
+    fetched = datetime.fromtimestamp(last_updated, tz=timezone.utc).strftime("%H:%M UTC")
+    parts = [f"{labels[key]}: {_format_finance_value(key, data[key])}" for key in keys if key in data]
+    answer = ", ".join(parts) + f" (fetched {fetched}, {age_text})."
+    if time.time() - last_updated > 3600:
+        answer += " Tap 'Refresh markets' on the homepage for a newer price."
+    return answer, keys
 
 
 def _published_timestamp(value):
@@ -1661,6 +1718,11 @@ def api_chat():
     FP080: price questions about a tracked asset (gold, bitcoin, S&P 500,
     Brent oil, GBP/USD, GBP/EUR, EUR/USD) also get the app's own Market
     Watch values in the system prompt, whether web search is on or off.
+
+    FP080.1: a pure price ask (short, no broader question in it) is
+    answered straight from the stored market data with no AI call at
+    all, so the reply can never fall back to a "no live access"
+    refusal. Web sources still attach when web search ran.
     """
     data = request.json or {}
     raw_messages = data.get("messages")
@@ -1706,7 +1768,14 @@ def api_chat():
             return jsonify({"success": False, "error": "Web search failed just now. Try again in a moment."}), 503
         web_used = bool(web_results)
     finance_block, finance_keys = finance_context_for_chat(last_user)
-    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)} finance={','.join(finance_keys) or 'none'}", flush=True)
+    # FP080.1: a pure price ask is answered straight from the stored
+    # market data — no AI call, so no refusal is possible. Web sources
+    # still attach when web search ran.
+    direct_answer, direct_keys = finance_direct_answer(last_user)
+    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)} finance={','.join(finance_keys) or 'none'} direct={','.join(direct_keys) or 'no'}", flush=True)
+    if direct_answer is not None:
+        sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
+        return jsonify({"success": True, "reply": direct_answer, "provider": "Market Watch", "web_used": web_used, "sources": sources})
 
     system_content = "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so."
     if web_used:

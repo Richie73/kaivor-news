@@ -1,0 +1,20 @@
+Kaivor FP080.1 bundle manifest
+
+REPLACEMENT:
+- main.py
+- tests/test_chat_market_fp080.py
+- tests/test_chat_web_prompt_fp0792.py
+
+NEW:
+- tests/test_chat_market_direct_fp0801.py
+- README_INSTALL_FP080.1.txt
+- CHANGELOG_FP080.1.txt
+- BUNDLE_MANIFEST_FP080.1.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

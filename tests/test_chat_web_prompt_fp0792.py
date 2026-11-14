@@ -52,7 +52,9 @@ def test_web_prompt_forbids_no_access_refusal(monkeypatch):
         patch.object(main.requests, "get", return_value=_brave_response(BRAVE_RESULTS)),
         patch.object(main.requests, "post", side_effect=fake_post),
     ):
-        response = client.post("/api/chat", json={"messages": [{"role": "user", "content": "Gold price?"}], "web": True})
+        # "why" keeps this on the model path (a pure price ask is
+        # answered directly from Market Watch — see FP080.1).
+        response = client.post("/api/chat", json={"messages": [{"role": "user", "content": "What is the gold price and why did it move?"}], "web": True})
     assert response.status_code == 200
     system_prompt = captured["payload"]["messages"][0]["content"]
     assert "ARE your internet access" in system_prompt

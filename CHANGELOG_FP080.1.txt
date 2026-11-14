@@ -1,0 +1,63 @@
+FP080.1 — Answer price questions directly, without the AI
+=======================================================
+
+Background (14 Nov 2026)
+- FP079.2 + FP080 deployed (commit 512a1f8), but Richie's next
+  test — "Give me the live gold price", with the 🌐 badge showing
+  web was on — still came back "I don't have real-time internet
+  access". The model ignored both the strengthened prompt and
+  the Market Watch figures (or the market data had not been
+  loaded since the restart — either way the reply depended on
+  the model behaving, and it did not). Prompting alone cannot
+  be relied on for this: the refusal is too strongly trained.
+
+What was built
+- finance_direct_answer(question) in main.py: a pure price ask
+  — short (10 words or fewer), about a tracked asset, with no
+  broader question in it (no should/why/compare/invest/buy/
+  sell/up/down/trend/forecast/news/how-does and similar) — is
+  answered straight from the stored Market Watch data, with no
+  AI call at all. With data: "Gold (per troy ounce): $2,650.00
+  (fetched 15:20 UTC, 10 minutes ago)." Data over an hour old
+  adds "Tap 'Refresh markets' on the homepage for a newer
+  price." Without data: "The market data isn't loaded yet —
+  tap 'Refresh markets' on the homepage, then ask again."
+- api_chat short-circuits on a direct answer (provider shown as
+  "Market Watch"). The web search still runs first when web is
+  on, so the Sources list and status line still appear. Broader
+  questions ("should I buy?", "is gold up today?") still go to
+  the AI model with the FP080 finance block in the prompt. The
+  [chat] log line now ends with direct=<keys> (or direct=no).
+- Small refactor: the finance cache read, age text and value
+  formatting are shared helpers (_finance_snapshot,
+  _finance_age_text, _format_finance_value) used by both the
+  prompt block and the direct answer.
+- Test updates: three FP080 route tests and one FP079.2 test now
+  use a broader question ("should I buy some?", "why did it
+  move?") so they exercise the model path instead of the new
+  short-circuit.
+
+Tests
+- 12 new tests in tests/test_chat_market_direct_fp0801.py: pure
+  ask, empty store, advice/direction/long/non-price questions
+  going to the model, stale data, "How much is gold?"; route
+  tests proving the provider is never called for a direct
+  answer, that web sources still attach, that a broader
+  question still uses the provider with the finance block, and
+  the empty-store direct reply.
+- Full suite (local, test-only secrets stub): 534 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP080 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures.
+- Phone suite after install: 545 passed, 0 failed, 2 skipped
+  (targeted 43 passed). Backup main.py.before-fp0801 kept on
+  the phone.
+
+Out of scope (unchanged): the finance refresh itself (still
+on-demand via "Refresh markets"); the toggle and status line
+(FP079.1); the web prompt (FP079.2); the PIN gate; the FP078 MCP
+link (blocked on the platform 421, feedback filed 14 Nov);
+ROADMAP.md; Render deploy (follows the normal push flow after
+the Termux install).
