@@ -1,0 +1,18 @@
+Kaivor FP079.2 bundle manifest
+
+REPLACEMENT:
+- main.py (shared with FP080)
+
+NEW:
+- tests/test_chat_web_prompt_fp0792.py
+- README_INSTALL_FP079.2.txt
+- CHANGELOG_FP079.2.txt
+- BUNDLE_MANIFEST_FP079.2.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

@@ -1,0 +1,42 @@
+FP079.2 — Stop the chat refusing web questions
+=============================================
+
+Background (14 Nov 2026)
+- FP079.1 proved the web search works live: the gold-price test
+  at 15:20 returned 5 real sources, rendered as clickable links,
+  with the status line "🌐 Web search · 5 sources". But the reply
+  text still said "I currently don't have access to live internet
+  data" — even with the results in its prompt. The Brave snippets
+  do not contain the actual price number, so the model fell back
+  to its generic refusal instead of using what it had.
+
+What was built
+- One change in main.py (api_chat): the web instruction in the
+  system prompt now says the results ARE its internet access —
+  never claim to lack internet access, live data, or the ability
+  to fetch current information — and, when the results do not
+  contain the exact figure, to say so plainly and point to the
+  sources that show it live, by number, instead of refusing.
+  The reply still cannot invent a price the results do not
+  contain; for actual figures see FP080 (Market Watch prices),
+  built in the same change.
+
+Tests
+- 2 new tests in tests/test_chat_web_prompt_fp0792.py: a web
+  search with results sends the strengthened instruction to the
+  provider; a web-off chat carries no web instruction.
+- Full suite (local, test-only secrets stub): 522 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP079.1 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures. (Count covers FP079.2 + FP080 together.)
+- Phone suite after install: 533 passed, 0 failed, 2 skipped
+  (targeted 31 passed). Backup main.py.before-fp080 kept on
+  the phone. (Counts cover FP079.2 + FP080 together.)
+
+Out of scope (unchanged): the search itself (FP079); the toggle
+and status line (FP079.1); the PIN gate; the FP078 MCP link
+(blocked on the platform 421, feedback filed 14 Nov); ROADMAP.md;
+Render deploy (follows the normal push flow after the Termux
+install).

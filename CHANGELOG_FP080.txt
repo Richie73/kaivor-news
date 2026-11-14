@@ -1,0 +1,60 @@
+FP080 — Market Watch prices in the chat hub
+===========================================
+
+Background (14 Nov 2026)
+- The web search works live (FP079.1), but Brave snippets do
+  not contain actual price numbers, so a gold-price question
+  still could not be answered with a figure. The app already
+  has the figures: the homepage Market Watch fetches Gold,
+  Bitcoin, S&P 500 and Brent oil (USD) plus GBP/USD, GBP/EUR
+  and EUR/USD, stored in memory in _finance_cache. FP080 puts
+  those values into the chat when the question asks about them.
+
+What was built
+- finance_context_for_chat(question) in main.py: matches a
+  price question about a tracked asset — an asset trigger
+  (gold, bitcoin/btc, s&p/sp500, brent/oil, pound+dollar,
+  pound+euro, euro+dollar) plus a price word (price, rate,
+  worth, cost, value, trading, how much, current, live, now,
+  today, per ounce, per barrel, high, low), or a message of
+  three words or fewer naming the asset ("Gold?"). Returns a
+  prompt block with the stored values, the fetch time and the
+  age ("fetched 15:20 UTC, 10 minutes ago"), formatted like the
+  homepage ($2,650.00 for USD assets, 1.3352 for FX), plus the
+  instruction to give the figure with its fetch time and never
+  invent a newer price.
+- The finance store is empty after a restart until someone taps
+  "Refresh markets". A price question with no stored data gets
+  a block telling the model to say so and to tell the user to
+  tap "Refresh markets", then ask again — never a guessed
+  price.
+- api_chat calls the helper on the latest user message and
+  appends the block to the system prompt. This is the app's own
+  data, so it applies whether web search is on or off; with web
+  on, the reply gets both the Market Watch figures and the web
+  sources. The [chat] log line now ends with finance=<keys>
+  (or finance=none).
+- No template change: the reply text itself carries the price
+  and its fetch time.
+
+Tests
+- 11 new tests in tests/test_chat_market_fp080.py: gold, short
+  asset question, non-price question, FX pair, empty store,
+  multiple assets, oil; route tests for market-only, market +
+  web combined, empty store, and the finance= log field.
+- Full suite (local, test-only secrets stub): 522 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP079.1 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures. (Count covers FP079.2 + FP080 together.)
+- Phone suite after install: 533 passed, 0 failed, 2 skipped
+  (targeted 31 passed). Backup main.py.before-fp080 kept on
+  the phone. (Counts cover FP079.2 + FP080 together.)
+
+Out of scope (unchanged): the finance refresh itself (still
+on-demand via "Refresh markets"); the toggle and status line
+(FP079.1); the web prompt (FP079.2, built in the same change);
+the PIN gate; the FP078 MCP link (blocked on the platform 421,
+feedback filed 14 Nov); ROADMAP.md; Render deploy (follows the
+normal push flow after the Termux install).

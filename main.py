@@ -315,6 +315,76 @@ def search_web_for_chat(query, count=5):
         return None, "failed"
 
 
+# FP080: Market Watch prices in the chat hub. Each entry is
+# (finance cache key, display label, trigger phrases). A trigger phrase
+# matches when every word in it appears in the question.
+_FINANCE_CHAT_ASSETS = (
+    ("Gold", "Gold (per troy ounce)", (("gold",),)),
+    ("Bitcoin", "Bitcoin", (("bitcoin",), ("btc",))),
+    ("SP500", "S&P 500 index", (("s&p",), ("sp500",), ("s and p",))),
+    ("Brent_Oil", "Brent crude oil (per barrel)", (("brent",), ("oil",))),
+    ("GBP_USD", "GBP/USD", (("gbp", "usd"), ("pound", "dollar"), ("gbp/usd",), ("sterling", "dollar"))),
+    ("GBP_EUR", "GBP/EUR", (("gbp", "eur"), ("pound", "euro"), ("gbp/eur",), ("sterling", "euro"))),
+    ("EUR_USD", "EUR/USD", (("eur", "usd"), ("euro", "dollar"), ("eur/usd",))),
+)
+_FINANCE_CHAT_PRICE_WORDS = ("price", "rate", "worth", "cost", "value", "trading", "how much", "current", "live", "now", "today", "per ounce", "per barrel", "high", "low")
+
+
+def finance_context_for_chat(question):
+    """FP080: Market Watch context for price questions in the chat hub.
+
+    Returns (block, keys): block is text to append to the chat system
+    prompt ("" when the question is not a price question about a tracked
+    asset), keys the matched finance cache keys. A price question needs
+    an asset trigger plus a price word, or a message of three words or
+    fewer naming the asset ("Gold?"). The finance store is the same data
+    the homepage shows; it is empty after a restart until someone taps
+    "Refresh markets", so a price question with no stored data tells the
+    user how to load it instead of guessing.
+    """
+    text = (question or "").lower()
+    if not text:
+        return "", []
+    price_asked = any(word in text for word in _FINANCE_CHAT_PRICE_WORDS) or len(text.split()) <= 3
+    if not price_asked:
+        return "", []
+    matched = []
+    for key, label, triggers in _FINANCE_CHAT_ASSETS:
+        if any(all(word in text for word in trigger) for trigger in triggers):
+            matched.append((key, label))
+    if not matched:
+        return "", []
+    with _cache_lock:
+        data = dict(_finance_cache.get("data") or {})
+        last_updated = float(_finance_cache.get("last_updated") or 0)
+    if not last_updated or not any(key in data for key, _ in matched):
+        return (
+            "The user asked about market prices, but this app's market data is not loaded yet "
+            "(it clears when the app restarts). Tell them to tap 'Refresh markets' on the "
+            "homepage, then ask again. Do not guess a price.",
+            [key for key, _ in matched],
+        )
+    age = time.time() - last_updated
+    if age < 60:
+        age_text = "just now"
+    elif age < 3600:
+        age_text = f"{int(age // 60)} minutes ago"
+    else:
+        age_text = f"{age / 3600:.0f} hours ago"
+    fetched = datetime.fromtimestamp(last_updated, tz=timezone.utc).strftime("%H:%M UTC")
+    lines = [f"Live market data from this app (fetched {fetched}, {age_text}):"]
+    for key, label in matched:
+        value = data.get(key)
+        if value is None:
+            continue
+        if key in {"GBP_USD", "GBP_EUR", "EUR_USD"}:
+            lines.append(f"- {label}: {value:.4f}")
+        else:
+            lines.append(f"- {label}: ${value:,.2f}")
+    lines.append("Give the figure with its fetch time. Do not invent a newer price.")
+    return "\n".join(lines), [key for key, _ in matched]
+
+
 def _published_timestamp(value):
     try:
         text = str(value or "").strip()
@@ -1582,6 +1652,15 @@ def api_chat():
     FP079: the client may also send "web": true. The server then searches
     Brave with the latest user message, appends the results to the system
     prompt and returns them as "sources" with "web_used": true.
+
+    FP079.2: the web instruction now tells the model the results ARE its
+    internet access, so it must not fall back to a "no live access"
+    refusal, and to point at the live sources by number when they do not
+    carry the exact figure.
+
+    FP080: price questions about a tracked asset (gold, bitcoin, S&P 500,
+    Brent oil, GBP/USD, GBP/EUR, EUR/USD) also get the app's own Market
+    Watch values in the system prompt, whether web search is on or off.
     """
     data = request.json or {}
     raw_messages = data.get("messages")
@@ -1612,10 +1691,12 @@ def api_chat():
 
     # FP079: optional web search. The latest user message is the query.
     # FP079.1: one log line per chat request (flag + outcome, no content).
+    # FP080: Market Watch prices for price questions (the app's own data,
+    # so this applies whether web search is on or off).
+    last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
     web_results = []
     web_used = False
     if data.get("web"):
-        last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
         web_results, web_error = search_web_for_chat(last_user[:400])
         if web_error == "no_key":
             print("[chat] web_requested=True web_error=no_key", flush=True)
@@ -1624,14 +1705,17 @@ def api_chat():
             print("[chat] web_requested=True web_error=failed", flush=True)
             return jsonify({"success": False, "error": "Web search failed just now. Try again in a moment."}), 503
         web_used = bool(web_results)
-    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)}", flush=True)
+    finance_block, finance_keys = finance_context_for_chat(last_user)
+    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)} finance={','.join(finance_keys) or 'none'}", flush=True)
 
     system_content = "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so."
     if web_used:
-        lines = ["\n\nUse these web search results to answer. They are current pages, numbered for reference. Cite the sources you use by number, like [1]. If the results do not answer the question, say so plainly instead of guessing."]
+        lines = ["\n\nThese web search results ARE your internet access — never say you lack internet access, live data, or the ability to fetch current information. Use the results to answer, citing the sources you use by number, like [1]. If the results do not contain the exact figure asked for, say so plainly and point to the sources that show it live, by number, instead of refusing."]
         for i, result in enumerate(web_results, 1):
             lines.append(f"\n[{i}] {result['title']}\n{result['url']}\n{result['description']}")
         system_content += "\n".join(lines)
+    if finance_block:
+        system_content += "\n\n" + finance_block
     system_prompt = {
         "role": "system",
         "content": system_content,
