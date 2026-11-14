@@ -1957,7 +1957,13 @@ function fillTickerFromHistory(history) {
             filled += 1;
         }
     });
-    if (filled) marketHistoryFill = Date.now() / 1000;
+    if (filled) {
+        marketHistoryFill = Date.now() / 1000;
+        // FP086.2: update the status line now, not on the next
+        // 30-second ticker poll — otherwise it keeps saying
+        // "No live data yet" while prices are showing.
+        setMarketStatus('Prices from the Markets view · ' + formatMarketAge(0), 'stale');
+    }
 }
 // FP086 MARKETS VIEW: END
 

@@ -1,0 +1,25 @@
+Kaivor FP086.2 — Markets strip status updates at once
+===================================================
+
+WHAT CHANGED
+------------
+FP086.1's live check found one real gap: after the Markets view
+filled the strip's prices, the status text beside MARKET WATCH
+still read "No live data yet — tap Refresh markets". The fill set
+the flag the 30-second ticker poll reads, but the status only
+changed on the next poll — up to 30 seconds later — so the check
+caught it still saying the old text while prices were showing.
+
+Fix: fillTickerFromHistory now calls setMarketStatus itself the
+moment the strip fills ("Prices from the Markets view · Updated
+0s ago"), and the poll keeps the age fresh from there. One line
+of behaviour, in templates/index.html only.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_markets_view_fp086.py (replacement — the fill test
+  now asserts the immediate status update, and the node test
+  stubs setMarketStatus/formatMarketAge and checks the text)
+- CHANGELOG_FP0862.txt, README_INSTALL_FP0862.txt,
+  BUNDLE_MANIFEST_FP0862.txt (new docs)

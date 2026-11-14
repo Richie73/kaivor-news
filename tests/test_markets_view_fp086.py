@@ -99,7 +99,8 @@ def test_history_fill_updates_the_ticker():
     fill = function_body(html, "function fillTickerFromHistory(history) {",
                          "// FP086 MARKETS VIEW: END")
     assert "updateMarketValue(key, entry.current);" in fill
-    assert "if (filled) marketHistoryFill = Date.now() / 1000;" in fill
+    assert "marketHistoryFill = Date.now() / 1000;" in fill
+    assert "setMarketStatus('Prices from the Markets view · ' + formatMarketAge(0), 'stale');" in fill
     ticker = function_body(html, "async function updateFinanceTicker() {",
                            "async function refreshMarkets() {")
     assert "if (result.age_seconds !== null) marketHistoryFill = null;" in ticker
@@ -149,7 +150,10 @@ console.log(JSON.stringify(out));
 def test_ticker_fill_from_history_node():
     script = """
 const filled = {};
+let statusText = '';
 function updateMarketValue(k, v) { filled[k] = v; }
+function setMarketStatus(text) { statusText = text; }
+function formatMarketAge(s) { return 'Updated ' + s + 's ago'; }
 """ + markets_js_block() + """
 fillTickerFromHistory({
     Gold: {current: 3886.3},
@@ -157,7 +161,7 @@ fillTickerFromHistory({
     GBP_USD: {current: null},
     GBP_JPY: {current: 211.62},
 });
-console.log(JSON.stringify({filled, hasFill: typeof marketHistoryFill === 'number'}));
+console.log(JSON.stringify({filled, hasFill: typeof marketHistoryFill === 'number', statusText}));
 """
     result = subprocess.run(
         ["node", "-e", script], capture_output=True, text=True, timeout=30
@@ -166,3 +170,4 @@ console.log(JSON.stringify({filled, hasFill: typeof marketHistoryFill === 'numbe
     out = json.loads(result.stdout.strip().splitlines()[-1])
     assert out["filled"] == {"Gold": 3886.3, "Silver": 49.12, "GBP_JPY": 211.62}
     assert out["hasFill"] is True
+    assert out["statusText"] == "Prices from the Markets view · Updated 0s ago"
