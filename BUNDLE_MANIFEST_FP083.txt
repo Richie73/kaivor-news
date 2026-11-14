@@ -1,0 +1,27 @@
+Kaivor FP083 bundle manifest
+
+REPLACEMENT:
+- static/manifest.webmanifest
+- static/service-worker.js
+- templates/index.html
+- templates/reading.html
+- tests/test_weather_section_fp073.py
+- tests/test_weather_upgrades_fp074.py
+- tests/test_weather_redesign_fp082.py
+
+NEW:
+- static/icons/kaivor-news-192-v3.png
+- static/icons/kaivor-news-512-v3.png
+- static/icons/kaivor-logo-v3.svg
+- tests/test_logo_splash_fp083.py
+- README_INSTALL_FP083.txt
+- CHANGELOG_FP083.txt
+- BUNDLE_MANIFEST_FP083.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

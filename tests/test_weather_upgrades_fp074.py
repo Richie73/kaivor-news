@@ -58,7 +58,7 @@ def weather_js_block():
 def test_forecast_request_asks_for_hourly_gusts_and_seven_days():
     js = weather_js_block()
     assert "wind_gusts_10m" in js
-    assert "hourly: 'temperature_2m,precipitation_probability,weather_code'" in js
+    assert "hourly: 'temperature_2m,precipitation_probability,weather_code,is_day'" in js
     assert "forecast_days: '7'" in js
 
 

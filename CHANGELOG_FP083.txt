@@ -1,0 +1,62 @@
+Kaivor FP083 — Logo refresh (Spark K) + splash screen
+===================================================
+
+WHAT CHANGED
+------------
+1. LOGO REFRESH. The app icon is the Spark K mark — a bold black K
+   with the Kaivor intelligence spark (the ✦ from the app's AI
+   cards) on the same green (#35FA33) as the current icon. Richie
+   picked it from three concepts (A Globe K, B Orbit K, C Spark K).
+   Shipped as v3 icon files (192 + 512); the SVG source is kept in
+   the repo at static/icons/kaivor-logo-v3.svg. The manifest,
+   service worker cache (renamed kaivor-news-fp083-icon-v3, so the
+   old v2 cache is dropped on activation) and favicon all move to
+   v3. The header on both pages (News + Reading) shows the new
+   mark next to KAIVOR NEWS. The old v2/v1 icon files are left in
+   place, unreferenced.
+2. SPLASH SCREEN. Opening the app now shows a full-screen splash:
+   the logo (inlined as SVG, so it paints instantly with no fetch),
+   the KAIVOR NEWS wordmark and tagline, and an animated green
+   loading bar sweeping across. It fades out 900ms after the page
+   content is parsed (or 400ms after everything loads), with a
+   hard 3s timeout so it can never trap the user on a slow load,
+   and no animation when the user prefers reduced motion.
+3. ALSO FIXED — NIGHT ICONS. While verifying FP082 live, the
+   12-hour strip showed a sun icon for clear hours after dark.
+   The icon lookup had no day/night awareness at all. The
+   forecast now asks Open-Meteo for is_day (current + hourly),
+   and a new weatherIcon() helper shows the moon for clear /
+   mainly-clear skies at night — in the hero, the slim strip
+   and the 12-hour strip. Cloudy, wet and storm icons are
+   unchanged, and the 7-day list keeps day icons (each row is
+   a whole day). Covered by new node assertions in the FP073
+   test file.
+
+TECHNICAL
+---------
+- No Python, no server route, no new keys, no cost.
+- The splash is pure template + CSS + a few lines of JS
+  (hideSplash, FP083 SPLASH markers). The header height is
+  measured dynamically (updateStickyNavigationOffset), so the
+  26px header mark needs no layout adjustment.
+- Icon size tests read the PNG headers directly (no Pillow
+  dependency — the phone suite must run without it).
+
+FILES
+-----
+- static/icons/kaivor-news-192-v3.png (new)
+- static/icons/kaivor-news-512-v3.png (new)
+- static/icons/kaivor-logo-v3.svg (new)
+- static/manifest.webmanifest (replacement)
+- static/service-worker.js (replacement)
+- templates/index.html (replacement)
+- templates/reading.html (replacement)
+- tests/test_logo_splash_fp083.py (new, 9 tests)
+- tests/test_weather_section_fp073.py (replacement — is_day in the
+  current-params assertion + weatherIcon node assertions)
+- tests/test_weather_upgrades_fp074.py (replacement — is_day in
+  the hourly-params assertion)
+- tests/test_weather_redesign_fp082.py (replacement — the strip
+  now renders the night-aware icon variable)
+- CHANGELOG_FP083.txt, README_INSTALL_FP083.txt,
+  BUNDLE_MANIFEST_FP083.txt (new docs)

@@ -9,7 +9,7 @@
 :root{color-scheme:dark;--bg:#0b0b0d;--panel:#151519;--panel2:#1d1d23;--line:#303039;--muted:#a1a1aa;--text:#f4f4f5;--accent:#10b981;--warn:#fbbf24}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
 header{position:sticky;top:0;z-index:5;background:#0b0b0df2;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.brand{font-weight:800;letter-spacing:.08em}.sub{font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}
+.brand{font-weight:800;letter-spacing:.08em}.brand-mark{width:32px;height:32px;border-radius:8px;flex:0 0 auto}.sub{font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}
 a{color:var(--accent)}button,.button{border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:var(--panel2);color:var(--text);font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 button.primary{background:var(--accent);color:#06251b;border-color:var(--accent);font-weight:700}
 button.danger{color:#fecaca;border-color:#7f1d1d}
@@ -41,7 +41,7 @@ textarea{min-height:76px;resize:vertical}.full{grid-column:1/-1}
 </head>
 <body>
 <header>
-  <div><div class="brand">KAIVOR NEWS</div><div class="sub">Reading Intelligence</div></div>
+  <div style="display:flex;align-items:center;gap:10px"><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="32" height="32"><div><div class="brand">KAIVOR NEWS</div><div class="sub">Reading Intelligence</div></div></div>
   <div class="row" style="flex:0 0 auto">
     <a class="button" href="/">← News</a>
     {% if authenticated %}<form method="post" action="/reading/logout"><button type="submit">Lock</button></form>{% endif %}

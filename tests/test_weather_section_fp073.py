@@ -27,6 +27,12 @@ MAIN = Path(__file__).resolve().parents[1] / "main.py"
 NODE_ASSERTIONS = """
 assert.equal(weatherCodeInfo(0).text, 'Clear sky');
 assert.equal(weatherCodeInfo(0).icon, '☀️');
+assert.equal(weatherIcon(0, 1), '☀️');
+assert.equal(weatherIcon(0, 0), '🌙');
+assert.equal(weatherIcon(1, 0), '🌙');
+assert.equal(weatherIcon(1, 1), '🌤️');
+assert.equal(weatherIcon(3, 0), '☁️');
+assert.equal(weatherIcon(61, 0), '🌧️');
 assert.equal(weatherCodeInfo(55).text, 'Dense drizzle');
 assert.equal(weatherCodeInfo(61).text, 'Slight rain');
 assert.equal(weatherCodeInfo(95).icon, '⛈️');
@@ -94,7 +100,7 @@ def test_open_meteo_endpoints_are_used():
     assert "https://api.open-meteo.com/v1/forecast?" in js
     assert "https://geocoding-api.open-meteo.com/v1/search?" in js
     assert "forecast_days: '7'" in js
-    assert "current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m'" in js
+    assert "current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day'" in js
     assert "daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'" in js
 
 
