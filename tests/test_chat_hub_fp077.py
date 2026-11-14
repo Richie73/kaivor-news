@@ -124,6 +124,9 @@ def test_template_has_chat_view():
     assert "showChat(" in text
 
 
-def test_chat_view_is_in_the_swipe_destinations():
+def test_chat_view_is_reached_from_the_bottom_nav():
+    # FP084: Chat left the rail for the bottom nav, so it is no longer
+    # a swipe destination — swiping moves between news categories only.
     text = _template_text()
-    assert '.chips .chip[onclick^="showChat("]' in text
+    assert '<button type="button" id="nav-chat" class="nav-item" data-nav="chat" onclick="showChat(this)">' in text
+    assert '.chips .chip[onclick^="showChat("]' not in text

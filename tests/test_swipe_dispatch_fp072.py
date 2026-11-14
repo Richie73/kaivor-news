@@ -43,18 +43,21 @@ def test_buggy_filtercategory_regex_is_gone_from_template():
 
 
 def test_every_swipe_destination_is_click_activatable():
-    """Each of the 13 swipe destinations must do the right thing when
-    clicked: the ten category chips carry a filterCategory onclick, Saved
-    and Relevance carry their own onclick, and Reading is a link."""
+    """Each of the 10 swipe destinations must do the right thing when
+    clicked: the ten category chips carry a filterCategory onclick.
+    (FP084: Saved, Chat and Weather live in the bottom nav and
+    Relevance in the header — they are no longer swipe destinations,
+    but their handlers still exist and are still click-activatable.)"""
     html = source()
     category_chips = re.findall(
-        r'<div class="chip[^"]*" onclick="filterCategory\(\'([^\']+)\',this\)">',
+        r'<div class="chip[^>]*onclick="filterCategory\(\'([^\']+)\',this\)">',
         html,
     )
     assert len(category_chips) == 10, category_chips
     assert 'onclick="showSaved(this)"' in html
     assert 'onclick="showRelevanceProfile(this)"' in html
-    assert re.search(r'<a class="chip"[^>]*href="/reading"', html)
+    assert 'onclick="showChat(this)"' in html
+    assert re.search(r'<a id="nav-reading" class="nav-item"[^>]*href="/reading"', html)
 
 
 def test_swipe_still_moves_to_adjacent_destination():

@@ -14,7 +14,7 @@ a{color:var(--accent)}button,.button{border:1px solid var(--line);border-radius:
 button.primary{background:var(--accent);color:#06251b;border-color:var(--accent);font-weight:700}
 button.danger{color:#fecaca;border-color:#7f1d1d}
 button:disabled{opacity:.5;cursor:not-allowed}
-main{max-width:1000px;margin:0 auto;padding:20px 14px 60px}
+main{max-width:1000px;margin:0 auto;padding:20px 14px 80px}
 .panel,.book-card,.metric,.locked-card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}
 h1{font-size:25px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}h3{font-size:16px;margin:0 0 5px}
 .muted,.hint{color:var(--muted)}.hint{font-size:13px}
@@ -36,6 +36,10 @@ textarea{min-height:76px;resize:vertical}.full{grid-column:1/-1}
 .empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted)}
 .alert{border:1px solid #7f1d1d;background:#2a1111;color:#fecaca;padding:10px;border-radius:9px;margin-bottom:12px}
 .locked{min-height:75vh;display:grid;place-items:center;padding:20px}.locked-card{max-width:440px;width:100%}
+#bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;background:#0b0b0d;border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-size:11px;padding:6px 0 2px;cursor:pointer;text-decoration:none;font-family:inherit}
+.nav-item .nav-icon{font-size:20px;line-height:1}
+.nav-item.active{color:#35FA33}
 @media(max-width:720px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}header{align-items:flex-start}.book-actions{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -387,5 +391,16 @@ $('filter-status').addEventListener('change',applyBookFilters);
 loadDashboard().catch(error=>showMessage(error.message,true));
 </script>
 {% endif %}
+
+<!-- FP084: bottom navigation bar, matching the news page. The other
+     destinations link back to the news page (with a hash for the
+     Weather, Chat and Saved views). -->
+<nav id="bottom-nav" aria-label="Main sections">
+  <a class="nav-item" data-nav="news" href="/"><span class="nav-icon">📰</span><span>News</span></a>
+  <a class="nav-item" data-nav="weather" href="/#weather"><span class="nav-icon">🌤️</span><span>Weather</span></a>
+  <a class="nav-item" data-nav="chat" href="/#chat"><span class="nav-icon">💬</span><span>Chat</span></a>
+  <a class="nav-item" data-nav="saved" href="/#saved"><span class="nav-icon">★</span><span>Saved</span></a>
+  <span class="nav-item active" data-nav="reading"><span class="nav-icon">📚</span><span>Reading</span></span>
+</nav>
 </body>
 </html>

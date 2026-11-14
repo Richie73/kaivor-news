@@ -1,0 +1,25 @@
+Kaivor FP084 bundle manifest
+
+REPLACEMENT:
+- templates/index.html
+- templates/reading.html
+- tests/test_mobile_category_rail_fp067b.py
+- tests/test_mobile_category_rail_fp067c.py
+- tests/test_mobile_category_swipe_all_navigation_fp067d.py
+- tests/test_swipe_dispatch_fp072.py
+- tests/test_weather_redesign_fp082.py
+- tests/test_chat_hub_fp077.py
+
+NEW:
+- tests/test_bottom_nav_fp084.py
+- README_INSTALL_FP084.txt
+- CHANGELOG_FP084.txt
+- BUNDLE_MANIFEST_FP084.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

@@ -20,16 +20,19 @@ def swipe_handler():
     return match.group(1)
 
 
-def test_swipe_sequence_includes_categories_saved_relevance_chat_and_reading():
+def test_swipe_sequence_covers_news_categories_only():
+    # FP084: the utility destinations left the rail for the bottom nav,
+    # so swiping moves between the news categories only.
     html = source()
     match = re.search(r"const swipeCategories = \(\) => Array\.from\(document\.querySelectorAll\((.*?)\)\);", html, re.S)
     assert match
     selector = match.group(1)
     assert 'filterCategory(' in selector
-    assert 'showSaved(' in selector
-    assert 'showRelevanceProfile(' in selector
-    assert 'showChat(' in selector
-    assert 'a[data-scroll-to-end="true"]' in selector
+    assert 'showWeather(' not in selector
+    assert 'showSaved(' not in selector
+    assert 'showRelevanceProfile(' not in selector
+    assert 'showChat(' not in selector
+    assert 'a[data-scroll-to-end="true"]' not in selector
 
 
 def test_swipe_dispatches_each_navigation_type():
@@ -46,11 +49,14 @@ def test_swipe_dispatches_each_navigation_type():
     assert "showRelevanceProfile(nextChip)" not in handler
 
 
-def test_reading_swipe_reuses_fp067c_end_scroll_click_handler():
+def test_reading_is_a_bottom_nav_link_not_a_rail_end_action():
+    # FP084: Reading left the rail, so the click handler that waited
+    # for the rail to scroll before following the link is gone.
     html = source()
-    assert "document.addEventListener('click'" in html
-    assert "scrollCategoryRailToEnd(link)" in html
-    assert "window.location.assign(destination)" in html
+    assert 'id="nav-reading"' in html
+    assert 'href="/reading"' in html
+    assert "scrollCategoryRailToEnd" not in html
+    assert "window.location.assign(destination)" not in html
 
 
 def test_swipe_threshold_and_vertical_gesture_protection_remain():
@@ -60,8 +66,10 @@ def test_swipe_threshold_and_vertical_gesture_protection_remain():
 
 
 def test_fp067a_to_fp067c_navigation_behaviour_is_preserved():
+    # FP084: the end-scroll helper is gone with the rail's utility
+    # destinations; the shared activation and chip-centring remain.
     html = source()
     assert "function activateCategoryChip(element)" in html
     assert "scrollCategoryChipIntoView(element)" in html
-    assert "scrollCategoryRailToEnd(element)" in html
+    assert "scrollCategoryRailToEnd(element)" not in html
     assert "function animateCategoryTitle(title, direction)" in html

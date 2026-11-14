@@ -27,15 +27,14 @@ def test_rail_scroll_uses_visible_geometry_and_true_maximum():
     assert "rail.scrollTo({ left: targetLeft" in code
 
 
-def test_all_chip_types_including_links_are_auto_revealed_on_click():
+def test_rail_has_no_end_actions_reading_lives_in_the_bottom_nav():
+    # FP084: the utility destinations left the rail, so the
+    # scroll-to-end mechanism is gone — Reading is a bottom-nav link.
     html = template_text()
-    assert "document.addEventListener('click'" in html
-    assert 'data-scroll-to-end="true"' in html
+    assert 'data-scroll-to-end="true"' not in html
+    assert "scrollCategoryRailToEnd" not in html
     assert 'href="/reading"' in html
-    assert "event.target.closest && event.target.closest('.chips a[data-scroll-to-end=\"true\"]')" in html
-    assert "event.preventDefault();" in html
-    assert "scrollCategoryRailToEnd(link);" in html
-    assert "window.location.assign(destination);" in html
+    assert 'id="nav-reading"' in html
 
 
 def test_rail_has_end_padding_and_items_do_not_shrink():

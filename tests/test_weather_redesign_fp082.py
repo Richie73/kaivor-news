@@ -61,17 +61,18 @@ def show_weather_body():
     return html[start:end]
 
 
-def test_weather_chip_exists_after_puzzles():
+def test_weather_button_is_in_the_bottom_nav():
+    # FP084: the Weather chip left the rail for the bottom nav.
     html = template_text()
-    assert '<div class="chip" id="weather-chip" onclick="showWeather(this)">🌤️ Weather</div>' in html
-    assert html.index("🧩 Puzzles") < html.index("🌤️ Weather") < html.index("★ Saved")
+    assert '<button type="button" id="nav-weather" class="nav-item" data-nav="weather" onclick="showWeather(this)">' in html
+    assert 'id="weather-chip"' not in html
 
 
 def test_slim_strip_markup_exists():
     html = template_text()
     assert 'id="weather-strip"' in html
     assert 'class="weather-strip"' in html
-    assert "onclick=\"showWeather(document.getElementById('weather-chip'))\"" in html
+    assert "onclick=\"showWeather(document.getElementById('nav-weather'))\"" in html
     assert 'id="weather-strip-place"' in html
     assert 'id="weather-strip-now"' in html
     assert 'id="weather-strip-summary"' in html
@@ -116,11 +117,14 @@ def test_other_views_hide_the_weather_view():
     assert html.count("hideWeatherView();") == 4  # one call site per other view
 
 
-def test_weather_is_a_swipe_destination():
+def test_weather_is_not_a_swipe_destination():
+    # FP084: swiping moves between news categories only; Weather is
+    # reached from the bottom nav bar (or by tapping the strip).
     html = template_text()
     match = re.search(r"const swipeCategories = \(\) => Array\.from\(document\.querySelectorAll\((.*?)\)\);", html, re.S)
     assert match
-    assert 'showWeather(' in match.group(1)
+    assert 'showWeather(' not in match.group(1)
+    assert 'filterCategory(' in match.group(1)
 
 
 def test_forecast_request_asks_for_sunrise_and_sunset():

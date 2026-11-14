@@ -8,7 +8,7 @@
     <link rel="icon" href="/icons/kaivor-news-192-v3.png" type="image/png">
     <title>Kaivor News</title>
     <style>
-        body { background:#0b0b0b; color:#f3f4f6; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:70px; }
+        body { background:#0b0b0b; color:#f3f4f6; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:70px; padding-bottom:64px; }
         header { position:fixed; top:0; left:0; right:0; background:#0b0b0b; z-index:1000; padding:16px; font-size:20px; font-weight:bold; border-bottom:1px solid #222; text-align:center; letter-spacing:1px; color:#fff; }
         .install-app { margin-top:7px; padding:5px 10px; font-size:11px; border-radius:999px; }
         .sub-header { font-size:11px; color:#10b981; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
@@ -228,7 +228,7 @@
         #kaivor-scroll-top {
             position: fixed;
             right: 18px;
-            bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+            bottom: calc(78px + env(safe-area-inset-bottom, 0px));
             z-index: 1200;
             width: 46px;
             height: 46px;
@@ -247,6 +247,14 @@
         }
         #kaivor-scroll-top.is-visible { display: flex; }
         #kaivor-scroll-top:focus-visible { outline: 3px solid #d1fae5; outline-offset: 3px; }
+
+        /* FP084: bottom navigation bar — the five main destinations,
+           always visible and thumb-friendly. The rail above keeps only
+           the news categories. */
+        #bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:1000; display:flex; background:#0b0b0b; border-top:1px solid #222; padding:6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+        .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:#9ca3af; font-size:11px; padding:6px 0 2px; cursor:pointer; text-decoration:none; font-family:inherit; }
+        .nav-item .nav-icon { font-size:20px; line-height:1; }
+        .nav-item.active { color:#35FA33; }
         body.kaivor-swipe-active { overscroll-behavior-x: contain; }
         @media (prefers-reduced-motion: reduce) {
             html:focus-within { scroll-behavior: auto; }
@@ -281,7 +289,7 @@
         <div class="splash-bar"><span></span></div>
     </div>
 </div>
-<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button></header>
+<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="relevance-btn" class="install-app" onclick="showRelevanceProfile(this)">🎯 Relevance</button></header>
 <div class="container">
     <section class="market-panel" aria-label="Markets tracker">
         <div class="market-panel-head">
@@ -323,21 +331,16 @@
     </details>
 
     <div class="chips">
-        <div class="chip active" onclick="filterCategory('All',this)">Top Stories</div>
-        <div class="chip" onclick="filterCategory('World',this)">World</div>
-        <div class="chip" onclick="filterCategory('Technology',this)">Technology</div>
-        <div class="chip" onclick="filterCategory('Android',this)">Android</div>
-        <div class="chip" onclick="filterCategory('Culture',this)">Culture</div>
-        <div class="chip" onclick="filterCategory('Business',this)">Business</div>
-        <div class="chip" onclick="filterCategory('Science',this)">Science</div>
-        <div class="chip" onclick="filterCategory('UK',this)">UK</div>
-        <div class="chip" onclick="filterCategory('Sport',this)">Sport</div>
-        <div class="chip" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
-        <div class="chip" id="weather-chip" onclick="showWeather(this)">🌤️ Weather</div>
-        <div class="chip" data-scroll-to-end="true" onclick="showSaved(this)">★ Saved</div>
-        <div class="chip" data-scroll-to-end="true" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
-        <div class="chip" data-scroll-to-end="true" onclick="showChat(this)">💬 Chat</div>
-        <a class="chip" data-scroll-to-end="true" href="/reading" style="text-decoration:none;">📚 Reading</a>
+        <div class="chip active" data-nav="news" onclick="filterCategory('All',this)">Top Stories</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('World',this)">World</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Technology',this)">Technology</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Android',this)">Android</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Culture',this)">Culture</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Business',this)">Business</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Science',this)">Science</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('UK',this)">UK</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Sport',this)">Sport</div>
+        <div class="chip" data-nav="news" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
     </div>
 
     <!-- FP082: slim weather strip on the home view (tap it to open the
@@ -346,7 +349,7 @@
          key), fetched directly by the browser. Local place is Puddington,
          Wirral; search finds any other place by name and remembers
          recent places. -->
-    <button id="weather-strip" type="button" class="weather-strip" onclick="showWeather(document.getElementById('weather-chip'))" aria-label="Open the full weather forecast">
+    <button id="weather-strip" type="button" class="weather-strip" onclick="showWeather(document.getElementById('nav-weather'))" aria-label="Open the full weather forecast">
         <span id="weather-strip-place" class="weather-strip-place">Puddington, Wirral</span>
         <span id="weather-strip-now" class="weather-strip-now">Loading weather…</span>
         <span id="weather-strip-summary" class="weather-strip-summary"></span>
@@ -435,6 +438,17 @@
 
 
 <button id="kaivor-scroll-top" type="button" aria-label="Scroll to top" title="Scroll to top">↑</button>
+
+<!-- FP084: bottom navigation bar — the five main destinations. News
+     delegates to the Top Stories chip so the rail stays in step; the
+     others open their views directly. -->
+<nav id="bottom-nav" aria-label="Main sections">
+    <button type="button" id="nav-news" class="nav-item active" data-nav="news" onclick="filterCategory('All', document.querySelector('.chips .chip'))"><span class="nav-icon">📰</span><span>News</span></button>
+    <button type="button" id="nav-weather" class="nav-item" data-nav="weather" onclick="showWeather(this)"><span class="nav-icon">🌤️</span><span>Weather</span></button>
+    <button type="button" id="nav-chat" class="nav-item" data-nav="chat" onclick="showChat(this)"><span class="nav-icon">💬</span><span>Chat</span></button>
+    <button type="button" id="nav-saved" class="nav-item" data-nav="saved" onclick="showSaved(this)"><span class="nav-icon">★</span><span>Saved</span></button>
+    <a id="nav-reading" class="nav-item" data-nav="reading" href="/reading"><span class="nav-icon">📚</span><span>Reading</span></a>
+</nav>
 
 <script>
 const savedIds = new Set({{ saved_ids | list | tojson }});
@@ -579,61 +593,20 @@ function scrollCategoryChipIntoView(element, behavior = 'smooth') {
     }
 }
 
-function scrollCategoryRailToEnd(element, behavior = 'smooth') {
-    const rail = element && element.closest('.chips');
-    if (!rail) return;
-
-    // Use the rail's real scroll extent. This intentionally aligns the final
-    // utility actions (Saved, Relevance and Reading) with the right edge.
-    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    const reducedMotion = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const scrollBehavior = reducedMotion ? 'auto' : behavior;
-
-    if (typeof rail.scrollTo === 'function') {
-        rail.scrollTo({ left: maxScroll, behavior: scrollBehavior });
-    } else {
-        rail.scrollLeft = maxScroll;
-    }
-}
-
 function activateCategoryChip(element) {
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     element.classList.add('active');
-    if (element.dataset.scrollToEnd === 'true') {
-        scrollCategoryRailToEnd(element);
-    } else {
-        scrollCategoryChipIntoView(element);
-    }
+    // FP084: keep the bottom nav in step — the nav shows the active
+    // section, the rail shows the active news category. An element
+    // with no data-nav (the header Relevance button) clears the nav.
+    const navView = element.dataset.nav || null;
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', navView !== null && item.dataset.nav === navView);
+    });
+    // Only rail chips scroll the rail into view.
+    if (!element.closest('.chips')) return;
+    scrollCategoryChipIntoView(element);
 }
-
-// Reading navigates away, so let the rail visibly reach its end before
-// following the link. Saved and Relevance stay on this page and are handled
-// by activateCategoryChip() above.
-document.addEventListener('click', event => {
-    const link = event.target.closest && event.target.closest('.chips a[data-scroll-to-end="true"]');
-    if (!link) return;
-
-    event.preventDefault();
-    const destination = link.href;
-    scrollCategoryRailToEnd(link);
-
-    let navigated = false;
-    const navigate = () => {
-        if (navigated) return;
-        navigated = true;
-        window.location.assign(destination);
-    };
-
-    const rail = link.closest('.chips');
-    if (rail && 'onscrollend' in rail) {
-        rail.addEventListener('scrollend', navigate, { once: true });
-        // Fallback in case a browser does not emit scrollend for a no-op scroll.
-        window.setTimeout(navigate, 900);
-    } else {
-        window.setTimeout(navigate, 450);
-    }
-}, true);
 
 function animateCategoryTitle(title, direction) {
     const titleElement = document.getElementById('section-title');
@@ -701,14 +674,11 @@ function initializeMobileNewsNavigation() {
     let touchStartY = 0;
     let touchStartTarget = null;
     let trackingTouch = false;
-    // Swipe through all top-level destinations, including utility sections.
+    // FP084: swiping moves between the news categories only — the
+    // utility destinations (Weather, Chat, Saved, Reading) live in the
+    // bottom nav bar and are one tap away.
     const swipeCategories = () => Array.from(document.querySelectorAll(
-        '.chips .chip[onclick^="filterCategory("], ' +
-        '.chips .chip[onclick^="showWeather("], ' +
-        '.chips .chip[onclick^="showSaved("], ' +
-        '.chips .chip[onclick^="showRelevanceProfile("], ' +
-        '.chips .chip[onclick^="showChat("], ' +
-        '.chips a[data-scroll-to-end="true"]'
+        '.chips .chip[onclick^="filterCategory("]'
     ));
 
     document.addEventListener('touchstart', event => {
@@ -1813,6 +1783,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     initializeMarketTicker();
     updateFinanceTicker();
     marketPollTimer=setInterval(updateFinanceTicker,30000);
+    // FP084: deep links from the Reading page's bottom bar — open the
+    // requested view on load. (#weather / #chat / #saved; plain / is News.)
+    const initialHash = window.location.hash;
+    if (initialHash === '#weather') { showWeather(document.getElementById('nav-weather')); }
+    else if (initialHash === '#chat') { showChat(document.getElementById('nav-chat')); }
+    else if (initialHash === '#saved') { showSaved(document.getElementById('nav-saved')); }
 });
 </script>
 </body>

@@ -1,0 +1,66 @@
+Kaivor FP084 — Bottom navigation bar + news-only category rail
+=============================================================
+
+WHAT CHANGED
+------------
+The fifteen-destination top rail is split in two, at Richie's
+request ("is there a more effective way to have the categories
+in than the current setup"):
+
+1. BOTTOM NAV BAR. A fixed bar at the bottom of the screen holds
+   the five main destinations — 📰 News, 🌤️ Weather, 💬 Chat,
+   ★ Saved, 📚 Reading — always visible and thumb-friendly, one
+   tap each. The active destination is highlighted in Kaivor
+   green (#35FA33). The bar respects the phone's safe area
+   (notch/gesture bar), the page content is padded so nothing
+   hides behind it, and the scroll-to-top button is raised above
+   it.
+2. NEWS-ONLY RAIL. The top rail now holds only the ten news
+   categories (Top Stories, World, Technology, Android, Culture,
+   Business, Science, UK, Sport, Puzzles). The Weather, Saved,
+   Chat and Reading chips are gone from the rail; Relevance moved
+   to a 🎯 button in the header (it is a settings view, rarely
+   opened).
+3. SWIPE IS NEWS-ONLY. Swiping left/right moves between the news
+   categories; the utility destinations are one tap away in the
+   bottom bar instead.
+4. READING PAGE. The Reading tab gets the same bottom bar. Its
+   News/Weather/Chat/Saved items link back to the news page —
+   with a #weather / #chat / #saved hash, so the news page opens
+   straight into the requested view on load.
+5. CLEAN-UP. The old scroll-to-end machinery (data-scroll-to-end
+   attributes, scrollCategoryRailToEnd, the click handler that
+   waited for the rail to scroll before following the Reading
+   link) existed only because the utility destinations sat at the
+   far end of the rail. With them gone, it is removed. The FP067b
+   / FP067c / FP067d / FP072 / FP082 tests are updated to the new
+   structure.
+
+TECHNICAL
+---------
+- No Python, no server route, no new keys, no cost.
+- activateCategoryChip() is the single choke point: it now also
+  syncs the bottom nav from each element's data-nav attribute
+  (rail chips carry data-nav="news", so any news category lights
+  up News; the header Relevance button carries none, so the nav
+  clears), and it only scrolls the rail for elements inside the
+  rail. The News nav button delegates to the Top Stories chip so
+  the rail stays in step.
+- The weather strip now opens the forecast via the nav Weather
+  button (the old #weather-chip id is gone).
+
+FILES
+-----
+- templates/index.html (replacement)
+- templates/reading.html (replacement)
+- tests/test_bottom_nav_fp084.py (new, 8 tests)
+- tests/test_mobile_category_rail_fp067b.py (replacement)
+- tests/test_mobile_category_rail_fp067c.py (replacement — the
+  FP067c end-scroll behaviour is superseded by FP084)
+- tests/test_mobile_category_swipe_all_navigation_fp067d.py
+  (replacement)
+- tests/test_swipe_dispatch_fp072.py (replacement)
+- tests/test_weather_redesign_fp082.py (replacement)
+- tests/test_chat_hub_fp077.py (replacement)
+- CHANGELOG_FP084.txt, README_INSTALL_FP084.txt,
+  BUNDLE_MANIFEST_FP084.txt (new docs)
