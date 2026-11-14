@@ -95,7 +95,7 @@ def test_splash_hides_on_load_with_a_safety_timeout():
 def test_splash_respects_reduced_motion():
     html = TEMPLATE.read_text(encoding="utf-8")
     assert "#splash { transition:none; }" in html
-    assert ".splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span { animation:none; }" in html
+    assert ".splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine { animation:none; }" in html
 
 
 def test_svg_source_is_in_the_repo():

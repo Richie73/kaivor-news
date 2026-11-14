@@ -39,13 +39,15 @@
         @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #10b98166; } 100% { box-shadow:0 0 0 0 transparent; } }
         @media (prefers-reduced-motion: reduce) { .market-track { animation:none; } .market-value { transition:none; } .market-value.price-flash { animation:none; } }
         .manager-card,.card { background:#161618; border-radius:16px; padding:16px; margin-bottom:16px; border:1px solid #26262a; }
-        .manager-settings { padding:0; overflow:hidden; }
-        .manager-settings summary { list-style:none; cursor:pointer; padding:12px 14px; color:#10b981; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
-        .manager-settings summary::-webkit-details-marker { display:none; }
-        .manager-settings summary::after { content:'+'; color:#9ca3af; font-size:18px; line-height:1; }
-        .manager-settings[open] summary::after { content:'−'; }
-        .manager-settings summary span { margin-left:auto; margin-right:10px; color:#6b7280; font-size:11px; font-weight:400; }
         .settings-body { padding:0 14px 14px; }
+        .settings-feeds { margin:14px 0 4px; }
+        .settings-feeds summary { cursor:pointer; color:#10b981; font-size:13px; font-weight:700; padding:6px 0; }
+        .settings-list { max-height:260px; overflow-y:auto; margin-top:6px; border-top:1px solid #26262a; }
+        .feed-row { display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid #222; font-size:13px; }
+        .feed-row-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .feed-row-cat { color:#9ca3af; font-size:11px; }
+        .feed-row-count { color:#6b7280; font-size:11px; white-space:nowrap; }
+        .feed-row-status { font-size:11px; white-space:nowrap; }
         .settings-label { color:#9ca3af; font-size:11px; margin:2px 0 8px; text-transform:uppercase; letter-spacing:.6px; }
         .api-key-row { margin-top:12px; padding-top:12px; border-top:1px solid #26262a; }
         .manager-input { width:100%; padding:8px 12px; margin-bottom:8px; background:#1f1f23; border:1px solid #2f2f36; color:#fff; border-radius:8px; box-sizing:border-box; font-size:13px; }
@@ -259,7 +261,7 @@
         @media (prefers-reduced-motion: reduce) {
             html:focus-within { scroll-behavior: auto; }
             #splash { transition:none; }
-            .splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span { animation:none; }
+            .splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine { animation:none; }
         }
 
         /* FP083: splash screen (logo + loading bar on app open). */
@@ -267,6 +269,8 @@
         #splash.splash-hidden { opacity:0; pointer-events:none; }
         .splash-inner { display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px; }
         .splash-logo { width:120px; height:120px; animation:splash-pop .6s ease both; }
+        .splash-logo-wrap { position:relative; width:120px; height:120px; border-radius:26px; overflow:hidden; }
+        .splash-shine { position:absolute; top:-20%; bottom:-20%; left:-70%; width:45%; background:linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent); transform:skewX(-20deg); animation:splash-shine 1.4s .45s ease both; }
         .splash-word { font-size:20px; font-weight:700; letter-spacing:3px; color:#fff; margin-top:18px; animation:splash-rise .6s .15s ease both; }
         .splash-tag { font-size:12px; color:#6b7280; letter-spacing:1px; margin-top:6px; animation:splash-rise .6s .25s ease both; }
         .splash-bar { width:160px; height:3px; background:#26262a; border-radius:2px; margin-top:24px; overflow:hidden; animation:splash-rise .6s .3s ease both; }
@@ -274,6 +278,7 @@
         @keyframes splash-pop { from { opacity:0; transform:scale(.85); } to { opacity:1; transform:scale(1); } }
         @keyframes splash-rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes splash-slide { 0% { transform:translateX(-100%); } 100% { transform:translateX(400%); } }
+        @keyframes splash-shine { 0% { left:-70%; } 100% { left:160%; } }
 
 </style>
 </head>
@@ -283,13 +288,13 @@
      with a hard 3s timeout so it can never trap the user. -->
 <div id="splash" aria-hidden="true">
     <div class="splash-inner">
-        <svg class="splash-logo" viewBox="0 0 512 512" width="120" height="120" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#35FA33"/><path d="M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" fill="#000000"/><path d="M404 152 L416 180 L444 192 L416 204 L404 232 L392 204 L364 192 L392 180 Z" fill="#000000"/></svg>
+        <div class="splash-logo-wrap"><svg class="splash-logo" viewBox="0 0 512 512" width="120" height="120" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#35FA33"/><path d="M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" fill="#000000"/><path d="M404 152 L416 180 L444 192 L416 204 L404 232 L392 204 L364 192 L392 180 Z" fill="#000000"/></svg><span class="splash-shine" aria-hidden="true"></span></div>
         <div class="splash-word">KAIVOR NEWS</div>
         <div class="splash-tag">Global Intelligence &amp; Puzzles</div>
         <div class="splash-bar"><span></span></div>
     </div>
 </div>
-<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="relevance-btn" class="install-app" onclick="showRelevanceProfile(this)">🎯 Relevance</button></header>
+<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
 <div class="container">
     <section class="market-panel" aria-label="Markets tracker">
         <div class="market-panel-head">
@@ -313,22 +318,6 @@
             </div>
         </div>
     </section>
-
-    <details class="manager-card manager-settings">
-        <summary>⚙ Sources &amp; API Settings <span>Tap to configure</span></summary>
-        <div class="settings-body">
-            <div class="settings-label">Custom RSS source</div>
-            <input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)">
-            <input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)...">
-            <button onclick="addCustomFeed()">Add Source</button>
-            <div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div>
-            <div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div>
-            <div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div>
-            <div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div>
-            <div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div>
-            <div style="font-size:11px;color:#9ca3af;margin-top:6px;">Saving keys and sources needs the app unlocked — unlock via the 📚 Reading tab (same PIN).</div>
-        </div>
-    </details>
 
     <div class="chips">
         <div class="chip active" data-nav="news" onclick="filterCategory('All',this)">Top Stories</div>
@@ -917,13 +906,42 @@ async function sendChatMessage(event) {
 function escapeHtml(value) { const div=document.createElement('div'); div.textContent=value ?? ''; return div.innerHTML; }
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 
-async function showRelevanceProfile(element){
+// FP085: Settings view — news sources (add + list), API keys,
+// personal relevance and app status, all in one place. Replaces the
+// old "Sources & API Settings" block that sat on the home page and
+// the standalone Relevance view.
+function showSettings(element){
     hideWeatherView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
-    document.getElementById('section-title').textContent = 'Personal Relevance';
+    document.getElementById('section-title').textContent = 'Settings';
+    document.getElementById('status').textContent = 'News sources, API keys and your relevance profile.';
     const container=document.getElementById('articles-container');
+    container.innerHTML=`<div class="card" data-category="Settings"><h3>📰 News sources</h3><p class="evidence-note">Add a feed of your own, or check the ones Kaivor already follows.</p><div class="settings-label">Custom RSS source</div><input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)"><input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)..."><button onclick="addCustomFeed()">Add Source</button><details class="settings-feeds"><summary id="settings-feeds-summary">Your feeds — loading…</summary><div id="settings-feeds-list" class="settings-list"></div></details><h3>🔑 API keys</h3><div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div><div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div><div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div><div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div><div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div><div style="font-size:11px;color:#9ca3af;margin-top:6px;">Saving keys and sources needs the app unlocked — unlock via the 📚 Reading tab (same PIN).</div></div><div class="card" data-category="Settings"><h3>🎯 Personal relevance</h3><p class="evidence-note">Choose how strongly each news category matters to you. Add keywords that should increase relevance.</p><div id="settings-relevance">Loading your relevance profile…</div></div><div class="card" data-category="Settings"><h3>ℹ️ About Kaivor</h3><div id="settings-about">Loading…</div></div>`;
+    loadSettingsFeeds();
+    loadSettingsRelevance();
+    loadSettingsAbout();
+}
+
+async function loadSettingsFeeds(){
+    const summary=document.getElementById('settings-feeds-summary');
+    const list=document.getElementById('settings-feeds-list');
+    if(!summary||!list) return;
+    try{
+        const res=await fetch('/api/publisher-feeds',{cache:'no-store'});
+        const data=await res.json();
+        const feeds=(data.publisher_feeds&&data.publisher_feeds.feeds)||[];
+        if(!data.success||!feeds.length){summary.textContent='Your feeds — none listed yet';list.innerHTML='';return;}
+        const ok=feeds.filter(feed=>feed.status==='ok').length;
+        summary.textContent='Your feeds ('+feeds.length+') — '+ok+' working';
+        list.innerHTML=feeds.map(feed=>'<div class="feed-row"><span class="feed-row-name">'+escapeHtml(feed.publisher||'Unknown')+'</span><span class="feed-row-cat">'+escapeHtml(feed.category||'')+'</span><span class="feed-row-count">'+Number(feed.article_count||0)+' articles</span><span class="feed-row-status">'+(feed.status==='ok'?'✓ ok':'⚠ '+escapeHtml(feed.status||'unknown'))+'</span></div>').join('');
+    }catch(e){summary.textContent='Your feeds — could not load';list.innerHTML='';}
+}
+
+async function loadSettingsRelevance(){
+    const slot=document.getElementById('settings-relevance');
+    if(!slot) return;
     try{
         const res=await fetch('/api/relevance_profile',{cache:'no-store'});
         const data=await res.json();
@@ -931,10 +949,21 @@ async function showRelevanceProfile(element){
         const p=data.profile||{};
         const categories=p.categories||{};
         const rows=Object.keys(categories).map(name=>`<label style="display:block;margin:7px 0;">${escapeHtml(name)} <select data-relevance-category="${escapeAttr(name)}"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>`).join('');
-        container.innerHTML=`<div class="card"><h3>Personal Relevance Profile</h3><p class="evidence-note">Choose how strongly each news category matters to you. Add keywords that should increase relevance.</p><div id="relevance-category-list">${rows}</div><label style="display:block;margin:10px 0;">Keywords<input id="relevance-keywords" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.keywords||[]).join(', '))}"></label><label style="display:block;margin:10px 0;">Regions<input id="relevance-regions" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.regions||[]).join(', '))}"></label><button onclick="saveRelevanceProfile()">Save relevance profile</button></div>`;
+        slot.innerHTML=`<div id="relevance-category-list">${rows}</div><label style="display:block;margin:10px 0;">Keywords<input id="relevance-keywords" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.keywords||[]).join(', '))}"></label><label style="display:block;margin:10px 0;">Regions<input id="relevance-regions" style="width:100%;margin-top:6px;padding:10px;background:#111;color:#eee;border:1px solid #374151;border-radius:8px;" value="${escapeAttr((p.regions||[]).join(', '))}"></label><button onclick="saveRelevanceProfile()">Save relevance profile</button>`;
         document.querySelectorAll('[data-relevance-category]').forEach(select=>{const name=select.dataset.relevanceCategory;select.value=String(categories[name]??0);});
-        document.getElementById('status').textContent='Personal relevance profile loaded.';
-    }catch(e){document.getElementById('status').textContent='Could not load relevance profile.';}
+    }catch(e){slot.innerHTML='<p class="evidence-note">Unlock the app via the 📚 Reading tab (same PIN) to view and edit your relevance profile.</p>';}
+}
+
+async function loadSettingsAbout(){
+    const slot=document.getElementById('settings-about');
+    if(!slot) return;
+    try{
+        const res=await fetch('/api/health',{cache:'no-store'});
+        const data=await res.json();
+        if(!data.success){throw new Error('Health check failed');}
+        const updated=data.news_last_updated?new Date(data.news_last_updated*1000).toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'}):'not loaded yet';
+        slot.innerHTML='<p class="evidence-note">Kaivor News'+(data.version?' — version '+escapeHtml(String(data.version)):'')+'</p><p class="evidence-note">'+Number(data.news_count||0)+' stories loaded · last refresh '+escapeHtml(updated)+'</p>';
+    }catch(e){slot.innerHTML='<p class="evidence-note">Could not load app status.</p>';}
 }
 
 async function saveRelevanceProfile(){
@@ -1785,10 +1814,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     marketPollTimer=setInterval(updateFinanceTicker,30000);
     // FP084: deep links from the Reading page's bottom bar — open the
     // requested view on load. (#weather / #chat / #saved; plain / is News.)
+    // FP085: #settings opens the Settings view the same way.
     const initialHash = window.location.hash;
     if (initialHash === '#weather') { showWeather(document.getElementById('nav-weather')); }
     else if (initialHash === '#chat') { showChat(document.getElementById('nav-chat')); }
     else if (initialHash === '#saved') { showSaved(document.getElementById('nav-saved')); }
+    else if (initialHash === '#settings') { showSettings(document.getElementById('settings-btn')); }
 });
 </script>
 </body>

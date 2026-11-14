@@ -109,7 +109,7 @@ def test_other_views_hide_the_weather_view():
         "function filterCategory(category, element) {",
         "async function showSaved(element) {",
         "function showChat(element) {",
-        "async function showRelevanceProfile(element){",
+        "function showSettings(element){",
     ]:
         start = html.index(opener)
         window = html[start:start + len(opener) + 40]

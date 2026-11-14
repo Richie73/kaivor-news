@@ -64,9 +64,13 @@ def test_rail_holds_news_categories_only():
     assert 'data-nav="news"' in rail
 
 
-def test_relevance_lives_in_the_header():
+def test_relevance_lives_in_settings_not_the_header():
+    # FP085: the header Relevance button is replaced by the Settings
+    # gear; the relevance profile lives inside the Settings view.
     html = template_text()
-    assert '<button id="relevance-btn" class="install-app" onclick="showRelevanceProfile(this)">🎯 Relevance</button>' in html
+    assert '<button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button>' in html
+    assert 'id="relevance-btn"' not in html
+    assert "showRelevanceProfile(this)" not in html
     assert "showRelevanceProfile(this)" not in rail_block(html)
 
 

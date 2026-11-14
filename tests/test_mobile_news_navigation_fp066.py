@@ -58,10 +58,12 @@ def test_navigation_initializes_after_dom_ready():
     assert "document.addEventListener('DOMContentLoaded'" in html
 
 
-def test_saved_and_relevance_views_also_open_at_top():
+def test_saved_and_settings_views_also_open_at_top():
+    # FP085: the standalone Relevance view is gone — its checks move
+    # to the Settings view, which replaces it.
     html = template_text()
-    for name in ("showSaved", "showRelevanceProfile"):
-        start = html.find(f"async function {name}")
-        assert start >= 0
+    for opener in ("async function showSaved", "function showSettings(element)"):
+        start = html.find(opener)
+        assert start >= 0, opener
         function_head = html[start:start + 350]
         assert "scrollKaivorToTop()" in function_head

@@ -36,9 +36,12 @@ def test_utility_destinations_live_in_the_bottom_nav():
     assert '<div class="chip" onclick="showChat(this)">' not in source
 
 
-def test_relevance_lives_in_the_header_not_the_rail():
+def test_relevance_lives_in_settings_not_the_rail_or_header():
+    # FP085: the header Relevance button is replaced by the Settings
+    # gear; the relevance profile lives inside the Settings view.
     source = html()
-    assert 'id="relevance-btn"' in source
+    assert 'id="settings-btn"' in source
+    assert 'id="relevance-btn"' not in source
     assert '<div class="chip" onclick="showRelevanceProfile(this)">' not in source
 
 

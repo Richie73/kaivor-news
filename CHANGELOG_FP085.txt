@@ -1,0 +1,60 @@
+Kaivor FP085 — Settings gear + a more dynamic opening animation
+================================================================
+
+WHAT CHANGED
+------------
+1. SETTINGS GEAR. The "Sources & API Settings" block leaves the
+   home page (it sat between Market Watch and the chips) for a
+   proper Settings view behind a ⚙️ Settings button in the header.
+   The header Relevance button is gone — Relevance lives inside
+   Settings now.
+2. EVERYTHING SETTINGS-SHAPED, IN ONE PLACE. The Settings view
+   holds:
+   - News sources: add a feed of your own (same form as before),
+     plus a list of the feeds Kaivor already follows — each with
+     its publisher, category, article count and working/broken
+     status, fetched live from /api/publisher-feeds.
+   - API keys: all five (OpenRouter, OpenAI, Guardian, Brave,
+     NewsData.io), same save behaviour as before.
+   - Personal relevance: the full profile form (category weights,
+     keywords, regions), fetched from /api/relevance_profile.
+   - About Kaivor: the app version, how many stories are loaded
+     and when the last refresh ran, from /api/health.
+   Saving keys, sources and relevance still needs the app
+   unlocked via the 📚 Reading tab (same PIN) — the hint is in
+   Settings, and the relevance section says so if it is locked.
+   Settings opens with a #settings deep link, like the other
+   views.
+3. MORE DYNAMIC OPENING. The splash screen's logo now gets a
+   shine sweep across it as the app opens, alongside the existing
+   pop-in, rising wordmark and sweeping loading bar. Still
+   respects reduced motion, still capped at 3 seconds.
+
+TECHNICAL
+---------
+- No Python, no server route, no new keys, no cost. The feeds
+   list, relevance form and About section reuse the existing
+   GET routes (/api/publisher-feeds, /api/relevance_profile,
+   /api/health); the feed and key saves reuse the existing POST
+   routes (/api/add_feed, /api/set_key) and the existing
+   addCustomFeed / saveApiKey / saveRelevanceProfile functions.
+- showSettings() follows the showSaved/showChat pattern (same
+   activation, scroll-to-top and weather-hiding behaviour).
+   showRelevanceProfile() is deleted — its rendering moved into
+   loadSettingsRelevance().
+- The old .manager-settings details styles are removed; the
+   .settings-body / .settings-label classes are reused.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_settings_fp085.py (new, 8 tests)
+- tests/test_bottom_nav_fp084.py (replacement)
+- tests/test_mobile_category_rail_fp067c.py (replacement)
+- tests/test_swipe_dispatch_fp072.py (replacement)
+- tests/test_weather_redesign_fp082.py (replacement)
+- tests/test_mobile_news_navigation_fp066.py (replacement)
+- tests/test_logo_splash_fp083.py (replacement — the shine joins
+  the reduced-motion list)
+- CHANGELOG_FP085.txt, README_INSTALL_FP085.txt,
+  BUNDLE_MANIFEST_FP085.txt (new docs)
