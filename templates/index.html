@@ -619,6 +619,7 @@ function animateCategoryTitle(title, direction) {
 
 function filterCategory(category, element) {
     hideWeatherView();
+    restoreNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     const categoryChips = Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
     const previousIndex = categoryChips.findIndex(chip => chip.classList.contains('active'));
@@ -645,6 +646,38 @@ function filterCategory(category, element) {
         ? 'Football is prioritised first; other sports remain available below.'
         : 'Stories are deduplicated and saved locally on this device.';
     if (wasDifferent) scrollKaivorToTop();
+}
+
+// FP085.1: the Saved, Chat and Settings views replace the news cards
+// in #articles-container, so tapping a news category afterwards found
+// only the view's cards and the view stayed put (or the list went
+// blank). Keep the news HTML before a view replaces it, and restore
+// it when a news category is picked. The flag stops one view caching
+// another view as "news" (the Saved view's cards look like news
+// cards). The news is only ever re-rendered by a full page reload,
+// which resets this state, so the cache cannot go stale.
+let cachedNewsHtml = null;
+let newsViewReplaced = false;
+function cacheNewsContainer() {
+    if (newsViewReplaced) return;
+    const container = document.getElementById('articles-container');
+    if (!container) return;
+    cachedNewsHtml = container.innerHTML;
+    newsViewReplaced = true;
+}
+function restoreNewsContainer() {
+    if (!newsViewReplaced) return true;
+    const container = document.getElementById('articles-container');
+    if (!container || !cachedNewsHtml) return false;
+    container.innerHTML = cachedNewsHtml;
+    newsViewReplaced = false;
+    container.querySelectorAll('.card[data-article-id]').forEach(card => {
+        const button = card.querySelector('.btn-save');
+        if (!button) return;
+        if (savedIds.has(card.dataset.articleId)) { button.textContent = 'Saved ✓'; button.classList.add('saved'); }
+        else { button.textContent = 'Save'; button.classList.remove('saved'); }
+    });
+    return true;
 }
 
 function initializeMobileNewsNavigation() {
@@ -716,6 +749,7 @@ function initializeMobileNewsNavigation() {
 
 async function showSaved(element) {
     hideWeatherView();
+    cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -814,6 +848,7 @@ function renderChatLog() {
 
 function showChat(element) {
     hideWeatherView();
+    cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -912,6 +947,7 @@ function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 // the standalone Relevance view.
 function showSettings(element){
     hideWeatherView();
+    cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();

@@ -1,0 +1,35 @@
+Kaivor FP085.1 — Tapping News after Saved, Chat or Settings brings the stories back
+====================================================================================
+
+THE BUG
+-------
+The Saved, Chat and Settings views replace the news cards in
+#articles-container. Tapping a news category afterwards only
+showed/hid the cards then in the container — so tapping News left
+the view in place (its cards match "All"), and tapping a single
+category left the list blank. Only a full page reload brought the
+stories back. Found by the FP085 live check (14 Nov 2026): after
+opening Settings, tapping News twice did nothing.
+
+THE FIX
+-------
+- cacheNewsContainer() saves the news HTML before a view replaces
+  it. A flag (newsViewReplaced) stops one view caching another
+  view as "news" — the Saved view's cards look like news cards.
+- restoreNewsContainer() puts the news HTML back when a news
+  category is picked (called first in filterCategory, before the
+  cards are collected). It also re-syncs each card's Save button
+  from savedIds, in case a story was unsaved while the Saved view
+  was open.
+- The news is only ever re-rendered by a full page reload, which
+  resets this state, so the cache cannot go stale.
+- One fix covers all three views (Saved, Chat, Settings) plus the
+  #settings / #chat / #saved deep links, which open the same
+  views.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_back_to_news_fp0851.py (new, 5 tests)
+- CHANGELOG_FP0851.txt, README_INSTALL_FP0851.txt,
+  BUNDLE_MANIFEST_FP0851.txt (new docs)
