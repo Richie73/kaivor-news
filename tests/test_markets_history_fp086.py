@@ -25,11 +25,11 @@ YAHOO_GOLD = {
 }
 
 FX_GBP = {"rates": {
-    "2026-11-09": {"USD": 1.3416, "EUR": 1.1986},
-    "2026-11-10": {"USD": 1.3423, "EUR": 1.197},
-    "2026-11-11": {"USD": 1.3307, "EUR": 1.1959},
-    "2026-11-12": {"USD": 1.3256, "EUR": 1.1962},
-    "2026-11-13": {"USD": 1.3227, "EUR": 1.1968},
+    "2026-11-09": {"USD": 1.3416, "EUR": 1.1986, "JPY": 210.45},
+    "2026-11-10": {"USD": 1.3423, "EUR": 1.197, "JPY": 210.88},
+    "2026-11-11": {"USD": 1.3307, "EUR": 1.1959, "JPY": 211.02},
+    "2026-11-12": {"USD": 1.3256, "EUR": 1.1962, "JPY": 211.35},
+    "2026-11-13": {"USD": 1.3227, "EUR": 1.1968, "JPY": 211.62},
 }}
 
 FX_EUR = {"rates": {
@@ -102,13 +102,16 @@ def test_fx_history_parses_timeseries():
     assert out["EUR_USD"]["series"][-1] == {"date": "2026-11-13", "close": 1.1042}
 
 
-def test_history_merges_all_seven_assets():
+def test_history_merges_all_eleven_assets():
     reset_history_cache()
     reset_finance_cache()
     with patch.object(main.requests, "get", side_effect=fake_get):
         history, _, from_cache = main.get_finance_history()
     assert not from_cache
-    assert set(history) == {"Gold", "Bitcoin", "SP500", "Brent_Oil", "GBP_USD", "GBP_EUR", "EUR_USD"}
+    assert set(history) == {
+        "Gold", "Silver", "Bitcoin", "Ethereum", "SP500", "FTSE100",
+        "Brent_Oil", "GBP_USD", "GBP_EUR", "GBP_JPY", "EUR_USD",
+    }
     gold = history["Gold"]
     assert gold["label"] == "Gold (per troy ounce)"
     assert gold["change"] == -228.2
@@ -117,6 +120,15 @@ def test_history_merges_all_seven_assets():
     assert history["GBP_USD"]["previous_close"] == 1.3256
     assert history["GBP_USD"]["day_high"] is None
     assert history["GBP_USD"]["change"] == -0.0029
+    # FP086.1: the four extra rows — view-only, with their own labels.
+    assert history["Silver"]["label"] == "Silver (per troy ounce)"
+    assert history["Ethereum"]["label"] == "Ethereum"
+    assert history["FTSE100"]["label"] == "FTSE 100 index"
+    assert history["GBP_JPY"]["label"] == "GBP/JPY"
+    assert history["GBP_JPY"]["previous_close"] == 211.35
+    assert history["GBP_JPY"]["change"] == 0.27
+    assert history["GBP_JPY"]["change_pct"] == 0.13
+    assert len(history["GBP_JPY"]["series"]) == 5
 
 
 def test_history_prefers_stored_current_price():
@@ -148,7 +160,7 @@ def test_history_uses_cache_within_ttl():
         _, _, from_cache = main.get_finance_history()
     assert from_cache
     assert len(calls) == first_call_count
-    assert first_call_count == 6  # 4 Yahoo + 2 Frankfurter
+    assert first_call_count == 9  # 7 Yahoo + 2 Frankfurter
 
 
 def test_history_serves_stale_cache_on_failure():

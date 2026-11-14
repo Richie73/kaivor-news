@@ -1,0 +1,20 @@
+Kaivor FP086.1 bundle manifest
+
+REPLACEMENT:
+- main.py
+- templates/index.html
+- tests/test_markets_history_fp086.py
+- tests/test_markets_view_fp086.py
+
+NEW:
+- README_INSTALL_FP0861.txt
+- CHANGELOG_FP0861.txt
+- BUNDLE_MANIFEST_FP0861.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

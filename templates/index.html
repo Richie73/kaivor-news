@@ -1160,10 +1160,17 @@ async function updateFinanceTicker() {
         if (!result.success) throw new Error('Ticker unavailable');
         Object.entries(result.ticker || {}).forEach(([key, value]) => updateMarketValue(key, value));
         const refresh = result.refresh || {};
+        if (result.age_seconds !== null) marketHistoryFill = null;
         if (refresh.running) {
             setMarketStatus('Refreshing markets…');
         } else if (result.age_seconds === null) {
-            setMarketStatus('No live data yet — tap Refresh markets', 'stale');
+            // FP086.1: the strip may hold prices the Markets view
+            // filled from history — say so instead of "No live data".
+            if (marketHistoryFill) {
+                setMarketStatus(`Prices from the Markets view · ${formatMarketAge(Date.now() / 1000 - marketHistoryFill)}`, 'stale');
+            } else {
+                setMarketStatus('No live data yet — tap Refresh markets', 'stale');
+            }
         } else if (result.age_seconds > 1800) {
             setMarketStatus(`${formatMarketAge(result.age_seconds)} · may be stale`, 'stale');
         } else if (refresh.last_error && !refresh.last_updated_keys?.length) {
@@ -1877,7 +1884,7 @@ function hideMarketsView() {
 }
 function formatMarketPrice(key, value) {
     if (value === null || value === undefined) return '—';
-    if (['GBP_USD', 'GBP_EUR', 'EUR_USD'].includes(key)) return Number(value).toFixed(4);
+    if (['GBP_USD', 'GBP_EUR', 'EUR_USD', 'GBP_JPY'].includes(key)) return Number(value).toFixed(4);
     return '$' + Number(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 function formatMarketChange(key, change, pct) {
@@ -1921,9 +1928,10 @@ async function loadMarketsHistory() {
         const history = (data.success && data.history) || {};
         const keys = Object.keys(history);
         if (!keys.length) { list.innerHTML = '<p class="evidence-note">Could not load market history. Try again in a moment.</p>'; return; }
-        const order = ['Gold', 'Bitcoin', 'SP500', 'Brent_Oil', 'GBP_USD', 'GBP_EUR', 'EUR_USD'];
+        const order = ['Gold', 'Silver', 'Bitcoin', 'Ethereum', 'SP500', 'FTSE100', 'Brent_Oil', 'GBP_USD', 'GBP_EUR', 'GBP_JPY', 'EUR_USD'];
         keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
         list.innerHTML = keys.map(key => marketsRowHtml(key, history[key])).join('');
+        fillTickerFromHistory(history);
         if (updated && data.last_updated) updated.textContent = 'Updated ' + new Date(data.last_updated * 1000).toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'});
     } catch (e) {
         list.innerHTML = '<p class="evidence-note">Could not load market history. Try again in a moment.</p>';
@@ -1932,6 +1940,24 @@ async function loadMarketsHistory() {
 async function refreshMarketsFromView() {
     await refreshMarkets();
     loadMarketsHistory();
+}
+// FP086.1: the strip reads the stored Market Watch data, which is
+// empty until a PIN-gated refresh — so after the Markets view loads,
+// fill the strip's spans from the same history data. The new
+// view-only assets (Silver, Ethereum, FTSE 100, GBP/JPY) have no
+// ticker span, so updateMarketValue ignores them. marketHistoryFill
+// records when the strip was last filled this way, so the status
+// line can say so instead of "No live data yet".
+let marketHistoryFill = null;
+function fillTickerFromHistory(history) {
+    let filled = 0;
+    Object.entries(history || {}).forEach(([key, entry]) => {
+        if (entry && entry.current !== null && entry.current !== undefined) {
+            updateMarketValue(key, entry.current);
+            filled += 1;
+        }
+    });
+    if (filled) marketHistoryFill = Date.now() / 1000;
 }
 // FP086 MARKETS VIEW: END
 

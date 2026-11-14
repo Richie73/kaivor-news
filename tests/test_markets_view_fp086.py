@@ -86,6 +86,27 @@ def test_markets_rows_show_price_change_range_and_sparkline():
     assert "entry.day_low" in body
 
 
+def test_markets_view_orders_eleven_rows():
+    html = template_text()
+    assert "const order = ['Gold', 'Silver', 'Bitcoin', 'Ethereum', 'SP500', 'FTSE100', 'Brent_Oil', 'GBP_USD', 'GBP_EUR', 'GBP_JPY', 'EUR_USD'];" in html
+
+
+def test_history_fill_updates_the_ticker():
+    html = template_text()
+    body = function_body(html, "async function loadMarketsHistory() {",
+                         "async function refreshMarketsFromView() {")
+    assert "fillTickerFromHistory(history);" in body
+    fill = function_body(html, "function fillTickerFromHistory(history) {",
+                         "// FP086 MARKETS VIEW: END")
+    assert "updateMarketValue(key, entry.current);" in fill
+    assert "if (filled) marketHistoryFill = Date.now() / 1000;" in fill
+    ticker = function_body(html, "async function updateFinanceTicker() {",
+                           "async function refreshMarkets() {")
+    assert "if (result.age_seconds !== null) marketHistoryFill = null;" in ticker
+    assert "if (marketHistoryFill) {" in ticker
+    assert "Prices from the Markets view" in ticker
+
+
 def test_markets_deep_link():
     html = template_text()
     assert "else if (initialHash === '#markets') { showMarkets(); }" in html
@@ -95,6 +116,7 @@ def test_markets_history_helpers_node():
     script = markets_js_block() + """
 const out = {
     fx: formatMarketPrice('GBP_USD', 1.3227),
+    fxJpy: formatMarketPrice('GBP_JPY', 211.62),
     usd: formatMarketPrice('Gold', 3886.3),
     missing: formatMarketPrice('Gold', null),
     up: formatMarketChange('Gold', 10, 0.38),
@@ -112,6 +134,7 @@ console.log(JSON.stringify(out));
     assert result.returncode == 0, result.stderr
     out = json.loads(result.stdout.strip().splitlines()[-1])
     assert out["fx"] == "1.3227"
+    assert out["fxJpy"] == "211.6200"
     assert out["usd"] == "$3,886.30"
     assert out["missing"] == "—"
     assert out["up"] == {"text": "▲ +$10.00 (+0.38%)", "cls": "markets-up"}
@@ -121,3 +144,25 @@ console.log(JSON.stringify(out));
     assert 'stroke="#f87171"' in out["sparkDown"]
     assert "<polyline" in out["sparkUp"]
     assert out["sparkShort"] == ""
+
+
+def test_ticker_fill_from_history_node():
+    script = """
+const filled = {};
+function updateMarketValue(k, v) { filled[k] = v; }
+""" + markets_js_block() + """
+fillTickerFromHistory({
+    Gold: {current: 3886.3},
+    Silver: {current: 49.12},
+    GBP_USD: {current: null},
+    GBP_JPY: {current: 211.62},
+});
+console.log(JSON.stringify({filled, hasFill: typeof marketHistoryFill === 'number'}));
+"""
+    result = subprocess.run(
+        ["node", "-e", script], capture_output=True, text=True, timeout=30
+    )
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout.strip().splitlines()[-1])
+    assert out["filled"] == {"Gold": 3886.3, "Silver": 49.12, "GBP_JPY": 211.62}
+    assert out["hasFill"] is True

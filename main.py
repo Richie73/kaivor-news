@@ -331,7 +331,7 @@ _FINANCE_CHAT_ASSETS = (
     ("EUR_USD", "EUR/USD", (("eur", "usd"), ("euro", "dollar"), ("eur/usd",))),
 )
 _FINANCE_CHAT_PRICE_WORDS = ("price", "rate", "worth", "cost", "value", "trading", "how much", "current", "live", "now", "today", "per ounce", "per barrel", "high", "low")
-_FINANCE_FX_KEYS = {"GBP_USD", "GBP_EUR", "EUR_USD"}
+_FINANCE_FX_KEYS = {"GBP_USD", "GBP_EUR", "EUR_USD", "GBP_JPY"}
 
 
 # FP086: price history for the Markets view. History comes from the same
@@ -341,16 +341,28 @@ _FINANCE_FX_KEYS = {"GBP_USD", "GBP_EUR", "EUR_USD"}
 # rate, so a series holds however many trading days the window covered.
 _FINANCE_HISTORY_YAHOO_SYMBOLS = {
     "Gold": "GC=F",
+    "Silver": "SI=F",
     "Bitcoin": "BTC-USD",
+    "Ethereum": "ETH-USD",
     "SP500": "^GSPC",
+    "FTSE100": "^FTSE",
     "Brent_Oil": "BZ=F",
 }
 _FINANCE_HISTORY_FX = (
-    ("https://api.frankfurter.app/{start}..{end}?from=GBP&to=USD,EUR",
-     {"GBP_USD": "USD", "GBP_EUR": "EUR"}),
+    ("https://api.frankfurter.app/{start}..{end}?from=GBP&to=USD,EUR,JPY",
+     {"GBP_USD": "USD", "GBP_EUR": "EUR", "GBP_JPY": "JPY"}),
     ("https://api.frankfurter.app/{start}..{end}?from=EUR&to=USD",
      {"EUR_USD": "USD"}),
 )
+# FP086.1: labels for history-only assets (not in _FINANCE_CHAT_ASSETS,
+# so the chat hub is untouched — these assets live in the Markets view
+# only; the live ticker and the stored Market Watch data stay at seven).
+_FINANCE_HISTORY_LABELS = {
+    "Silver": "Silver (per troy ounce)",
+    "Ethereum": "Ethereum",
+    "FTSE100": "FTSE 100 index",
+    "GBP_JPY": "GBP/JPY",
+}
 
 
 def _fetch_yahoo_history(symbol):
@@ -435,6 +447,7 @@ def get_finance_history():
     stored, _ = _finance_snapshot()
     history = {}
     labels = {key: label for key, label, _ in _FINANCE_CHAT_ASSETS}
+    labels.update(_FINANCE_HISTORY_LABELS)
     for key, symbol in _FINANCE_HISTORY_YAHOO_SYMBOLS.items():
         entry = _fetch_yahoo_history(symbol)
         if entry is not None:

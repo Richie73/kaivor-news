@@ -1,0 +1,50 @@
+Kaivor FP086.1 — Markets: fill the strip + four more rows
+======================================================
+
+WHAT CHANGED
+------------
+1. THE STRIP FILLS FROM THE VIEW. The home-page Market Watch strip
+   reads the stored Market Watch data, which is empty until a
+   PIN-gated refresh — so after the Markets view loaded, the strip
+   still said "No live data yet". Now, when the Markets view loads,
+   it also fills the strip's price spans from the same history data,
+   and the status line reads "Prices from the Markets view ·
+   Updated …" instead. The next real refresh (or the 30-second
+   ticker poll finding stored data) takes over normally.
+2. FOUR MORE ROWS. The Markets view now has eleven rows:
+   - Silver (Yahoo SI=F) next to Gold
+   - Ethereum (Yahoo ETH-USD) next to Bitcoin
+   - FTSE 100 (Yahoo ^FTSE) next to the S&P 500
+   - GBP/JPY (Frankfurter, rides the existing GBP call) with the
+     other currency pairs
+   All four were verified live before building. They are view-only:
+   the live ticker, the stored Market Watch data and the chat hub
+   stay at the original seven assets.
+
+TECHNICAL
+---------
+- main.py: Silver/Ethereum/FTSE100 join the Yahoo symbol map;
+  GBP/JPY joins the Frankfurter GBP call and _FINANCE_FX_KEYS;
+  _FINANCE_HISTORY_LABELS holds the four new labels (the chat
+  hub's _FINANCE_CHAT_ASSETS is untouched). History now makes 9
+  requests per refresh (7 Yahoo + 2 Frankfurter).
+- templates/index.html: fillTickerFromHistory(history) in the
+  FP086 block calls updateMarketValue for each row's current
+  price (the view-only assets have no ticker span, so they are
+  ignored there) and stamps marketHistoryFill; the row order is
+  metals, crypto, indices, oil, FX. updateFinanceTicker clears
+  the flag when stored data exists and shows the "Prices from
+  the Markets view" status while the store is empty.
+- formatMarketPrice formats GBP/JPY to four decimals like the
+  other FX pairs.
+
+FILES
+-----
+- main.py (replacement)
+- templates/index.html (replacement)
+- tests/test_markets_history_fp086.py (replacement — 11-asset
+  merge test, JPY fixture, 9-request count)
+- tests/test_markets_view_fp086.py (replacement — row order,
+  strip fill, node test for the fill)
+- CHANGELOG_FP0861.txt, README_INSTALL_FP0861.txt,
+  BUNDLE_MANIFEST_FP0861.txt (new docs)
