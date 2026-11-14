@@ -61,6 +61,11 @@
         .chat-form { display:flex; gap:8px; }
         .chat-form input { flex:1; padding:10px 12px; background:#1f1f23; border:1px solid #2f2f36; color:#fff; border-radius:8px; font-size:14px; }
         .chat-form button { padding:10px 16px; }
+        .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:13px; color:#9ca3af; cursor:pointer; white-space:nowrap; }
+        .chat-web-toggle input { accent-color:#22c55e; }
+        .chat-sources { margin-top:8px; font-size:12px; color:#9ca3af; }
+        .chat-sources ol { margin:4px 0 0; padding-left:18px; }
+        .chat-sources a { color:#86efac; }
         .chips {
             position: sticky;
             top: calc(var(--kaivor-header-height, 82px) - 2px);
@@ -759,7 +764,9 @@ async function showSaved(element) {
 }
 
 // FP077 CHAT: BEGIN
+// FP079 WEB: toggle (kaivor-chat-web), sources on assistant messages.
 const CHAT_HISTORY_KEY = 'kaivor-chat-history';
+const CHAT_WEB_KEY = 'kaivor-chat-web';
 const CHAT_HISTORY_LIMIT = 30;
 
 function loadChatHistory() {
@@ -775,7 +782,14 @@ function saveChatHistory(messages) {
 
 function chatMessageHtml(message) {
     if (message.role === 'user') return `<div class="chat-msg user">${escapeHtml(message.content)}</div>`;
-    return `<div class="chat-msg assistant">${renderAiMarkdown(message.content)}</div>`;
+    let html = `<div class="chat-msg assistant">${renderAiMarkdown(message.content)}`;
+    if (Array.isArray(message.sources) && message.sources.length) {
+        const items = message.sources
+            .filter(s => s && typeof s.url === 'string' && /^https?:\/\//.test(s.url))
+            .map(s => `<li><a href="${escapeAttr(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title || s.url)}</a></li>`).join('');
+        if (items) html += `<div class="chat-sources">Sources:<ol>${items}</ol></div>`;
+    }
+    return html + '</div>';
 }
 
 function renderChatLog() {
@@ -800,12 +814,31 @@ function showChat(element) {
             <div id="chat-log" class="chat-log"></div>
             <form id="chat-form" class="chat-form" onsubmit="sendChatMessage(event)">
                 <input id="chat-input" type="text" placeholder="Ask Kaivor anything…" autocomplete="off" maxlength="4000">
+                <label class="chat-web-toggle"><input id="chat-web" type="checkbox" onchange="saveChatWebToggle()"> 🌐 Web</label>
                 <button type="submit">Send</button>
             </form>
             <button onclick="clearChatHistory()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:12px;padding:4px 0;cursor:pointer;">Clear chat</button>
         </div>`;
     renderChatLog();
+    const webToggle = document.getElementById('chat-web');
+    if (webToggle) { try { webToggle.checked = localStorage.getItem(CHAT_WEB_KEY) === '1'; } catch (error) { /* ignore */ } }
     document.getElementById('chat-input').focus();
+}
+
+function saveChatWebToggle() {
+    const toggle = document.getElementById('chat-web');
+    if (!toggle) return;
+    try { localStorage.setItem(CHAT_WEB_KEY, toggle.checked ? '1' : '0'); } catch (error) { /* ignore */ }
+}
+
+function showChatWebNote(text) {
+    const log = document.getElementById('chat-log');
+    if (!log) return;
+    const note = document.createElement('div');
+    note.className = 'chat-msg system';
+    note.textContent = text;
+    log.appendChild(note);
+    log.scrollTop = log.scrollHeight;
 }
 
 function clearChatHistory() {
@@ -829,12 +862,17 @@ async function sendChatMessage(event) {
     thinking.textContent = '…';
     log.appendChild(thinking);
     log.scrollTop = log.scrollHeight;
+    const webOn = document.getElementById('chat-web')?.checked || false;
+    let webNoResults = false;
     try {
-        const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20)})});
+        const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20).map(m => ({role: m.role, content: m.content})), web: webOn})});
         const data = await res.json();
         thinking.remove();
         if (data.success && data.reply) {
-            history.push({role: 'assistant', content: data.reply});
+            const assistantMessage = {role: 'assistant', content: data.reply};
+            if (Array.isArray(data.sources) && data.sources.length) assistantMessage.sources = data.sources;
+            history.push(assistantMessage);
+            if (webOn && !data.web_used) webNoResults = true;
         } else {
             history.push({role: 'assistant', content: data.error || 'Kaivor could not reply right now.'});
         }
@@ -844,6 +882,7 @@ async function sendChatMessage(event) {
     }
     saveChatHistory(history);
     renderChatLog();
+    if (webNoResults) showChatWebNote('Web search found no results for that one.');
 }
 // FP077 CHAT: END
 

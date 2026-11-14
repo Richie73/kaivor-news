@@ -280,6 +280,41 @@ def find_rss_via_brave(query):
     return None
 
 
+def search_web_for_chat(query, count=5):
+    """FP079: Brave web search for the chat hub.
+
+    Returns (results, error). On success results is a list of
+    {title, url, description} dicts and error is None. Error is "no_key"
+    when no Brave key is configured and "failed" when the search request
+    fails. Mirrors find_rss_via_brave.
+    """
+    brave_key = os.environ.get("BRAVE_API_KEY")
+    if not brave_key:
+        return None, "no_key"
+    try:
+        response = requests.get(
+            "https://api.search.brave.com/res/v1/web/search",
+            params={"q": query, "count": count},
+            headers={"X-Subscription-Token": brave_key},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            return None, "failed"
+        results = []
+        for result in response.json().get("web", {}).get("results", []):
+            url = str(result.get("url") or "").strip()
+            if not url.startswith(("http://", "https://")):
+                continue
+            results.append({
+                "title": str(result.get("title") or url).strip(),
+                "url": url,
+                "description": str(result.get("description") or "").strip(),
+            })
+        return results, None
+    except Exception:
+        return None, "failed"
+
+
 def _published_timestamp(value):
     try:
         text = str(value or "").strip()
@@ -1543,6 +1578,10 @@ def api_chat():
     as /api/ask_ai (OpenRouter first, then OpenAI). Behind the FP069 PIN
     gate like every other AI route, so the key cannot be burned by
     unauthenticated callers.
+
+    FP079: the client may also send "web": true. The server then searches
+    Brave with the latest user message, appends the results to the system
+    prompt and returns them as "sources" with "web_used": true.
     """
     data = request.json or {}
     raw_messages = data.get("messages")
@@ -1571,9 +1610,27 @@ def api_chat():
     if not providers:
         return jsonify({"success": False, "error": "No AI provider is configured. Add an OpenRouter or OpenAI API key in Sources & API Settings."}), 503
 
+    # FP079: optional web search. The latest user message is the query.
+    web_results = []
+    web_used = False
+    if data.get("web"):
+        last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        web_results, web_error = search_web_for_chat(last_user[:400])
+        if web_error == "no_key":
+            return jsonify({"success": False, "error": "Web search isn't set up yet. Add a Brave API key in Sources & API Settings."}), 503
+        if web_error == "failed":
+            return jsonify({"success": False, "error": "Web search failed just now. Try again in a moment."}), 503
+        web_used = bool(web_results)
+
+    system_content = "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so."
+    if web_used:
+        lines = ["\n\nUse these web search results to answer. They are current pages, numbered for reference. Cite the sources you use by number, like [1]. If the results do not answer the question, say so plainly instead of guessing."]
+        for i, result in enumerate(web_results, 1):
+            lines.append(f"\n[{i}] {result['title']}\n{result['url']}\n{result['description']}")
+        system_content += "\n".join(lines)
     system_prompt = {
         "role": "system",
-        "content": "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so.",
+        "content": system_content,
     }
     errors = []
     for provider, url, key, model in providers:
@@ -1588,7 +1645,8 @@ def api_chat():
             if response.status_code == 200:
                 content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
                 if content:
-                    return jsonify({"success": True, "reply": content, "provider": provider})
+                    sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
+                    return jsonify({"success": True, "reply": content, "provider": provider, "web_used": web_used, "sources": sources})
                 errors.append(f"{provider}: empty response")
             else:
                 try:

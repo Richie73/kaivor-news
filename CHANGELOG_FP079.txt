@@ -1,0 +1,75 @@
+FP079 — Web browsing in the chat hub
+====================================
+
+Background (14 Nov 2026)
+- Richie asked whether the FP077 chat hub could browse the web: it
+  could only answer from the model's own knowledge, with no live
+  information. He picked the Brave route (the app already has a
+  Brave key) over switching to a search-built-in model, which
+  would cost more per message.
+
+What was built
+- New helper search_web_for_chat(query, count=5) in main.py,
+  mirroring find_rss_via_brave: GET
+  https://api.search.brave.com/res/v1/web/search with the
+  X-Subscription-Token header from BRAVE_API_KEY, 10s timeout.
+  Returns (results, error): results is a list of {title, url,
+  description} dicts; error is "no_key" when no Brave key is
+  configured and "failed" when the request fails. Non-http(s)
+  URLs are dropped.
+- POST /api/chat (main.py) accepts an optional "web": true. The
+  latest user message (truncated to 400 characters) becomes the
+  Brave query. No Brave key → 503 telling him to add one in
+  Sources & API Settings; search failure → 503 asking him to try
+  again. On success the results are appended to the system prompt
+  (numbered, with an instruction to cite sources like [1] and to
+  say plainly if the results do not answer the question) and the
+  response carries "web_used": true plus "sources": [{title,
+  url}]. When the search returns nothing, the question is
+  answered normally with web_used false and an empty sources
+  list. Web off behaves exactly as before (no Brave call) but
+  the success response now also carries web_used false and
+  sources []. The provider check still runs before any search,
+  so a missing AI key never burns a Brave query.
+- Chat view (templates/index.html): a 🌐 Web toggle in the chat
+  form, remembered in localStorage (kaivor-chat-web). The send
+  flow passes web: true when it is on and strips the sources
+  field from messages before sending, so the server only ever
+  sees role and content. Assistant replies with sources show a
+  Sources list of clickable links under the reply; sources are
+  saved with the message in history, so they survive reopening
+  the chat. When web is on but the search finds nothing, a grey
+  one-line note says so (not saved to history).
+- No new keys: Brave and the AI providers are the ones already
+  configured. No route or guard changes — /api/chat stays behind
+  the FP069 PIN gate.
+
+Tests
+- 13 new tests in tests/test_chat_web_fp079.py: the search helper
+  (clean results + request shape, non-http URLs dropped, missing
+  key, HTTP failure and connection failure); the route (web on
+  searches and returns sources with the results in the system
+  prompt, last user message used as the query, long queries
+  truncated to 400 characters, no Brave key → 503 without
+  calling the provider, search failure → 503 without calling
+  the provider, empty results answered normally with web_used
+  false); web off (no flag and explicit false — no Brave call,
+  web_used false, empty sources); the template (toggle, storage
+  key, save/show-note functions, sources CSS and rendering, web
+  flag in the fetch body, sources on messages).
+- Full suite (local, test-only secrets stub): 504 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP078 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures.
+- Phone suite after install: 515 passed, 0 failed, 2 skipped
+  (targeted 13 passed). Backups main.py.before-fp079 and
+  templates/index.html.before-fp079 kept on the phone.
+
+Out of scope (unchanged): automatic web detection (the toggle is
+manual — Richie decides when a question needs live information);
+voice input; RAMS drafting; receipt capture; morning hub; the
+FP078 MCP link (blocked on the platform 421, feedback filed 14
+Nov); Readwise; server-side chat history; ROADMAP.md; Render
+deploy (follows the normal push flow after the Termux install).
