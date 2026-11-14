@@ -67,6 +67,20 @@ PUSH
    git commit -m "FP078: deploy the MCP server for the Muse link"
    git push
 
+Then commit the MCP server code itself. It was written earlier
+(FP050–FP065) but never pushed, so Render cannot see it — the first
+kaivor-mcp deploy failed on the missing requirements-mcp.txt.
+These files live on the phone already; they just need committing:
+
+   git add run_mcp.py requirements-mcp.txt requirements-postgres.txt core/integrations/__init__.py core/integrations/mcp_gateway.py core/integrations/mcp_observability.py core/integrations/mcp_runtime.py core/integrations/mcp_security.py core/agents/postgres_store.py migrations/mcp/001_agent_tasks.sql
+   git commit -m "FP078: commit the MCP server code (was never pushed)"
+   git push
+
+(Note: core/agents/postgres_store.py is imported lazily by the
+gateway at startup, so the service crashes without it. The MCP
+tests and scripts/mcp_preflight.py stay uncommitted — Render does
+not need them.)
+
 Pushing does NOT create the new service by itself. The steps below
 do that.
 
@@ -94,46 +108,65 @@ STEP 2 — ROTATE THE OPENROUTER KEY
 
 STEP 3 — ADD THE DATABASE TABLE (Termux)
 ----------------------------------------
-1. In the Render dashboard, open your database (the one the news
-   app uses for Reading) and copy its External Database URL.
-2. In Termux, paste this. It asks for the database URL and the
-   database password from Step 1, then creates the limited user
-   and the new table. The URL and password stay on your phone.
+The Reading database lives on Supabase, NOT on Render — there is
+no PostgreSQL database in the Render workspace. So use the
+original Supabase migration (001), not the Render adaptation
+(002), and use the database URL the news app already uses.
 
-   cd ~/Kaivor
-   read -p "Paste the External Database URL: " DBURL
+1. In the Render dashboard, open kaivor-news, go to Environment,
+   find KAIVOR_READING_DATABASE_URL and reveal it. Copy the whole
+   value (it starts with postgresql://).
+2. In Termux, do it in three small pastes — pasting the whole
+   block at once makes the first prompt swallow the next line.
+   First paste just this line, then paste the database URL at the
+   prompt and press Enter:
+
+   read -p "Paste the database URL: " DBURL
+
+   Then paste just this line, then paste the DB password from
+   Step 1:
+
    read -s -p "Paste the DB password from Step 1: " DBPASS
-   echo
+
+   Then paste these two lines together:
+
    psql "$DBURL" -v ON_ERROR_STOP=1 -c "CREATE ROLE kaivor_mcp LOGIN PASSWORD '$DBPASS';"
-   psql "$DBURL" -v ON_ERROR_STOP=1 -f migrations/mcp/002_agent_tasks_render.sql
+   psql "$DBURL" -v ON_ERROR_STOP=1 -f migrations/mcp/001_agent_tasks.sql
 
    Expect: CREATE ROLE, then a list of CREATE TABLE / CREATE INDEX /
    REVOKE / GRANT / ALTER TABLE / CREATE POLICY lines, no errors.
-   If it says the role already exists, that step is already done —
-   just run the second psql line on its own.
+   (A NOTICE that the policy does not exist is normal on a first
+   run.) If it says the role already exists, that step is already
+   done — just run the second psql line on its own.
 
 STEP 4 — CREATE THE NEW SERVICE (Render dashboard)
 --------------------------------------------------
-1. In the Render dashboard, open the Blueprint for this project
-   (or create a new Web Service from the kaivor-news repo — either
-   way, the settings come from render.yaml).
-2. If you use the Blueprint: press Sync. Render should offer the
-   new kaivor-mcp service. Confirm it.
-3. Open the new kaivor-mcp service, go to Environment, and set
-   these three secrets:
+There is no Blueprint for kaivor-news (it was created manually),
+so create the service by hand:
+
+1. In the Render dashboard tap + New -> Web Service and pick the
+   kaivor-news repo (Richie73 / kaivor-news).
+2. Name it kaivor-mcp, region Oregon, Free plan.
+3. Build command:
+   pip install -r requirements.txt -r requirements-mcp.txt -r requirements-postgres.txt
+4. Start command:
+   python run_mcp.py
+5. Add these environment variables (one at a time, Key then Value):
+   - PYTHON_VERSION = 3.11.9 (matches the news app; without it
+     Render uses its default Python)
+   - KAIVOR_MCP_ENV = production
+   - KAIVOR_MCP_HOST = 0.0.0.0
    - KAIVOR_MCP_BEARER_TOKEN = the link token from Step 1
    - OPENROUTER_API_KEY = the new key from Step 2
-   - KAIVOR_AGENT_DATABASE_URL = the database URL, but with the
-     username and password changed to the limited user:
-     take the External Database URL from Step 3 and replace the
-     part between "://" and "@" with "kaivor_mcp:<the DB password
-     from Step 1>". For example, if the URL is
-     postgres://owner:oldpass@host/dbname then the value is
-     postgres://kaivor_mcp:<DB password>@host/dbname
-4. Deploy the service (Deploy -> Deploy latest commit). It may
-   take a minute to build. The service URL will be
-   https://kaivor-mcp.onrender.com
-5. Tell Muse it is live. Muse will check the service answers
+   - KAIVOR_AGENT_DATABASE_URL = the database URL from Step 3,
+     with two changes: the username becomes
+     kaivor_mcp.<the same code after "postgres." in the URL>
+     (the Supabase pooler needs the project code on the username)
+     and the password becomes the DB password from Step 1.
+     Everything else in the URL stays the same.
+6. Tap Deploy Web Service. It may take a minute to build. The
+   service URL will be https://kaivor-mcp.onrender.com
+7. Tell Muse it is live. Muse will check the service answers
    (it should refuse requests without the token — that proves it
    is up and locked), then send you the secure link to connect
    Muse to it. You paste the link token into that secure page;
