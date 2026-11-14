@@ -1,0 +1,64 @@
+FP079.1 — Web status indicator for the chat hub
+================================================
+
+Background (14 Nov 2026)
+- FP079 shipped and the toggle went live, but Richie's first two
+  web questions (gold price, 11:10 and 15:05) both came back as
+  plain model replies with no Sources list and no "no results"
+  note. The code was then verified end to end: the FP079 commit
+  is correct on GitHub (41409b0), the Render deploy is green,
+  a live test on the phone ran a real Brave search through the
+  same code (5 results, web_used true, sources in the response),
+  the Sources rendering was executed in Node with real data
+  (links render correctly), and the service worker passes all
+  /api/ requests straight through. Every link in the chain is
+  proven, so the live failure has to be in the one place that
+  cannot be seen from outside: the actual request the phone
+  sends, or the live server's handling of it. FP079.1 makes the
+  web state visible on both sides so the next test shows exactly
+  what happened instead of failing silently.
+
+What was built
+- A 🌐 badge on user messages sent with web on
+  (templates/index.html): sendChatMessage records web: true on
+  the user message, chatMessageHtml renders a small 🌐 badge
+  after the text, and the badge survives in history. The badge
+  shows whether the toggle was on when the message was sent —
+  the one fact the screenshots could not show. The web field is
+  stripped before sending, so the server still only sees role
+  and content.
+- A status line under web replies (templates/index.html): when
+  web was on, a grey line appears under the reply — "🌐 Web
+  search · N sources" when results were used, "🌐 Web search
+  found nothing." when the search returned nothing, and "🌐 Web:
+  the app server hasn't updated yet" when the response has no
+  web fields at all (an old server). The FP079 "no results"
+  note is replaced by this status line.
+- One server log line per chat request (main.py): "[chat]
+  web_requested=<bool> web_used=<bool> sources=<n>", plus
+  "[chat] web_requested=True web_error=no_key|failed" on the
+  two early-return error paths. No message content is logged.
+  Visible in the Render Logs tab — it shows exactly what the
+  server received and did.
+
+Tests
+- 5 new tests in tests/test_chat_web_status_fp0791.py: the log
+  line for a web search with results, for web off, for a
+  missing Brave key, and for a failed search (capsys); the
+  template has the badge, the web flag on user messages, the
+  status-note logic and all three status texts.
+- Full suite (local, test-only secrets stub): 509 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP079 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures.
+- Phone suite after install: 520 passed, 0 failed, 2 skipped
+  (targeted 18 passed). Backups main.py.before-fp0791 and
+  templates/index.html.before-fp0791 kept on the phone.
+
+Out of scope (unchanged): the search itself (FP079, proven
+working); the toggle; the PIN gate; the FP078 MCP link
+(blocked on the platform 421, feedback filed 14 Nov); ROADMAP.md;
+Render deploy (follows the normal push flow after the Termux
+install).

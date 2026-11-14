@@ -1611,16 +1611,20 @@ def api_chat():
         return jsonify({"success": False, "error": "No AI provider is configured. Add an OpenRouter or OpenAI API key in Sources & API Settings."}), 503
 
     # FP079: optional web search. The latest user message is the query.
+    # FP079.1: one log line per chat request (flag + outcome, no content).
     web_results = []
     web_used = False
     if data.get("web"):
         last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
         web_results, web_error = search_web_for_chat(last_user[:400])
         if web_error == "no_key":
+            print("[chat] web_requested=True web_error=no_key", flush=True)
             return jsonify({"success": False, "error": "Web search isn't set up yet. Add a Brave API key in Sources & API Settings."}), 503
         if web_error == "failed":
+            print("[chat] web_requested=True web_error=failed", flush=True)
             return jsonify({"success": False, "error": "Web search failed just now. Try again in a moment."}), 503
         web_used = bool(web_results)
+    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)}", flush=True)
 
     system_content = "You are Kaivor, a personal AI assistant. Answer plainly and concisely in plain English. Distinguish facts from uncertainty and do not invent facts. If you do not know something, say so."
     if web_used:

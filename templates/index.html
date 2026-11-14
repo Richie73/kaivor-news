@@ -63,6 +63,7 @@
         .chat-form button { padding:10px 16px; }
         .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:13px; color:#9ca3af; cursor:pointer; white-space:nowrap; }
         .chat-web-toggle input { accent-color:#22c55e; }
+        .chat-web-badge { font-size:12px; opacity:0.85; }
         .chat-sources { margin-top:8px; font-size:12px; color:#9ca3af; }
         .chat-sources ol { margin:4px 0 0; padding-left:18px; }
         .chat-sources a { color:#86efac; }
@@ -781,7 +782,7 @@ function saveChatHistory(messages) {
 }
 
 function chatMessageHtml(message) {
-    if (message.role === 'user') return `<div class="chat-msg user">${escapeHtml(message.content)}</div>`;
+    if (message.role === 'user') return `<div class="chat-msg user">${escapeHtml(message.content)}${message.web ? ' <span class="chat-web-badge" title="Web search was on for this message">🌐</span>' : ''}</div>`;
     let html = `<div class="chat-msg assistant">${renderAiMarkdown(message.content)}`;
     if (Array.isArray(message.sources) && message.sources.length) {
         const items = message.sources
@@ -851,8 +852,11 @@ async function sendChatMessage(event) {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
+    const webOn = document.getElementById('chat-web')?.checked || false;
     const history = loadChatHistory();
-    history.push({role: 'user', content: text});
+    const userMessage = {role: 'user', content: text};
+    if (webOn) userMessage.web = true;
+    history.push(userMessage);
     saveChatHistory(history);
     input.value = '';
     renderChatLog();
@@ -862,8 +866,7 @@ async function sendChatMessage(event) {
     thinking.textContent = '…';
     log.appendChild(thinking);
     log.scrollTop = log.scrollHeight;
-    const webOn = document.getElementById('chat-web')?.checked || false;
-    let webNoResults = false;
+    let webStatusNote = '';
     try {
         const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20).map(m => ({role: m.role, content: m.content})), web: webOn})});
         const data = await res.json();
@@ -872,7 +875,11 @@ async function sendChatMessage(event) {
             const assistantMessage = {role: 'assistant', content: data.reply};
             if (Array.isArray(data.sources) && data.sources.length) assistantMessage.sources = data.sources;
             history.push(assistantMessage);
-            if (webOn && !data.web_used) webNoResults = true;
+            if (webOn) {
+                if (data.web_used === undefined) webStatusNote = "🌐 Web: the app server hasn't updated yet — try again after the next deploy.";
+                else if (data.web_used) webStatusNote = `🌐 Web search · ${data.sources ? data.sources.length : 0} source${data.sources && data.sources.length === 1 ? '' : 's'}`;
+                else webStatusNote = '🌐 Web search found nothing.';
+            }
         } else {
             history.push({role: 'assistant', content: data.error || 'Kaivor could not reply right now.'});
         }
@@ -882,7 +889,7 @@ async function sendChatMessage(event) {
     }
     saveChatHistory(history);
     renderChatLog();
-    if (webNoResults) showChatWebNote('Web search found no results for that one.');
+    if (webStatusNote) showChatWebNote(webStatusNote);
 }
 // FP077 CHAT: END
 
