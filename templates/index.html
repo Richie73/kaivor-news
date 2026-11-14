@@ -14,7 +14,7 @@
         .sub-header { font-size:11px; color:#10b981; text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
         .brand-mark { width:26px; height:26px; border-radius:7px; vertical-align:-6px; margin-right:8px; }
         .container { padding:16px; max-width:600px; margin:0 auto; }
-        .market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; }
+        .market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:#161618; border-radius:12px; border:1px solid #26262a; white-space:nowrap; cursor:pointer; }
         .market-track { display:flex; width:max-content; will-change:transform; animation:marketTickerScroll 38s linear infinite; }
         .market-group { display:flex; flex:0 0 auto; align-items:center; gap:18px; padding:0 18px 0 12px; }
         .market-group > span { flex:0 0 auto; }
@@ -48,6 +48,17 @@
         .feed-row-cat { color:#9ca3af; font-size:11px; }
         .feed-row-count { color:#6b7280; font-size:11px; white-space:nowrap; }
         .feed-row-status { font-size:11px; white-space:nowrap; }
+        .markets-row { display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid #222; }
+        .markets-row:last-child { border-bottom:none; }
+        .markets-name { flex:1; min-width:0; }
+        .markets-name strong { display:block; font-size:14px; }
+        .markets-range { color:#6b7280; font-size:11px; }
+        .markets-spark { flex:none; }
+        .markets-price { text-align:right; }
+        .markets-price strong { display:block; font-size:15px; }
+        .markets-change { font-size:12px; white-space:nowrap; }
+        .markets-up { color:#35FA33; }
+        .markets-down { color:#f87171; }
         .settings-label { color:#9ca3af; font-size:11px; margin:2px 0 8px; text-transform:uppercase; letter-spacing:.6px; }
         .api-key-row { margin-top:12px; padding-top:12px; border-top:1px solid #26262a; }
         .manager-input { width:100%; padding:8px 12px; margin-bottom:8px; background:#1f1f23; border:1px solid #2f2f36; color:#fff; border-radius:8px; box-sizing:border-box; font-size:13px; }
@@ -304,7 +315,7 @@
                 <button id="market-refresh" type="button" onclick="refreshMarkets()">↻ Refresh markets</button>
             </div>
         </div>
-        <div class="market-bar" aria-label="Live market prices" tabindex="0">
+        <div class="market-bar" aria-label="Live market prices — tap to open the full markets view" tabindex="0" onclick="showMarkets()" title="Tap to open the full markets view">
             <div class="market-track" id="market-track">
                 <div class="market-group" data-market-group>
                     <span>🪙 Gold: <span id="gold-price" class="market-value">{{ market.Gold or market.gold }}</span></span>
@@ -362,6 +373,20 @@
         </div>
         <div id="weather-search-results" class="weather-results" aria-live="polite"></div>
         <div id="weather-recent" class="weather-recent"></div>
+    </section>
+
+    <!-- FP086: full Markets view, opened by tapping the Market Watch
+         strip. One row per asset: current price, today's change and a
+         five-trading-day sparkline, plus today's range (Yahoo assets)
+         or the five-day range (FX pairs). History comes from Yahoo
+         Finance and Frankfurter — no key, nothing stored. -->
+    <section id="markets-section" class="weather-card" aria-label="Markets" style="display:none">
+        <div class="weather-head">
+            <div><span class="weather-place">Markets</span><span id="markets-updated" class="weather-updated"></span></div>
+            <button type="button" onclick="refreshMarketsFromView()">↻ Refresh</button>
+        </div>
+        <div id="markets-list"><p class="evidence-note">Loading market history…</p></div>
+        <p class="evidence-note">Prices from Yahoo Finance and Frankfurter. History covers the last five trading days.</p>
     </section>
 
     <h3 id="section-title" style="font-size:14px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Top Stories</h3>
@@ -619,6 +644,7 @@ function animateCategoryTitle(title, direction) {
 
 function filterCategory(category, element) {
     hideWeatherView();
+    hideMarketsView();
     restoreNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     const categoryChips = Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
@@ -749,6 +775,7 @@ function initializeMobileNewsNavigation() {
 
 async function showSaved(element) {
     hideWeatherView();
+    hideMarketsView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -848,6 +875,7 @@ function renderChatLog() {
 
 function showChat(element) {
     hideWeatherView();
+    hideMarketsView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -947,6 +975,7 @@ function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 // the standalone Relevance view.
 function showSettings(element){
     hideWeatherView();
+    hideMarketsView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -1799,6 +1828,7 @@ function initializeWeatherSection() {
 // them, so going back to any news category just shows them again.
 function showWeather(element) {
     if (!element) return;
+    hideMarketsView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -1820,6 +1850,90 @@ function hideWeatherView() {
     if (strip) strip.style.display = '';
 }
 // FP082 WEATHER VIEW: END
+
+// FP086 MARKETS VIEW: BEGIN
+// The full Markets view, opened by tapping the Market Watch strip.
+// Like the weather view it hides the news cards without destroying
+// them, so tapping a news category brings the stories straight back
+// (the FP085.1 cache is not needed here). History comes from
+// /api/finance/history — five trading days per asset.
+function showMarkets() {
+    hideWeatherView();
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Markets';
+    document.getElementById('status').textContent = 'Prices and recent history — Yahoo Finance and Frankfurter.';
+    document.getElementById('articles-container').querySelectorAll('.card').forEach(card => { card.style.display = 'none'; });
+    const strip = document.getElementById('weather-strip');
+    if (strip) strip.style.display = 'none';
+    const section = document.getElementById('markets-section');
+    if (section) section.style.display = 'block';
+    loadMarketsHistory();
+}
+function hideMarketsView() {
+    const section = document.getElementById('markets-section');
+    if (section) section.style.display = 'none';
+}
+function formatMarketPrice(key, value) {
+    if (value === null || value === undefined) return '—';
+    if (['GBP_USD', 'GBP_EUR', 'EUR_USD'].includes(key)) return Number(value).toFixed(4);
+    return '$' + Number(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function formatMarketChange(key, change, pct) {
+    if (change === null || change === undefined || pct === null || pct === undefined) return {text: '—', cls: ''};
+    const arrow = change >= 0 ? '▲' : '▼';
+    const sign = change >= 0 ? '+' : '';
+    return {text: arrow + ' ' + sign + formatMarketPrice(key, Math.abs(change)) + ' (' + sign + pct + '%)', cls: change >= 0 ? 'markets-up' : 'markets-down'};
+}
+function sparklineSvg(series) {
+    const points = (series || []).map(point => point.close).filter(v => typeof v === 'number');
+    if (points.length < 2) return '';
+    const min = Math.min(...points), max = Math.max(...points);
+    const range = (max - min) || 1;
+    const w = 72, h = 28, pad = 2;
+    const coords = points.map((v, i) => {
+        const x = pad + (i * (w - pad * 2)) / (points.length - 1);
+        const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    const up = points[points.length - 1] >= points[0];
+    return '<svg class="markets-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + coords + '" fill="none" stroke="' + (up ? '#35FA33' : '#f87171') + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+function marketsRowHtml(key, entry) {
+    const change = formatMarketChange(key, entry.change, entry.change_pct);
+    let range = '';
+    if (entry.day_high !== null && entry.day_high !== undefined && entry.day_low !== null && entry.day_low !== undefined) {
+        range = 'Today ' + formatMarketPrice(key, entry.day_low) + ' – ' + formatMarketPrice(key, entry.day_high);
+    } else if ((entry.series || []).length > 1) {
+        const closes = entry.series.map(point => point.close);
+        range = '5-day ' + formatMarketPrice(key, Math.min(...closes)) + ' – ' + formatMarketPrice(key, Math.max(...closes));
+    }
+    return '<div class="markets-row"><div class="markets-name"><strong>' + escapeHtml(entry.label || key) + '</strong><span class="markets-range">' + escapeHtml(range) + '</span></div>' + sparklineSvg(entry.series) + '<div class="markets-price"><strong>' + escapeHtml(formatMarketPrice(key, entry.current)) + '</strong><span class="markets-change ' + change.cls + '">' + escapeHtml(change.text) + '</span></div></div>';
+}
+async function loadMarketsHistory() {
+    const list = document.getElementById('markets-list');
+    const updated = document.getElementById('markets-updated');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/finance/history', {cache:'no-store'});
+        const data = await res.json();
+        const history = (data.success && data.history) || {};
+        const keys = Object.keys(history);
+        if (!keys.length) { list.innerHTML = '<p class="evidence-note">Could not load market history. Try again in a moment.</p>'; return; }
+        const order = ['Gold', 'Bitcoin', 'SP500', 'Brent_Oil', 'GBP_USD', 'GBP_EUR', 'EUR_USD'];
+        keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+        list.innerHTML = keys.map(key => marketsRowHtml(key, history[key])).join('');
+        if (updated && data.last_updated) updated.textContent = 'Updated ' + new Date(data.last_updated * 1000).toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'});
+    } catch (e) {
+        list.innerHTML = '<p class="evidence-note">Could not load market history. Try again in a moment.</p>';
+    }
+}
+async function refreshMarketsFromView() {
+    await refreshMarkets();
+    loadMarketsHistory();
+}
+// FP086 MARKETS VIEW: END
 
 // FP083 SPLASH: BEGIN
 // The splash covers the first paint so the app opens on the logo, not a
@@ -1851,11 +1965,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     // FP084: deep links from the Reading page's bottom bar — open the
     // requested view on load. (#weather / #chat / #saved; plain / is News.)
     // FP085: #settings opens the Settings view the same way.
+    // FP086: #markets opens the Markets view the same way.
     const initialHash = window.location.hash;
     if (initialHash === '#weather') { showWeather(document.getElementById('nav-weather')); }
     else if (initialHash === '#chat') { showChat(document.getElementById('nav-chat')); }
     else if (initialHash === '#saved') { showSaved(document.getElementById('nav-saved')); }
     else if (initialHash === '#settings') { showSettings(document.getElementById('settings-btn')); }
+    else if (initialHash === '#markets') { showMarkets(); }
 });
 </script>
 </body>

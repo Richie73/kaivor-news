@@ -100,6 +100,9 @@ def display_date(value):
 app.jinja_env.filters["display_date"] = display_date
 
 _finance_cache = {"data": {}, "last_updated": 0}
+# FP086: price history for the Markets view, cached 15 minutes.
+_FINANCE_HISTORY_TTL_SECONDS = 900
+_finance_history_cache = {"data": {}, "last_updated": 0}
 _cache_lock = threading.Lock()
 _news_cache = {"articles": [], "last_updated": 0}
 _news_lock = threading.Lock()
@@ -329,6 +332,141 @@ _FINANCE_CHAT_ASSETS = (
 )
 _FINANCE_CHAT_PRICE_WORDS = ("price", "rate", "worth", "cost", "value", "trading", "how much", "current", "live", "now", "today", "per ounce", "per barrel", "high", "low")
 _FINANCE_FX_KEYS = {"GBP_USD", "GBP_EUR", "EUR_USD"}
+
+
+# FP086: price history for the Markets view. History comes from the same
+# free sources as the live prices — Yahoo Finance chart data for the four
+# USD assets, Frankfurter timeseries for the three FX pairs — so nothing
+# is stored and no migration is needed. Weekends and holidays have no
+# rate, so a series holds however many trading days the window covered.
+_FINANCE_HISTORY_YAHOO_SYMBOLS = {
+    "Gold": "GC=F",
+    "Bitcoin": "BTC-USD",
+    "SP500": "^GSPC",
+    "Brent_Oil": "BZ=F",
+}
+_FINANCE_HISTORY_FX = (
+    ("https://api.frankfurter.app/{start}..{end}?from=GBP&to=USD,EUR",
+     {"GBP_USD": "USD", "GBP_EUR": "EUR"}),
+    ("https://api.frankfurter.app/{start}..{end}?from=EUR&to=USD",
+     {"EUR_USD": "USD"}),
+)
+
+
+def _fetch_yahoo_history(symbol):
+    """Return five trading days of closes + today's range, or None."""
+    headers = {"User-Agent": "Mozilla/5.0 Kaivor-News/FP018.2"}
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=5d&interval=1d"
+        response = requests.get(url, headers=headers, timeout=(3, 5))
+        response.raise_for_status()
+        results = response.json().get("chart", {}).get("result", [])
+        if not results:
+            return None
+        result = results[0]
+        meta = result.get("meta", {})
+        stamps = result.get("timestamp") or []
+        closes = (result.get("indicators", {}).get("quote", [{}])[0] or {}).get("close") or []
+        series = []
+        for stamp, close in zip(stamps, closes):
+            if close is None:
+                continue
+            date = time.strftime("%Y-%m-%d", time.gmtime(stamp))
+            series.append({"date": date, "close": round(float(close), 2)})
+        if not series:
+            return None
+        price = meta.get("regularMarketPrice") or series[-1]["close"]
+        previous = meta.get("chartPreviousClose") or meta.get("previousClose")
+        if previous is None and len(series) > 1:
+            previous = series[-2]["close"]
+        day_high = meta.get("regularMarketDayHigh")
+        day_low = meta.get("regularMarketDayLow")
+        return {
+            "current": round(float(price), 2),
+            "previous_close": round(float(previous), 2) if previous is not None else None,
+            "day_high": round(float(day_high), 2) if day_high else None,
+            "day_low": round(float(day_low), 2) if day_low else None,
+            "series": series,
+        }
+    except Exception:
+        return None
+
+
+def _fetch_fx_history():
+    """Return {key: {"series": [{date, close}]}} for the three FX pairs."""
+    end = time.strftime("%Y-%m-%d", time.gmtime())
+    start = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 7 * 86400))
+    out = {}
+    for template, mapping in _FINANCE_HISTORY_FX:
+        try:
+            url = template.format(start=start, end=end)
+            response = requests.get(url, timeout=(3, 5))
+            response.raise_for_status()
+            rates = response.json().get("rates", {})
+            for key, rate_key in mapping.items():
+                series = []
+                for date in sorted(rates):
+                    value = (rates.get(date) or {}).get(rate_key)
+                    if value is not None:
+                        series.append({"date": date, "close": round(float(value), 4)})
+                if series:
+                    out[key] = {"series": series[-5:]}
+        except Exception:
+            continue
+    return out
+
+
+def get_finance_history():
+    """Per-asset history for the Markets view, cached 15 minutes.
+
+    Returns (history, last_updated, from_cache). Each entry carries
+    label, current, previous_close, change, change_pct, day_high and
+    day_low (Yahoo assets only — Frankfurter carries no intraday range)
+    and a series of up to five daily closes. The current price prefers
+    the stored Market Watch value (so the view agrees with the ticker)
+    and falls back to the history fetch's latest price when the store
+    is empty. A failed fetch serves the stale cache when one exists.
+    """
+    with _cache_lock:
+        cached = dict(_finance_history_cache.get("data") or {})
+        cached_at = float(_finance_history_cache.get("last_updated") or 0)
+    if cached and time.time() - cached_at < _FINANCE_HISTORY_TTL_SECONDS:
+        return cached, cached_at, True
+    stored, _ = _finance_snapshot()
+    history = {}
+    labels = {key: label for key, label, _ in _FINANCE_CHAT_ASSETS}
+    for key, symbol in _FINANCE_HISTORY_YAHOO_SYMBOLS.items():
+        entry = _fetch_yahoo_history(symbol)
+        if entry is not None:
+            history[key] = entry
+    for key, entry in _fetch_fx_history().items():
+        series = entry["series"]
+        history[key] = {
+            "current": series[-1]["close"],
+            "previous_close": series[-2]["close"] if len(series) > 1 else None,
+            "day_high": None,
+            "day_low": None,
+            "series": series,
+        }
+    if not history:
+        return cached, cached_at, bool(cached)
+    for key, entry in history.items():
+        if key in stored:
+            entry["current"] = stored[key]
+        previous = entry.get("previous_close")
+        if previous:
+            change = round(entry["current"] - previous, 4)
+            entry["change"] = change
+            entry["change_pct"] = round(change / previous * 100, 2)
+        else:
+            entry["change"] = None
+            entry["change_pct"] = None
+        entry["label"] = labels.get(key, key)
+    now = time.time()
+    with _cache_lock:
+        _finance_history_cache["data"] = history
+        _finance_history_cache["last_updated"] = now
+    return history, now, False
 
 
 def _finance_snapshot():
@@ -1160,6 +1298,23 @@ def api_ticker():
         "last_updated": last_updated,
         "age_seconds": round(max(0, time.time() - last_updated), 1) if last_updated else None,
         "refresh": state,
+    })
+
+
+@app.route("/api/finance/history", methods=["GET"])
+def api_finance_history():
+    """FP086: per-asset price history for the Markets view.
+
+    Public market data from Yahoo Finance and Frankfurter — a GET, so
+    it stays open like the ticker. success is false only when no
+    history could be fetched and no cached copy exists.
+    """
+    history, last_updated, from_cache = get_finance_history()
+    return jsonify({
+        "success": bool(history),
+        "history": history,
+        "last_updated": last_updated or None,
+        "cached": from_cache,
     })
 
 

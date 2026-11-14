@@ -1,0 +1,57 @@
+Kaivor FP086 — Full Markets view + price history
+===============================================
+
+WHAT CHANGED
+------------
+1. FULL MARKETS VIEW. Tapping the Market Watch strip opens a full
+   Markets view (like the weather view: it hides the news cards
+   without destroying them, so tapping a news category brings the
+   stories straight back). One row per asset:
+   - current price (same value the ticker shows)
+   - today's change: ▲/▼ with the amount and percentage, green/red
+   - a five-trading-day sparkline (green when up over the period,
+     red when down)
+   - today's range (high–low) for Gold, Bitcoin, S&P 500 and Brent
+   - the five-day range for GBP/USD, GBP/EUR and EUR/USD
+     (Frankfurter carries no intraday range)
+   A Refresh button re-runs the market refresh and reloads the
+   history. #markets deep link supported.
+2. PRICE HISTORY, NO STORAGE. History comes from the same free
+   sources as the live prices — Yahoo Finance chart data
+   (range=5d, interval=1d) for the four USD assets, Frankfurter
+   timeseries for the three FX pairs — fetched on demand by a new
+   GET /api/finance/history route and cached for 15 minutes. No
+   migration, no new keys, no cost, nothing stored. Weekends and
+   holidays have no rate, so a series holds however many trading
+   days the window covered.
+3. The current price prefers the stored Market Watch value (so the
+   view agrees with the ticker) and falls back to the history
+   fetch's latest price when the store is empty — so the Markets
+   view shows prices even before Refresh markets is tapped. A
+   failed fetch serves the stale cache when one exists.
+
+TECHNICAL
+---------
+- main.py: _fetch_yahoo_history / _fetch_fx_history /
+  get_finance_history + GET /api/finance/history. The route is a
+  GET (public market data) so it stays open like the ticker.
+- templates/index.html: the market bar is tappable (cursor
+  pointer, "tap to open" label); #markets-section after the
+  weather section; showMarkets/hideMarketsView mirror the
+  weather view; hideMarketsView is called by filterCategory,
+  showSaved, showChat, showSettings and showWeather. The pure
+  helpers formatMarketPrice / formatMarketChange / sparklineSvg
+  are node-tested.
+- Both sources were verified live before building (Yahoo
+  5-day chart for GC=F, Frankfurter 7-day timeseries).
+
+FILES
+-----
+- main.py (replacement)
+- templates/index.html (replacement)
+- tests/test_markets_history_fp086.py (new, 8 tests)
+- tests/test_markets_view_fp086.py (new, 7 tests)
+- tests/test_weather_redesign_fp082.py (replacement — the
+  hide-weather call-site count is 5 now, showMarkets included)
+- CHANGELOG_FP086.txt, README_INSTALL_FP086.txt,
+  BUNDLE_MANIFEST_FP086.txt (new docs)
