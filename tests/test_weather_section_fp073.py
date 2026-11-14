@@ -95,7 +95,7 @@ def test_open_meteo_endpoints_are_used():
     assert "https://geocoding-api.open-meteo.com/v1/search?" in js
     assert "forecast_days: '7'" in js
     assert "current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m'" in js
-    assert "daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'" in js
+    assert "daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'" in js
 
 
 def test_wmo_code_mapping_covers_main_conditions():

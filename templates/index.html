@@ -88,17 +88,21 @@
         }
         .chip { flex: 0 0 auto; background:#1f1f23; color:#9ca3af; padding:6px 14px; border-radius:20px; font-size:13px; white-space:nowrap; border:1px solid #2f2f36; cursor:pointer; }
         .chip.active { background:#10b981; color:#000; font-weight:600; border-color:#10b981; }
-        /* FP073: weather section */
+        /* FP073: weather section. FP082: slim home strip + full Weather
+           view (hero, details grid, 7-day list instead of a strip). */
         .weather-card { background:#161618; border:1px solid #26262a; border-radius:12px; padding:14px; margin-bottom:16px; }
         .weather-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
         .weather-place { font-size:15px; font-weight:700; color:#fff; }
         .weather-updated { font-size:11px; color:#6b7280; margin-left:8px; }
-        .weather-now { font-size:13px; color:#9ca3af; }
-        .weather-now-main { display:flex; align-items:baseline; gap:10px; }
-        .weather-icon { font-size:26px; }
-        .weather-temp { font-size:30px; font-weight:700; color:#fff; line-height:1; }
-        .weather-condition { font-size:13px; color:#d1d5db; }
-        .weather-now-detail { font-size:12px; color:#9ca3af; margin-top:6px; }
+        .weather-hero { display:flex; align-items:center; gap:14px; margin:6px 0 12px; }
+        .weather-hero-icon { font-size:44px; line-height:1; }
+        .weather-hero-temp { font-size:48px; font-weight:700; color:#fff; line-height:1; }
+        .weather-hero-condition { font-size:15px; font-weight:600; color:#fff; }
+        .weather-hero-sub { font-size:12px; color:#9ca3af; margin-top:4px; }
+        .weather-details { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+        .weather-detail { background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 10px; }
+        .weather-detail-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; }
+        .weather-detail-value { font-size:13px; color:#e5e7eb; margin-top:2px; }
         .weather-summary { font-size:13px; color:#a7f3d0; margin-bottom:8px; }
         .weather-strip-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
         .weather-hourly { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
@@ -108,13 +112,18 @@
         .weather-hour-icon { font-size:18px; margin:4px 0; }
         .weather-hour-temp { font-size:13px; font-weight:600; color:#fff; }
         .weather-hour-rain { font-size:11px; color:#7dd3fc; margin-top:2px; min-height:14px; }
-        .weather-days { display:flex; gap:8px; margin-top:0; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
-        .weather-days::-webkit-scrollbar { display:none; }
-        .weather-day { flex:0 0 auto; min-width:64px; background:#1f1f23; border:1px solid #2f2f36; border-radius:10px; padding:8px 6px; text-align:center; }
-        .weather-day-name { font-size:11px; color:#9ca3af; text-transform:uppercase; letter-spacing:.5px; }
-        .weather-day-icon { font-size:20px; margin:4px 0; }
-        .weather-day-temp { font-size:13px; font-weight:600; color:#fff; }
-        .weather-day-rain { font-size:11px; color:#7dd3fc; margin-top:2px; }
+        .weather-days { display:flex; flex-direction:column; }
+        .weather-day-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid #232328; }
+        .weather-day-row:last-child { border-bottom:none; }
+        .weather-day-row-name { flex:1; font-size:13px; color:#e5e7eb; }
+        .weather-day-row-icon { font-size:18px; }
+        .weather-day-row-rain { font-size:12px; color:#7dd3fc; min-width:56px; text-align:right; }
+        .weather-day-row-temp { font-size:13px; font-weight:600; color:#fff; min-width:68px; text-align:right; }
+        .weather-strip { display:flex; align-items:center; gap:8px; width:100%; background:#161618; border:1px solid #26262a; border-radius:12px; padding:10px 12px; margin-bottom:16px; font:inherit; font-size:13px; color:#d1d5db; cursor:pointer; text-align:left; }
+        .weather-strip-place { font-weight:700; color:#fff; white-space:nowrap; }
+        .weather-strip-now { white-space:nowrap; }
+        .weather-strip-summary { color:#a7f3d0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .weather-strip-open { margin-left:auto; color:#6b7280; font-size:16px; line-height:1; }
         .weather-search { display:flex; gap:8px; margin-top:12px; }
         .weather-search input { flex:1; background:#1f1f23; color:#fff; border:1px solid #383842; border-radius:8px; padding:8px 10px; font:inherit; font-size:13px; min-width:0; }
         .weather-results { margin-top:8px; display:flex; flex-direction:column; gap:6px; font-size:13px; color:#9ca3af; }
@@ -297,22 +306,33 @@
         <div class="chip" onclick="filterCategory('UK',this)">UK</div>
         <div class="chip" onclick="filterCategory('Sport',this)">Sport</div>
         <div class="chip" onclick="filterCategory('Puzzles',this)">🧩 Puzzles</div>
+        <div class="chip" id="weather-chip" onclick="showWeather(this)">🌤️ Weather</div>
         <div class="chip" data-scroll-to-end="true" onclick="showSaved(this)">★ Saved</div>
         <div class="chip" data-scroll-to-end="true" onclick="showRelevanceProfile(this)">🎯 Relevance</div>
         <div class="chip" data-scroll-to-end="true" onclick="showChat(this)">💬 Chat</div>
         <a class="chip" data-scroll-to-end="true" href="/reading" style="text-decoration:none;">📚 Reading</a>
     </div>
 
-    <!-- FP073: weather section. Data comes from Open-Meteo (free, no key),
-         fetched directly by the browser. Local place is Puddington, Wirral;
-         search finds any other place by name and remembers recent places. -->
-    <section id="weather-section" class="weather-card" aria-label="Weather">
+    <!-- FP082: slim weather strip on the home view (tap it to open the
+         full forecast) + the full weather view, hidden until the Weather
+         chip or the strip opens it. Data comes from Open-Meteo (free, no
+         key), fetched directly by the browser. Local place is Puddington,
+         Wirral; search finds any other place by name and remembers
+         recent places. -->
+    <button id="weather-strip" type="button" class="weather-strip" onclick="showWeather(document.getElementById('weather-chip'))" aria-label="Open the full weather forecast">
+        <span id="weather-strip-place" class="weather-strip-place">Puddington, Wirral</span>
+        <span id="weather-strip-now" class="weather-strip-now">Loading weather…</span>
+        <span id="weather-strip-summary" class="weather-strip-summary"></span>
+        <span class="weather-strip-open">›</span>
+    </button>
+    <section id="weather-section" class="weather-card" aria-label="Weather" style="display:none">
         <div class="weather-head">
             <div><span id="weather-place" class="weather-place">Puddington, Wirral</span><span id="weather-updated" class="weather-updated"></span></div>
             <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
         </div>
-        <div id="weather-summary" class="weather-summary"></div>
         <div id="weather-now" class="weather-now">Loading weather…</div>
+        <div id="weather-details" class="weather-details"></div>
+        <div id="weather-summary" class="weather-summary"></div>
         <div class="weather-strip-label">Next 12 hours</div>
         <div id="weather-hourly" class="weather-hourly"></div>
         <div class="weather-strip-label">7-day forecast</div>
@@ -609,6 +629,7 @@ function animateCategoryTitle(title, direction) {
 }
 
 function filterCategory(category, element) {
+    hideWeatherView();
     const wasDifferent = !element.classList.contains('active');
     const categoryChips = Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
     const previousIndex = categoryChips.findIndex(chip => chip.classList.contains('active'));
@@ -656,6 +677,7 @@ function initializeMobileNewsNavigation() {
     // Swipe through all top-level destinations, including utility sections.
     const swipeCategories = () => Array.from(document.querySelectorAll(
         '.chips .chip[onclick^="filterCategory("], ' +
+        '.chips .chip[onclick^="showWeather("], ' +
         '.chips .chip[onclick^="showSaved("], ' +
         '.chips .chip[onclick^="showRelevanceProfile("], ' +
         '.chips .chip[onclick^="showChat("], ' +
@@ -707,6 +729,7 @@ function initializeMobileNewsNavigation() {
 }
 
 async function showSaved(element) {
+    hideWeatherView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -804,6 +827,7 @@ function renderChatLog() {
 }
 
 function showChat(element) {
+    hideWeatherView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -897,6 +921,7 @@ function escapeHtml(value) { const div=document.createElement('div'); div.textCo
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 
 async function showRelevanceProfile(element){
+    hideWeatherView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -1355,7 +1380,8 @@ window.addEventListener('resize', updateStickyNavigationOffset);
 // is Puddington, Wirral; search finds any other place by name (Open-Meteo
 // geocoding) and recent places are remembered in localStorage.
 // The pure helpers below (weatherCodeInfo, windDirectionLabel,
-// buildForecastUrl, buildGeocodeUrl, formatPlaceName, dayLabel) are
+// buildForecastUrl, buildGeocodeUrl, formatPlaceName, dayLabel,
+// formatSunTime) are
 // covered by a node logic test — see tests/test_weather_section_fp073.py.
 // Keep them free of DOM access so the test can run them in node.
 const WEATHER_DEFAULT_PLACE = { name: 'Puddington, Wirral', latitude: 53.25332, longitude: -3.00877 };
@@ -1410,7 +1436,7 @@ function buildForecastUrl(latitude, longitude) {
         longitude: String(longitude),
         current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
         hourly: 'temperature_2m,precipitation_probability,weather_code',
-        daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+        daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
         timezone: 'auto',
         forecast_days: '7'
     });
@@ -1432,6 +1458,12 @@ function dayLabel(isoDate, index) {
     if (index === 1) return 'Tomorrow';
     const date = new Date(isoDate + 'T12:00:00');
     return date.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+// FP082: sunrise/sunset arrive as "2026-11-14T07:12" — the forecast
+// only ever shows the time.
+function formatSunTime(isoDateTime) {
+    return String(isoDateTime || '').slice(11, 16);
 }
 
 // FP074: hourly helpers. The current time can fall on a 15-minute mark
@@ -1523,16 +1555,24 @@ async function loadWeather(place) {
     weatherCurrentPlace = place;
     const placeEl = document.getElementById('weather-place');
     const nowEl = document.getElementById('weather-now');
+    const detailsEl = document.getElementById('weather-details');
     const summaryEl = document.getElementById('weather-summary');
     const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
+    const stripPlaceEl = document.getElementById('weather-strip-place');
+    const stripNowEl = document.getElementById('weather-strip-now');
+    const stripSummaryEl = document.getElementById('weather-strip-summary');
     if (placeEl) placeEl.textContent = place.name;
     if (nowEl) nowEl.textContent = 'Loading weather…';
+    if (detailsEl) detailsEl.innerHTML = '';
     if (summaryEl) summaryEl.textContent = '';
     if (hourlyEl) hourlyEl.innerHTML = '';
     if (daysEl) daysEl.innerHTML = '';
     if (updatedEl) updatedEl.textContent = '';
+    if (stripPlaceEl) stripPlaceEl.textContent = place.name;
+    if (stripNowEl) stripNowEl.textContent = 'Loading weather…';
+    if (stripSummaryEl) stripSummaryEl.textContent = '';
     renderRecentPlaces();
     try {
         const response = await fetch(buildForecastUrl(place.latitude, place.longitude));
@@ -1543,15 +1583,19 @@ async function loadWeather(place) {
         renderRecentPlaces();
     } catch (error) {
         if (nowEl) nowEl.textContent = 'Weather unavailable — check your connection and try again.';
+        if (stripNowEl) stripNowEl.textContent = 'Weather unavailable.';
     }
 }
 
 function renderWeather(place, data) {
     const nowEl = document.getElementById('weather-now');
+    const detailsEl = document.getElementById('weather-details');
     const summaryEl = document.getElementById('weather-summary');
     const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
+    const stripNowEl = document.getElementById('weather-strip-now');
+    const stripSummaryEl = document.getElementById('weather-strip-summary');
     if (!data || !data.current || !nowEl) return;
     const current = data.current;
     const info = weatherCodeInfo(current.weather_code);
@@ -1562,21 +1606,33 @@ function renderWeather(place, data) {
     const windSpeed = Math.round(Number(current.wind_speed_10m));
     const windDir = windDirectionLabel(Number(current.wind_direction_10m) || 0);
     const gusts = typeof current.wind_gusts_10m === 'number' ? Math.round(current.wind_gusts_10m) : null;
+    const todayHigh = data.daily && Array.isArray(data.daily.temperature_2m_max) ? Math.round(Number(data.daily.temperature_2m_max[0])) : null;
+    const todayLow = data.daily && Array.isArray(data.daily.temperature_2m_min) ? Math.round(Number(data.daily.temperature_2m_min[0])) : null;
     nowEl.innerHTML =
-        '<div class="weather-now-main"><span class="weather-icon">' + info.icon + '</span>' +
-        '<span class="weather-temp">' + temp + '°</span>' +
-        '<span class="weather-condition">' + escapeHtml(info.text) + '</span></div>' +
-        '<div class="weather-now-detail">Feels like ' + feels + '° · Wind ' + windSpeed + ' km/h ' + windDir +
-        (gusts !== null ? ' (gusts ' + gusts + ')' : '') +
-        ' · Humidity ' + humidity + '% · Rain ' + rain + ' mm</div>';
+        '<div class="weather-hero"><span class="weather-hero-icon">' + info.icon + '</span>' +
+        '<span class="weather-hero-temp">' + temp + '°</span>' +
+        '<div><div class="weather-hero-condition">' + escapeHtml(info.text) + '</div>' +
+        '<div class="weather-hero-sub">Feels like ' + feels + '°' +
+        (todayHigh !== null && todayLow !== null ? ' · High ' + todayHigh + '° · Low ' + todayLow + '°' : '') +
+        '</div></div></div>';
+    if (detailsEl) {
+        const sunrise = data.daily && Array.isArray(data.daily.sunrise) ? formatSunTime(data.daily.sunrise[0]) : '';
+        const sunset = data.daily && Array.isArray(data.daily.sunset) ? formatSunTime(data.daily.sunset[0]) : '';
+        detailsEl.innerHTML =
+            '<div class="weather-detail"><div class="weather-detail-label">Wind</div><div class="weather-detail-value">' + windSpeed + ' km/h ' + windDir + (gusts !== null ? ' (gusts ' + gusts + ')' : '') + '</div></div>' +
+            '<div class="weather-detail"><div class="weather-detail-label">Humidity</div><div class="weather-detail-value">' + humidity + '%</div></div>' +
+            '<div class="weather-detail"><div class="weather-detail-label">Rain</div><div class="weather-detail-value">' + rain + ' mm</div></div>' +
+            '<div class="weather-detail"><div class="weather-detail-label">Sun</div><div class="weather-detail-value">' + (sunrise && sunset ? '↑ ' + sunrise + ' · ↓ ' + sunset : '—') + '</div></div>';
+    }
+    if (stripNowEl) stripNowEl.textContent = info.icon + ' ' + temp + '° ' + info.text;
     if (updatedEl && current.time) {
         updatedEl.textContent = 'Updated ' + String(current.time).slice(11, 16);
     }
     if (data.hourly && Array.isArray(data.hourly.time) && data.hourly.precipitation_probability) {
         const start = hourlyStartIndex(data.hourly.time, current.time);
-        if (summaryEl) {
-            summaryEl.textContent = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 12);
-        }
+        const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 12);
+        if (summaryEl) summaryEl.textContent = summary;
+        if (stripSummaryEl) stripSummaryEl.textContent = summary;
         if (hourlyEl) {
             const hours = data.hourly.time.slice(start, start + 12).map((isoTime, offset) => {
                 const index = start + offset;
@@ -1599,10 +1655,10 @@ function renderWeather(place, data) {
             const min = Math.round(Number(data.daily.temperature_2m_min[index]));
             const rainChance = data.daily.precipitation_probability_max
                 ? Math.round(Number(data.daily.precipitation_probability_max[index])) : null;
-            return '<div class="weather-day"><div class="weather-day-name">' + dayLabel(isoDate, index) + '</div>' +
-                '<div class="weather-day-icon">' + dayInfo.icon + '</div>' +
-                '<div class="weather-day-temp">' + max + '° / ' + min + '°</div>' +
-                '<div class="weather-day-rain">' + (rainChance === null ? '' : '💧 ' + rainChance + '%') + '</div></div>';
+            return '<div class="weather-day-row"><span class="weather-day-row-name">' + dayLabel(isoDate, index) + '</span>' +
+                '<span class="weather-day-row-icon">' + dayInfo.icon + '</span>' +
+                '<span class="weather-day-row-rain">' + (rainChance === null ? '' : '💧 ' + rainChance + '%') + '</span>' +
+                '<span class="weather-day-row-temp">' + max + '° / ' + min + '°</span></div>';
         }).join('');
         daysEl.innerHTML = days;
     }
@@ -1663,6 +1719,34 @@ function initializeWeatherSection() {
     loadWeather(weatherLastPlace() || WEATHER_DEFAULT_PLACE);
 }
 // FP073 WEATHER: END
+
+// FP082 WEATHER VIEW: BEGIN
+// The full forecast is its own destination (🌤️ Weather chip, or a tap
+// on the slim home strip). It hides the news cards without destroying
+// them, so going back to any news category just shows them again.
+function showWeather(element) {
+    if (!element) return;
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
+    if (wasDifferent) scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Weather';
+    document.getElementById('status').textContent = weatherCurrentPlace
+        ? 'Forecast for ' + weatherCurrentPlace.name + ' — data from Open-Meteo.'
+        : 'Forecast — data from Open-Meteo.';
+    document.getElementById('articles-container').querySelectorAll('.card').forEach(card => { card.style.display = 'none'; });
+    const strip = document.getElementById('weather-strip');
+    if (strip) strip.style.display = 'none';
+    const section = document.getElementById('weather-section');
+    if (section) section.style.display = 'block';
+}
+
+function hideWeatherView() {
+    const section = document.getElementById('weather-section');
+    if (section) section.style.display = 'none';
+    const strip = document.getElementById('weather-strip');
+    if (strip) strip.style.display = '';
+}
+// FP082 WEATHER VIEW: END
 
 document.addEventListener('DOMContentLoaded',()=>{
     updateStickyNavigationOffset();

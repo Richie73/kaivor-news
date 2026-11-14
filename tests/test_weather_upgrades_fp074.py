@@ -4,9 +4,9 @@ one-line summary.
 Extends the FP073 weather section: the forecast request now asks for
 hourly temperature/rain-chance/condition plus wind gusts and 7 days
 instead of 3; the section shows the next 12 hours as a scrollable
-strip, gusts in the current details, a 7-day scrollable strip, and a
-one-line summary ("Dry until 14:00, then rain.") derived from the
-hourly rain chances.
+strip, gusts in the current details, a 7-day forecast (a vertical list
+since FP082), and a one-line summary ("Dry until 14:00, then rain.")
+derived from the hourly rain chances.
 
 The summary and hour-slicing helpers are pure functions in the same
 FP073-marked JavaScript block, covered by the node logic test below
@@ -70,14 +70,17 @@ def test_hourly_strip_and_summary_markup_exist():
     assert '7-day forecast' in html
 
 
-def test_days_strip_scrolls_horizontally():
+def test_days_forecast_is_a_vertical_list():
+    # FP082 replaced the horizontal 7-day strip with a vertical list:
+    # one full-width row per day (name, icon, rain chance, high/low).
     html = template_text()
     match = re.search(r"\.weather-days \{(.*?)\}", html, re.S)
     assert match
-    assert "overflow-x:auto" in match.group(1).replace(" ", "")
-    day = re.search(r"\.weather-day \{(.*?)\}", html, re.S)
-    assert day
-    assert "flex:0 0 auto" in day.group(1)
+    assert "flex-direction:column" in match.group(1).replace(" ", "")
+    assert "overflow-x" not in match.group(1)
+    row = re.search(r"\.weather-day-row \{(.*?)\}", html, re.S)
+    assert row
+    assert "display:flex" in row.group(1).replace(" ", "")
 
 
 def test_gusts_shown_in_current_details():

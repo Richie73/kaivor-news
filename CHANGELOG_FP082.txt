@@ -1,0 +1,55 @@
+Kaivor FP082 — Weather redesign: slim strip + full Weather category
+================================================================
+
+WHAT CHANGED
+------------
+The tall weather card that pushed the news down the home page is
+split in two:
+
+1. SLIM STRIP ON HOME. One line under the category chips: place,
+   temperature, condition and today's one-line summary ("Dry until
+   14:00, then rain."). Tap it to open the full forecast.
+
+2. FULL WEATHER AS ITS OWN CATEGORY. A new 🌤️ Weather chip sits
+   in the category rail after Puzzles (and in the swipe order).
+   The full view is polished:
+   - Hero: big temperature, condition icon, feels-like, today's
+     high and low.
+   - Details grid: wind (with gusts), humidity, rain, and
+     sunrise/sunset (new — the forecast request now asks Open-Meteo
+     for sunrise and sunset).
+   - The one-line summary and the 12-hour strip, as before.
+   - The 7-day forecast is now a vertical list — one full-width
+     row per day (name, icon, rain chance, high/low) — instead of
+     a horizontal strip.
+   - Search and recent places, as before.
+
+NAVIGATION
+----------
+Opening Weather hides the news cards WITHOUT destroying them, so
+going back to any news category just shows them again. (Chat and
+Saved replace the news list instead — Weather deliberately does
+not.) Every other view — news categories, Saved, Relevance, Chat —
+hides the full weather view again and brings the strip back.
+
+TECHNICAL
+---------
+- templates/index.html only (plus tests and docs). No Python, no
+  server route, no new keys, no cost — still Open-Meteo, free.
+- The forecast request adds sunrise,sunset to the daily fields.
+- New pure helper formatSunTime (ISO "2026-11-14T07:12" -> "07:12"),
+  covered by a node logic test like the other weather helpers.
+- The FP073/FP074 tests are updated where the design changed: the
+  FP073 daily-fields assertion now includes sunrise,sunset, and
+  the FP074 days test now asserts the vertical list.
+- The old .weather-now-main / .weather-icon / .weather-temp /
+  .weather-day strip styles are removed; nothing else used them.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_weather_redesign_fp082.py (new, 11 tests)
+- tests/test_weather_section_fp073.py (updated: daily fields)
+- tests/test_weather_upgrades_fp074.py (updated: days list test)
+- CHANGELOG_FP082.txt, README_INSTALL_FP082.txt,
+  BUNDLE_MANIFEST_FP082.txt (new docs)
