@@ -1,0 +1,54 @@
+FP081 — Reading and listening links in the Reading tab
+======================================================
+
+Background (14 Nov 2026)
+- Richie asked for more link elements like the puzzle cards,
+  linking to BorrowBox, OverDrive/Libby, Kindle and Audible,
+  and chose the Reading tab as their home. All four URLs were
+  verified live before building. Libby is OverDrive's app, so
+  OverDrive and Libby are one card, not two. None of these
+  services offers an app link-in, so the cards are tap-to-open
+  links — Android opens the service's own app when it is
+  installed.
+
+What was built
+- templates/reading.html: the sidebar's single BorrowBox box
+  ("BorrowBox connection" / "Not connected") is replaced by a
+  "Where I read & listen" panel with four buttons — BorrowBox
+  (https://www.borrowbox.com/), Libby (OverDrive)
+  (https://libbyapp.com/), Kindle
+  (https://read.amazon.co.uk/, the Kindle web reader and
+  library) and Audible (https://www.audible.co.uk/) — each
+  opening in a new tab (target="_blank", rel="noopener
+  noreferrer"), following the previous BorrowBox link's
+  pattern. The "Integration status" panel now covers all four
+  services: no provider password is requested or stored, and
+  automatic loans, due dates and progress sync stay disabled
+  until an approved connection is available.
+- The links sit inside the authenticated library view, so they
+  appear after unlocking with the Reading PIN, like the rest
+  of the tab. The BorrowBoxProvider stub in
+  reading/providers.py is untouched — sync is still
+  deliberately not implemented.
+
+Tests
+- 3 new tests in tests/test_reading_links_fp081.py: the
+  template carries all four links with their labels and URLs;
+  the unlocked /reading page shows them; the locked page does
+  not.
+- Full suite (local, test-only secrets stub): 537 passed, 11
+  failed, 2 skipped. The 11 failures are the same known set as
+  the FP069–FP080.1 baseline (6 test_credential_migration_fp037
+  stub artifacts, 2 MCP httpx environment-only, 3 NewsData tests
+  that need the device's real config/secrets.py). No new
+  failures.
+- Phone suite after install: 548 passed, 0 failed, 2 skipped
+  (targeted 10 passed). Backup
+  templates/reading.html.before-fp081 kept on the phone.
+
+Out of scope (unchanged): the Reading library itself (books,
+lists, notes, progress); the PIN gate; any provider sync;
+main.py and templates/index.html; the FP078 MCP link (blocked
+on the platform 421, feedback filed 14 Nov); ROADMAP.md;
+Render deploy (follows the normal push flow after the Termux
+install).
