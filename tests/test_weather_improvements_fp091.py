@@ -176,3 +176,11 @@ def test_saved_places_functions_exist():
         'function renderSavedPlaces()',
     ]:
         assert name in js
+
+
+def test_days_skip_missing_data():
+    # FP089.2 (found in FP091's live check): Open-Meteo's 16th day
+    # can arrive with null values — the row is skipped rather than
+    # showing a ❓ icon with 0° / 0°.
+    js = weather_js_block()
+    assert 'if (maxRaw === null || maxRaw === undefined || isNaN(Number(maxRaw))) return \'\';' in js

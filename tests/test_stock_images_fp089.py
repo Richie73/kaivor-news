@@ -109,7 +109,7 @@ def test_candidate_queries_single_word():
 def test_get_stock_image_falls_back_to_shorter_query():
     calls = []
 
-    def fake_fetch(query):
+    def fake_fetch(query, keywords, category=None):
         calls.append(query)
         if query == "We've waited years here Wales":
             return None
@@ -162,7 +162,7 @@ def test_fetch_returns_first_result_with_credit():
     assert get.call_count == 1
     _, kwargs = get.call_args
     assert kwargs["params"]["license_type"] == "commercial"
-    assert kwargs["params"]["page_size"] == 1
+    assert kwargs["params"]["page_size"] == 5
 
 
 def test_fetch_no_results_returns_none():
@@ -225,6 +225,128 @@ def test_credit_for_variants():
         {"creator": "Jane", "license": "", "license_version": ""}) == "Jane"
     assert stock_images._credit_for(
         {"creator": "", "license": "", "license_version": ""}) == ""
+
+
+# --- relevance scoring (FP089.2) ------------------------------------
+
+# Real Openverse results from the live check on 15 Nov 2026, trimmed
+# to the fields the scorer reads.
+BULLDOG_ITEM = {
+    "url": "https://images.example.com/bulldog.jpg",
+    "title": "'Who said Kaiser' patriotic photograph World War I",
+    "creator": "Archives New Zealand",
+    "license": "by",
+    "license_version": "2.0",
+    "tags": [{"name": "archives"}, {"name": "archivesnewzealand"},
+             {"name": "bulldog"}, {"name": "dogs"},
+             {"name": "history"}, {"name": "newzealand"}],
+}
+
+BINGO_ITEM = {
+    "url": "https://images.example.com/bingo.jpg",
+    "title": "Football Commentator Bingo Card",
+    "creator": "Bingo Fan",
+    "license": "by",
+    "license_version": "2.0",
+    "tags": [{"name": "49ers"}, {"name": "ball"}, {"name": "bears"}],
+}
+
+JET_ITEM = {
+    "url": "https://images.example.com/jet.jpg",
+    "title": "Lockheed Martin F-35A 'Lightning II'",
+    "creator": "aeroman3",
+    "license": "pdm",
+    "license_version": "1.0",
+    "tags": [{"name": "bellfortworthallianceairshow"},
+             {"name": "fortworth"}, {"name": "texas"},
+             {"name": "unitedstates"}],
+}
+
+
+def test_score_rejects_bulldog_picks_bingo_card():
+    # The exact mismatch from Richie's screenshot, 15 Nov 2026: the
+    # bulldog photo must lose to the football bingo card.
+    payload = {"result_count": 2, "results": [BULLDOG_ITEM, BINGO_ITEM]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)):
+        result = stock_images.get_stock_image(
+            "Follow live: Lions, Patriots face off in Munich", "Sport")
+    assert result["url"] == "https://images.example.com/bingo.jpg"
+    assert result["credit"] == "Bingo Fan · CC BY 2.0"
+
+
+def test_score_rejects_jet_for_texas_headline():
+    # The other screenshot mismatch: one keyword ("texas") and no
+    # sport word is not enough for a Sport story — no photo beats
+    # a fighter jet on a college football story.
+    payload = {"result_count": 1, "results": [JET_ITEM]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)) as get:
+        assert stock_images.get_stock_image(
+            "CFP top 12 projection: Flawed Texas finding a way",
+            "Sport") is None
+        assert get.call_count == 3
+
+
+def test_score_picks_highest_scoring_result():
+    low = {"url": "https://images.example.com/low.jpg",
+           "title": "Rugby stadium in Cardiff", "creator": "",
+           "license": "cc0", "license_version": "",
+           "tags": [{"name": "rugby"}, {"name": "stadium"}]}
+    high = {"url": "https://images.example.com/high.jpg",
+            "title": "Wales rugby team celebrate in New Zealand",
+            "creator": "", "license": "cc0", "license_version": "",
+            "tags": [{"name": "wales"}, {"name": "rugby"}]}
+    payload = {"result_count": 2, "results": [low, high]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)):
+        result = stock_images.get_stock_image(
+            "Wales fans ecstatic after win over New Zealand", "Sport")
+    assert result["url"] == "https://images.example.com/high.jpg"
+
+
+def test_score_word_boundaries():
+    # "patriots" must not match a photo titled "patriotic" — that
+    # substring slip is how the bulldog got through.
+    assert stock_images._keyword_matches(
+        {"patriotic", "photo"}, ["Patriots"]) == set()
+    # A trailing "s" is forgiven either way.
+    assert stock_images._keyword_matches(
+        {"lion", "egyptian"}, ["Lions"]) == {"lions"}
+    assert stock_images._keyword_matches(
+        {"lions", "den"}, ["lion"]) == {"lion"}
+    assert stock_images._image_passes(
+        BULLDOG_ITEM, ["Lions", "Patriots"], "Sport") is False
+
+
+def test_score_ungated_category_needs_one_keyword():
+    item = {"url": "https://images.example.com/rain.jpg",
+            "title": "Rain over the hills", "creator": "",
+            "license": "cc0", "license_version": "",
+            "tags": [{"name": "rain"}, {"name": "weather"}]}
+    payload = {"result_count": 1, "results": [item]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)):
+        result = stock_images.get_stock_image(
+            "Rain expected across the country tomorrow", "World")
+    assert result["url"] == "https://images.example.com/rain.jpg"
+
+
+def test_route_passes_category():
+    with patch.object(main, "get_stock_image",
+                      return_value={"url": "https://images.example.com/x.jpg",
+                                    "credit": "", "query": "q"}) as get_image:
+        res = main.app.test_client().get(
+            "/api/stock_image",
+            query_string={"q": "Lions Patriots", "category": "Sport"})
+    assert res.status_code == 200
+    get_image.assert_called_once_with("Lions Patriots", "Sport")
+
+
+def test_template_passes_category_to_stock_endpoint():
+    html = template_text()
+    assert "'&category=' + encodeURIComponent(category)" in html
+    assert "card.dataset.category" in html
 
 
 # --- route ----------------------------------------------------------
@@ -298,7 +420,7 @@ def test_observer_and_loader():
     assert "const stockPhotoObserver = ('IntersectionObserver' in window) ? new IntersectionObserver" in html
     assert "function observeStockPlaceholders(root = document) {" in html
     assert "async function loadStockPhoto(placeholder) {" in html
-    assert "const res = await fetch('/api/stock_image?q=' + encodeURIComponent(headline), {cache:'no-store'});" in html
+    assert "const res = await fetch('/api/stock_image?q=' + encodeURIComponent(headline) + '&category=' + encodeURIComponent(category), {cache:'no-store'});" in html
     assert "caption.textContent = 'Illustrative photo' + (data.credit ? ' · ' + data.credit : '');" in html
     assert "card.dataset.imageIllustrative = '1';" in html
     assert "if (data.credit) card.dataset.imageCredit = data.credit;" in html

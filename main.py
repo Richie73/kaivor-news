@@ -1337,15 +1337,19 @@ def api_stock_image():
     """FP089: a stock photo for one headline, via Openverse.
 
     Open GET like the finance history — a read-only lookup. The
-    headline arrives in ?q=; keywords are derived server-side and
-    the result is cached per query. An Openverse miss or failure
-    is success:false, never a 500 — the card just stays text-only.
+    headline arrives in ?q= and the article's category in
+    ?category= (FP089.2: the category gates relevance, so a Sport
+    story cannot end up with a photo that has nothing to do with
+    sport). Keywords are derived server-side and the result is
+    cached per query. An Openverse miss or failure is
+    success:false, never a 500 — the card just stays text-only.
     """
     headline = (request.args.get("q") or "").strip()
     if not headline or len(headline) > 200:
         return jsonify({"success": False,
                         "error": "missing or invalid headline"}), 400
-    result = get_stock_image(headline)
+    category = (request.args.get("category") or "").strip()
+    result = get_stock_image(headline, category)
     if not result:
         return jsonify({"success": False})
     return jsonify({"success": True, "image_url": result["url"],

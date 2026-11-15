@@ -1,0 +1,21 @@
+Kaivor FP089.2 bundle manifest
+
+REPLACEMENT:
+- stock_images.py
+- main.py
+- templates/index.html
+- tests/test_stock_images_fp089.py
+- tests/test_weather_improvements_fp091.py
+
+NEW:
+- README_INSTALL_FP0892.txt
+- CHANGELOG_FP0892.txt
+- BUNDLE_MANIFEST_FP0892.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

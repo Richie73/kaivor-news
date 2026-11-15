@@ -1,0 +1,60 @@
+Kaivor FP089.2 — Stock photos that match their story
+======================================================
+
+WHAT CHANGED (found live 15 Nov 2026, from Richie's screenshots)
+----------------------------------------------------------------
+FP089.1 made photos appear, but the wrong ones: a sepia bulldog
+on an NFL story ("Follow live: Lions, Patriots face off in
+Munich") and a fighter jet on a college football story ("CFP top
+12 projection: Flawed Texas finding a way"). The lookup took
+Openverse's first result for a short query with no relevance
+check — "Patriots" alone returns patriotic archive photos, and
+"Flawed Texas" returns a jet photographed in Fort Worth.
+
+HOW IT WORKS NOW
+----------------
+- Each query now fetches 5 candidates (was 1) and scores them
+  against the headline: a photo's title, tags and description
+  are checked for headline keywords as WHOLE words (a trailing
+  "s" is forgiven, so "lions" matches a photo titled "lion").
+  Substring matching is deliberately NOT used — "patriots" must
+  not match a photo titled "patriotic" (that slip is how the
+  bulldog got through).
+- Generic words do not count toward a match ("new", "way",
+  "top", "finding", "year", "time", "man", "people", ...).
+- The article's category gates the result. For Sport,
+  Technology, Android, Science and Business a photo must match
+  a topical word for that category (a small wordlist per
+  category, e.g. football/stadium/match for Sport) or match two
+  or more headline keywords — one keyword alone is not enough
+  (a lion in Egypt is not the Detroit Lions). World, UK and
+  Culture are too broad to gate, so they need one keyword match.
+- The best-scoring passing photo wins. If nothing passes, the
+  card stays text-only: no photo beats a wrong photo.
+- The category travels from the card (data-category) through the
+  page's fetch (?category=) to the /api/stock_image route, and
+  is part of the cache key.
+
+ALSO FIXED IN THIS MILESTONE
+----------------------------
+The 16th day of the forecast could show a ❓ icon with 0° / 0°
+(found in FP091's live check): Open-Meteo's 16th day can arrive
+with null values. renderWeatherDays now skips days with no
+temperature data instead of rendering the broken row.
+
+FILES
+-----
+- stock_images.py (replacement — scoring + category gate)
+- main.py (replacement — route takes ?category=)
+- templates/index.html (replacement — fetch passes the card's
+  category; days skip missing data)
+- tests/test_stock_images_fp089.py (replacement — 7 new tests:
+  bulldog-vs-bingo-card, jet rejection, best-of-several,
+  word boundaries, ungated category, route category, template
+  category; fetch test updated for page_size 5; observer test
+  updated for the new fetch URL; fallback test updated for the
+  new fetch signature)
+- tests/test_weather_improvements_fp091.py (updated — 1 new
+  test: days skip missing data)
+- CHANGELOG_FP0892.txt, README_INSTALL_FP0892.txt,
+  BUNDLE_MANIFEST_FP0892.txt (new docs)

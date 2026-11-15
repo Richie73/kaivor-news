@@ -21,12 +21,77 @@ import requests
 OPENVERSE_API_URL = "https://api.openverse.org/v1/images/"
 OPENVERSE_TIMEOUT_SECONDS = 10
 OPENVERSE_USER_AGENT = "KaivorNews/1.0 (personal news app)"
+# FP089.2: fetch several candidates per query and pick the best
+# match — taking the first result is how a bulldog ended up on an
+# NFL story (15 Nov 2026).
+OPENVERSE_PAGE_SIZE = 5
 
 _STOCK_CACHE_MAX_ENTRIES = 200
 _STOCK_FAILURE_TTL_SECONDS = 60
 
 _MISSING = object()
 
+# Words that pass the stopword filter but are too generic to prove
+# a photo matches its headline ("new" would match any photo of New
+# York; "way" matches almost anything).
+_SCORING_EXCLUDE = frozenset({
+    "new", "news", "year", "years", "week", "time", "first", "last",
+    "next", "back", "more", "way", "top", "find", "finding",
+    "finds", "found", "make", "makes", "take", "takes", "get",
+    "gets", "got", "set", "put", "say", "says", "said", "man",
+    "woman", "people", "person",
+})
+
+# FP089.2: topical words per news category. For a gated category a
+# photo must match at least one of these words, or match two or more
+# headline keywords — one keyword alone is not enough (a lion in
+# Egypt is not the Detroit Lions). World, UK and Culture are too
+# broad to gate, so they need one keyword match only.
+_CATEGORY_WORDS = {
+    "Sport": {
+        "football", "soccer", "rugby", "cricket", "tennis", "golf",
+        "hockey", "baseball", "basketball", "boxing", "ufc", "mma",
+        "wrestling", "stadium", "match", "game", "player", "team",
+        "ball", "sport", "athlete", "championship", "league", "cup",
+        "goal", "race", "racing", "olympic", "medal", "coach",
+        "club", "pitch", "court", "ring", "belt", "trophy",
+        "score", "season", "draft", "quarterback", "touchdown",
+        "nfl", "nba", "mlb", "nhl", "fifa", "uefa",
+    },
+    "Technology": {
+        "computer", "phone", "smartphone", "software", "hardware",
+        "robot", "artificial", "intelligence", "tech", "digital",
+        "screen", "code", "app", "internet", "data", "cyber",
+        "chip", "device", "gadget", "laptop", "tablet", "network",
+        "cloud", "algorithm", "machine", "learning", "electric",
+        "battery", "drone", "satellite", "ai",
+    },
+    "Android": {
+        "computer", "phone", "smartphone", "software", "hardware",
+        "robot", "artificial", "intelligence", "tech", "digital",
+        "screen", "code", "app", "internet", "data", "cyber",
+        "chip", "device", "gadget", "laptop", "tablet", "network",
+        "cloud", "algorithm", "machine", "learning", "electric",
+        "battery", "drone", "satellite", "ai", "android",
+    },
+    "Science": {
+        "science", "space", "planet", "star", "research", "lab",
+        "laboratory", "experiment", "scientist", "nature",
+        "animal", "bird", "fish", "plant", "tree", "forest",
+        "ocean", "sea", "climate", "weather", "earth", "moon",
+        "mars", "nasa", "telescope", "microscope", "dna", "gene",
+        "virus", "vaccine", "medicine", "medical", "health",
+        "doctor", "hospital",
+    },
+    "Business": {
+        "money", "finance", "market", "stock", "shares", "bank",
+        "banking", "business", "trade", "economy", "economic",
+        "price", "prices", "cost", "tax", "company", "corporate",
+        "investor", "investment", "profit", "loss", "jobs",
+        "employment", "worker", "factory", "shop", "store",
+        "retail", "oil", "gas", "energy",
+    },
+}
 # Words that carry no picture meaning in a headline. "new" is
 # deliberately NOT here: dropping it would break "New Zealand",
 # "New York" and other proper names, and the FP089.1 fallback chain
@@ -144,54 +209,119 @@ def _cache_put(key, value):
         _cache.popitem(last=False)
 
 
-def _fetch_from_openverse(query):
+def _item_words(item):
+    """Lowercase word set from an Openverse result's title, tags and
+    description. Tags arrive as [{"name": ...}] or plain strings."""
+    text = str(item.get("title") or "") + " " + str(item.get("description") or "")
+    for tag in item.get("tags") or []:
+        if isinstance(tag, dict):
+            text += " " + str(tag.get("name") or "")
+        else:
+            text += " " + str(tag or "")
+    return set(re.findall(r"[a-z]+", text.lower()))
+
+
+def _keyword_matches(words, keywords):
+    """Distinct headline keywords present as whole words. A trailing
+    's' is forgiven either way, so 'lions' matches a photo titled
+    'lion' and 'lion' matches one tagged 'lions'. Matching is on
+    whole words, not substrings — 'patriots' must not match a photo
+    titled 'patriotic' (that is how the bulldog got through)."""
+    hits = set()
+    for keyword in keywords:
+        word = keyword.lower()
+        if word in _SCORING_EXCLUDE or len(word) < 3:
+            continue
+        forms = {word, word + "s"}
+        if word.endswith("s"):
+            forms.add(word[:-1])
+        if forms & words:
+            hits.add(word)
+    return hits
+
+
+def _score_image(item, keywords, category):
+    """(keyword_hits, category_hits) for one Openverse result."""
+    words = _item_words(item)
+    keyword_hits = _keyword_matches(words, keywords)
+    category_hits = set()
+    allowed = _CATEGORY_WORDS.get(category or "")
+    if allowed:
+        category_hits = {w for w in allowed if w in words}
+    return keyword_hits, category_hits
+
+
+def _image_passes(item, keywords, category):
+    """Does this photo belong with its headline? For a gated
+    category (Sport, Technology, Android, Science, Business) it
+    must match a topical word or two headline keywords; otherwise
+    one keyword match is enough. A photo that passes nothing is
+    worse than no photo at all."""
+    keyword_hits, category_hits = _score_image(item, keywords, category)
+    if category in _CATEGORY_WORDS:
+        return bool(category_hits) or len(keyword_hits) >= 2
+    return len(keyword_hits) >= 1
+
+
+def _fetch_from_openverse(query, keywords, category=None):
     try:
         res = requests.get(
             OPENVERSE_API_URL,
-            params={"q": query, "page_size": 1,
+            params={"q": query, "page_size": OPENVERSE_PAGE_SIZE,
                     "license_type": "commercial"},
             headers={"User-Agent": OPENVERSE_USER_AGENT},
             timeout=OPENVERSE_TIMEOUT_SECONDS,
         )
         if res.status_code != 200:
             return None
-        results = (res.json() or {}).get("results") or []
-        if not results:
-            return None
-        url = _clean_url(results[0].get("url"))
-        if not url:
-            return None
-        return {"url": url, "credit": _credit_for(results[0]),
-                "query": query}
+        best = None
+        best_score = -1
+        for item in (res.json() or {}).get("results") or []:
+            if not _image_passes(item, keywords, category):
+                continue
+            url = _clean_url(item.get("url"))
+            if not url:
+                continue
+            keyword_hits, category_hits = _score_image(item, keywords, category)
+            score = len(keyword_hits) + len(category_hits)
+            if score > best_score:
+                best_score = score
+                best = {"url": url, "credit": _credit_for(item),
+                        "query": query}
+        return best
     except Exception:
         return None
 
 
-def get_stock_image(headline):
+def get_stock_image(headline, category=None):
     """Best Openverse image for a headline, or None.
 
     Returns {"url", "credit", "query"} on a hit. Tries the candidate
     queries in order and returns the first hit. Each attempt is cached
     under its own query, and the final result is also cached under the
-    headline's full query so a repeat headline costs no new lookup.
+    headline's full query, so a repeat headline costs no new lookup.
+    The category gates relevance (see _image_passes) and is part of
+    the cache key, so the same words in different categories score
+    independently.
     """
     words = keywords_from_headline(headline)
     if not words:
         return None
-    full_key = _normalise_query(" ".join(words[:5]))
+    category = category or ""
+    full_key = _normalise_query(" ".join(words[:5])) + "|" + category.lower()
     hit = _cache_get(full_key)
     if hit is not _MISSING:
         return hit
     result = None
     for query in _candidate_queries(words):
-        key = _normalise_query(query)
+        key = _normalise_query(query) + "|" + category.lower()
         cached = _cache_get(key)
         if cached is not _MISSING:
             result = cached
             if result is not None:
                 break
             continue
-        result = _fetch_from_openverse(query)
+        result = _fetch_from_openverse(query, words, category)
         _cache_put(key, result)
         if result is not None:
             break

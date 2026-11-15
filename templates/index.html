@@ -799,16 +799,17 @@ function observeStockPlaceholders(root = document) {
 async function loadStockPhoto(placeholder) {
     const headline = placeholder.dataset.stockHeadline || '';
     if (!headline) { placeholder.remove(); return; }
+    const card = placeholder.closest('.card');
+    const category = card ? (card.dataset.category || '') : '';
     let data;
     try {
-        const res = await fetch('/api/stock_image?q=' + encodeURIComponent(headline), {cache:'no-store'});
+        const res = await fetch('/api/stock_image?q=' + encodeURIComponent(headline) + '&category=' + encodeURIComponent(category), {cache:'no-store'});
         data = await res.json();
     } catch (e) {
         placeholder.remove();
         return;
     }
     if (!data.success || !data.image_url) { placeholder.remove(); return; }
-    const card = placeholder.closest('.card');
     const img = document.createElement('img');
     img.className = 'card-image';
     img.src = data.image_url;
@@ -2081,6 +2082,11 @@ function renderWeatherDays() {
     if (!daysEl || !weatherLastDaily || !Array.isArray(weatherLastDaily.time)) return;
     const count = weatherShowAllDays ? weatherLastDaily.time.length : Math.min(7, weatherLastDaily.time.length);
     const days = weatherLastDaily.time.slice(0, count).map((isoDate, index) => {
+        // FP089.2 (found in FP091's live check): Open-Meteo's 16th
+        // day can arrive with null values — skip it rather than
+        // showing a ❓ icon with 0° / 0°.
+        const maxRaw = weatherLastDaily.temperature_2m_max[index];
+        if (maxRaw === null || maxRaw === undefined || isNaN(Number(maxRaw))) return '';
         const dayInfo = weatherCodeInfo(weatherLastDaily.weather_code[index]);
         const max = Math.round(Number(weatherLastDaily.temperature_2m_max[index]));
         const min = Math.round(Number(weatherLastDaily.temperature_2m_min[index]));
