@@ -20,6 +20,7 @@ from publisher_access import freedium_access_info, publisher_access_info
 from confidence_aware_ai import build_ai_brief_messages, build_ai_brief_fallback
 from brief_quality_validation import validate_brief
 from article_extractor import extract_article_text
+from stock_images import get_stock_image
 
 from evidence_engine import evidence_sentence
 from story_intelligence import enrich_articles
@@ -1329,6 +1330,26 @@ def api_finance_history():
         "last_updated": last_updated or None,
         "cached": from_cache,
     })
+
+
+@app.route("/api/stock_image", methods=["GET"])
+def api_stock_image():
+    """FP089: a stock photo for one headline, via Openverse.
+
+    Open GET like the finance history — a read-only lookup. The
+    headline arrives in ?q=; keywords are derived server-side and
+    the result is cached per query. An Openverse miss or failure
+    is success:false, never a 500 — the card just stays text-only.
+    """
+    headline = (request.args.get("q") or "").strip()
+    if not headline or len(headline) > 200:
+        return jsonify({"success": False,
+                        "error": "missing or invalid headline"}), 400
+    result = get_stock_image(headline)
+    if not result:
+        return jsonify({"success": False})
+    return jsonify({"success": True, "image_url": result["url"],
+                    "credit": result["credit"], "query": result["query"]})
 
 
 @app.route("/api/finance/refresh", methods=["POST"])

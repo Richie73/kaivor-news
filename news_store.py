@@ -96,6 +96,8 @@ def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
         "sport_focus": str(article.get("sport_focus") or "").strip(),
         "link": str(article.get("link") or "#").strip(),
         "image_url": _clean_image_url(article.get("image_url")),
+        "image_illustrative": bool(article.get("image_illustrative", False)),
+        "image_credit": str(article.get("image_credit") or "").strip(),
         "cluster_id": str(article.get("cluster_id") or "").strip(),
         "source_count": int(article.get("source_count") or 1),
         "report_count": int(article.get("report_count") or max(1, int(article.get("related_count") or 0) + 1)),

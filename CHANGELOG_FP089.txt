@@ -1,0 +1,51 @@
+Kaivor FP089 — Stock photo fallback for imageless articles
+========================================================
+
+WHAT CHANGED (third of the polish pass)
+---------------------------------------
+About a third of stories have no publisher picture (FP075 found 410
+of 656 with images). Imageless cards now get a matching free stock
+photo, marked as illustrative so it never looks like the actual
+event photo.
+
+HOW IT WORKS
+------------
+- LAZY, not at refresh time. The refresh already takes ~90 seconds;
+  adding per-article lookups there would slow every cycle and hit
+  Openverse's anonymous limit (20/min). Instead the card renders a
+  placeholder and the photo is fetched only when the card scrolls
+  into view — naturally paced by human scrolling.
+- stock_images.py (new): keywords_from_headline pulls up to five
+  picture-worthy words from the headline (stopwords and short
+  words dropped); _fetch_from_openverse asks the Openverse API
+  (api.openverse.org, no key needed) for one commercially
+  licensed image; results are cached per normalised query
+  (200 entries max, oldest evicted; failures retried after 60s).
+  Nothing here ever raises — any failure returns None and the
+  card stays text-only.
+- GET /api/stock_image?q=<headline> (open GET, like the finance
+  history): returns {success, image_url, credit, query} or
+  {success:false}. A missing/overlong headline is a 400.
+- Template: the Jinja card and the Saved render both show a
+  shimmer placeholder for imageless articles. An
+  IntersectionObserver (200px root margin; plain immediate load
+  where the API is missing) calls loadStockPhoto, which swaps in
+  the image plus a caption line "Illustrative photo · <creator>
+  · <licence>" and marks the card (data-image-illustrative,
+  data-image-credit). A broken stock image removes itself and
+  the caption. Placeholders are re-observed after the Saved view
+  renders and after the news container is restored.
+- Saving a card carries the flag and credit through
+  articleFromCard and normalise_article (two new keys), so the
+  Saved view shows the same "Illustrative photo" marking.
+
+FILES
+-----
+- stock_images.py (new)
+- main.py (replacement — import + /api/stock_image route)
+- news_store.py (replacement — image_illustrative, image_credit
+  keys in normalise_article)
+- templates/index.html (replacement)
+- tests/test_stock_images_fp089.py (new, 19 tests)
+- CHANGELOG_FP089.txt, README_INSTALL_FP089.txt,
+  BUNDLE_MANIFEST_FP089.txt (new docs)

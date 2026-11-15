@@ -80,6 +80,8 @@
         .skeleton-row { height:44px; margin-bottom:8px; }
         .skeleton-inline { display:inline-block; width:90px; height:12px; margin-bottom:0; vertical-align:middle; }
         .skeleton-note { color:#9ca3af; font-size:12px; margin:0 0 14px; }
+        .card-image-placeholder { cursor:default; }
+        .stock-credit { font-size:10px; color:#6b7280; margin:-4px 0 8px; }
         .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
         .chat-msg { padding:10px 12px; border-radius:12px; font-size:14px; line-height:1.5; max-width:88%; }
         .chat-msg.user { align-self:flex-end; background:#14532d; color:#f3f4f6; }
@@ -411,7 +413,7 @@
             <div class="card-source"><span class="source-tag">{{ article.category }}</span>
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div></div>
-            {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% endif %}
+            {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}
             <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
             <div class="published">{{ article.published | display_date }}</div>
             <div class="intel-row">
@@ -570,6 +572,8 @@ function articleFromCard(card) {
         published: card.querySelector('.published')?.textContent.trim() || '',
         link: card.querySelector('h3 a').href,
         image_url: card.querySelector('.card-image')?.src || '',
+        image_illustrative: card.dataset.imageIllustrative === '1',
+        image_credit: card.dataset.imageCredit || '',
         confidence: card.querySelector('.intel-badge')?.textContent.trim() || 'Uncorroborated',
         evidence_status: card.querySelector('.intel-badge')?.textContent.trim() || 'Single-source',
         source_count: Number(card.dataset.sourceCount || 1),
@@ -730,6 +734,62 @@ function cacheNewsContainer() {
         }
     }, 10000);
 })();
+// FP089 STOCK PHOTOS: imageless cards carry a placeholder div with
+// the headline. When one scrolls into view, fetch a matching stock
+// photo from the server and swap it in, marked as illustrative so
+// it never looks like the actual event photo. A miss or failure
+// just removes the placeholder — the card stays text-only.
+const stockPhotoObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const placeholder = entry.target;
+        stockPhotoObserver.unobserve(placeholder);
+        loadStockPhoto(placeholder);
+    });
+}, {rootMargin: '200px'}) : null;
+
+function observeStockPlaceholders(root = document) {
+    root.querySelectorAll('.card-image-placeholder').forEach(el => {
+        if (stockPhotoObserver) stockPhotoObserver.observe(el);
+        else loadStockPhoto(el);
+    });
+}
+
+async function loadStockPhoto(placeholder) {
+    const headline = placeholder.dataset.stockHeadline || '';
+    if (!headline) { placeholder.remove(); return; }
+    let data;
+    try {
+        const res = await fetch('/api/stock_image?q=' + encodeURIComponent(headline), {cache:'no-store'});
+        data = await res.json();
+    } catch (e) {
+        placeholder.remove();
+        return;
+    }
+    if (!data.success || !data.image_url) { placeholder.remove(); return; }
+    const card = placeholder.closest('.card');
+    const img = document.createElement('img');
+    img.className = 'card-image';
+    img.src = data.image_url;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    const caption = document.createElement('div');
+    caption.className = 'stock-credit';
+    caption.textContent = 'Illustrative photo' + (data.credit ? ' · ' + data.credit : '');
+    img.onerror = () => {
+        img.remove();
+        caption.remove();
+        if (card) { delete card.dataset.imageIllustrative; delete card.dataset.imageCredit; }
+    };
+    placeholder.replaceWith(img);
+    img.after(caption);
+    if (card) {
+        card.dataset.imageIllustrative = '1';
+        if (data.credit) card.dataset.imageCredit = data.credit;
+    }
+}
+observeStockPlaceholders();
 function restoreNewsContainer() {
     if (!newsViewReplaced) return true;
     const container = document.getElementById('articles-container');
@@ -742,6 +802,7 @@ function restoreNewsContainer() {
         if (savedIds.has(card.dataset.articleId)) { button.textContent = 'Saved ✓'; button.classList.add('saved'); }
         else { button.textContent = 'Save'; button.classList.remove('saved'); }
     });
+    observeStockPlaceholders(container);
     return true;
 }
 
@@ -833,7 +894,7 @@ async function showSaved(element) {
                 <div class="card-source"><span class="source-tag">${escapeHtml(article.category)}</span>
                 <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
                 <div class="source-name">${escapeHtml(article.source)}</div></div>
-                ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : ''}
+                ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">${article.image_illustrative ? `<div class="stock-credit">Illustrative photo${article.image_credit ? ' · ' + escapeHtml(article.image_credit) : ''}</div>` : ''}` : `<div class="card-image card-image-placeholder skeleton" data-stock-headline="${escapeAttr(article.title)}"></div>`}
                 <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
                 <div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>
                 <div class="intel-row">
@@ -867,6 +928,7 @@ async function showSaved(element) {
                 <div class="ai-drawer" data-drawer="brief"></div><div class="ai-drawer" data-drawer="timeline"></div><div class="ai-drawer" data-drawer="ask"></div>
             </div>`).join('');
         formatArticleDates(container);
+        observeStockPlaceholders(container);
         document.getElementById('status').textContent = `${data.count} saved item${data.count === 1 ? '' : 's'}.`;
     } catch (error) {
         document.getElementById('status').textContent = 'Could not load saved stories.';
