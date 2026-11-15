@@ -121,6 +121,10 @@ def test_normalise_upgrades_bbc_thumbnail_to_1024():
     item = normalise_article({"title": "T", "link": "https://example.com/x",
                               "image_url": "https://ichef.bbci.co.uk/news/320/cpsprodpb/x.jpg"})
     assert item["image_url"] == "https://ichef.bbci.co.uk/news/1024/cpsprodpb/x.jpg"
+    # FP075.2: the newer /images/ic/<WxH>/ form upgrades too.
+    item = normalise_article({"title": "T", "link": "https://example.com/x",
+                              "image_url": "https://ichef.bbci.co.uk/images/ic/240x135/p0pmwlpj.jpg"})
+    assert item["image_url"] == "https://ichef.bbci.co.uk/images/ic/1024x576/p0pmwlpj.jpg"
     item = normalise_article({"title": "T", "link": "https://example.com/x",
                               "image_url": "https://i.guim.co.uk/img/media/abc/master/1.jpg?width=700&s=deadbeef"})
     assert item["image_url"] == "https://i.guim.co.uk/img/media/abc/master/1.jpg?width=700&s=deadbeef"

@@ -1,0 +1,24 @@
+Kaivor FP075.2 — Sharper pictures: the other BBC image form
+=========================================================
+
+WHAT CHANGED (found in FP075.1's live check, 15 Nov 2026)
+---------------------------------------------------------
+FP075.1 upgraded 95 of the 96 BBC pictures to 1024px. One
+card was left behind: it uses the BBC's newer image URL form,
+  https://ichef.bbci.co.uk/images/ic/240x135/p0pmwlpj.jpg
+which the FP075.1 rewrite did not cover.
+
+HOW IT WORKS NOW
+----------------
+_clean_image_url in news_store.py now also rewrites the
+/images/ic/<WxH>/ form:
+  .../images/ic/240x135/... -> .../images/ic/1024x576/...
+Verified live: the same image returns 1024x576 (150 KB).
+
+FILES
+-----
+- news_store.py (replacement — second BBC rewrite)
+- tests/test_story_images_fp075.py (replacement — /images/ic/
+  assertion added to the FP075.1 test; no new test function)
+- CHANGELOG_FP0752.txt, README_INSTALL_FP0752.txt,
+  BUNDLE_MANIFEST_FP0752.txt (new docs)

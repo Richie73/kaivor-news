@@ -82,6 +82,8 @@ def _clean_image_url(value: Any) -> str:
     1024 (verified live: the same image returns 1024x576). The
     Guardian's image URLs carry a signed hash, so they cannot be
     rewritten the same way — they stay at the 700px the API gives.
+    FP075.2: the newer /images/ic/<WxH>/ form is rewritten too
+    (240x135 -> 1024x576, verified live).
     """
     url = str(value or "").strip()
     if len(url) > 2048:
@@ -93,6 +95,12 @@ def _clean_image_url(value: Any) -> str:
         url = re.sub(
             r"(ichef\.bbci\.co\.uk/(?:ace/standard|news)/)\d+/",
             r"\g<1>1024/",
+            url,
+            count=1,
+        )
+        url = re.sub(
+            r"(ichef\.bbci\.co\.uk/images/ic/)\d+x\d+/",
+            r"\g<1>1024x576/",
             url,
             count=1,
         )
