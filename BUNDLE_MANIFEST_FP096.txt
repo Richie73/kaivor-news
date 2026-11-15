@@ -1,0 +1,24 @@
+Kaivor FP096 bundle manifest
+
+REPLACEMENT:
+- templates/index.html
+- templates/reading.html
+- tests/test_markets_view_fp086.py
+- tests/test_news_cards_fp087.py
+- tests/test_stock_images_fp089.py
+- tests/test_design_system_fp090.py
+- tests/test_loading_skeletons_fp088.py
+
+NEW:
+- tests/test_type_scale_fp096.py
+- README_INSTALL_FP096.txt
+- CHANGELOG_FP096.txt
+- BUNDLE_MANIFEST_FP096.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

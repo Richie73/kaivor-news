@@ -28,7 +28,7 @@ def test_card_images_have_a_fixed_crop():
 
 def test_card_source_row_style():
     html = template_text()
-    assert ".card-source { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }" in html
+    assert ".card-source { display:flex; align-items:baseline; gap:var(--space-sm); flex-wrap:wrap; margin-bottom:var(--space-sm); }" in html
     assert ".card-source .source-name { margin-bottom:0; }" in html
 
 
@@ -44,7 +44,7 @@ def test_both_card_renders_use_the_source_row():
 
 def test_published_style_lives_in_the_stylesheet():
     html = template_text()
-    assert ".published { font-size:11px; color:var(--faint); margin-bottom:8px; }" in html
+    assert ".published { font-size:var(--text-sm); color:var(--faint); margin-bottom:var(--space-sm); }" in html
     assert '<div class="published">{{ article.published | display_date }}</div>' in html
     assert '<div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>' in html
     assert 'class="published" style=' not in html

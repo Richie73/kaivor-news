@@ -1,0 +1,22 @@
+Kaivor FP097 — Splash lets its animation finish
+=============================================
+
+WHAT CHANGED
+------------
+The splash already faded out smoothly (FP083), but it hid 900ms
+after the page parsed — before the shine sweep (1.4s + 0.45s
+delay = 1.85s) had finished, so the animation was cut off
+mid-sweep and the logo never got its moment.
+
+hideSplash now waits for a 2s minimum display: an early call
+reschedules itself for the remaining time instead of hiding,
+and only one reschedule is ever queued. The hard 3s timeout
+still caps the splash on a slow load, and the 0.45s fade-out
+is unchanged.
+
+FILES
+-----
+- templates/index.html (replacement — hideSplash timing)
+- tests/test_splash_polish_fp097.py (new — 3 tests)
+- CHANGELOG_FP097.txt, README_INSTALL_FP097.txt,
+  BUNDLE_MANIFEST_FP097.txt (new docs)

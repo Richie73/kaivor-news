@@ -570,7 +570,7 @@ def test_placeholder_in_jinja_card():
     html = template_text()
     assert '{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}' in html
     assert ".card-image-placeholder { cursor:default; }" in html
-    assert ".stock-credit { font-size:10px; color:var(--faint); margin:-4px 0 8px; }" in html
+    assert ".stock-credit { font-size:var(--text-xs); color:var(--faint); margin:-4px 0 8px; }" in html
 
 
 def test_observer_and_loader():

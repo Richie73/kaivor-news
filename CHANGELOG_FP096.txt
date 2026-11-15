@@ -1,0 +1,39 @@
+Kaivor FP096 — Type scale + spacing tidy-up
+========================================
+
+WHAT CHANGED
+------------
+Design system, part 2 (FP090 did colours and radii). The news
+page had 15 distinct font sizes and 7 line-heights; both pages
+now use shared tokens:
+
+- Type: --text-xs 10, --text-sm 11, --text-base 12, --text-md 13,
+  --text-lg 14, --text-xl 16, --text-2xl 20, --text-hero 48
+  (Reading adds --text-display 26 for its headings and stats).
+- Leading: --leading-none 1, --leading-snug 1.4,
+  --leading-normal 1.5, --leading-relaxed 1.6.
+- Space: --space-xs 4, --space-sm 8, --space-md 12, --space-lg 16.
+
+Convergences (barely visible, all towards the nearest step):
+9px badges -> 10px; 15/17px headings -> 16px; 1.38 -> 1.4;
+1.45 -> 1.5; 1.65 -> 1.6; Reading h1 25px -> 26px.
+
+Deliberately left hardcoded: the icon glyph sizes (weather 18px
+and 44px, scroll-to-top 22px) and a few off-scale margins
+(6/9/11px) and paddings.
+
+Also: the article description's styling lived as an inline style
+duplicated in both card renders (Jinja + Saved view JS) — it is
+one .article-description rule now, so the renders cannot drift.
+
+FILES
+-----
+- templates/index.html (replacement)
+- templates/reading.html (replacement)
+- tests/test_type_scale_fp096.py (new — 6 tests)
+- tests/test_markets_view_fp086.py, tests/test_news_cards_fp087.py,
+  tests/test_stock_images_fp089.py, tests/test_design_system_fp090.py,
+  tests/test_loading_skeletons_fp088.py
+  (updated — exact-rule assertions now use the tokens)
+- CHANGELOG_FP096.txt, README_INSTALL_FP096.txt,
+  BUNDLE_MANIFEST_FP096.txt (new docs)

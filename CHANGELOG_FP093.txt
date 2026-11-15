@@ -1,0 +1,33 @@
+Kaivor FP093 — Offline reading
+=============================
+
+WHAT CHANGED
+------------
+Before this milestone the service worker's navigation fallback
+(caches.match('/')) could never hit, because nothing ever put '/'
+in the cache — offline, the app showed the browser's error page.
+
+Now:
+1. The service worker stores every successful page load under
+   its own address, so opening the app with no signal serves the
+   last loaded stories (the exact page asked for, or the homepage
+   when that page was never cached). Online loads are still
+   network-first, so the cache stays fresh. API calls and
+   other sites' content are still never cached.
+2. The page carries the time its stories were last refreshed,
+   stamped on a slim banner that appears only when the phone is
+   offline: "You're offline — showing stories from 14:32."
+   (Or "showing your last loaded stories" when no refresh time
+   is known.)
+
+FILES
+-----
+- static/service-worker.js (replacement — cache name bumped to
+  kaivor-news-fp093-offline-v1)
+- templates/index.html (replacement — banner + banner script)
+- main.py (replacement — index passes news_last_updated)
+- tests/test_offline_reading_fp093.py (new — 9 tests)
+- tests/test_logo_splash_fp083.py (updated — service worker cache
+  name moved to kaivor-news-fp093-offline-v1)
+- CHANGELOG_FP093.txt, README_INSTALL_FP093.txt,
+  BUNDLE_MANIFEST_FP093.txt (new docs)

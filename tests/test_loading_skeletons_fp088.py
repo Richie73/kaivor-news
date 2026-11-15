@@ -24,8 +24,8 @@ def test_skeleton_css_exists():
     html = template_text()
     assert ".skeleton { background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%); background-size:200% 100%; animation:skeleton-shimmer 1.4s linear infinite; border-radius:var(--radius-sm); }" in html
     assert "@keyframes skeleton-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }" in html
-    assert ".skeleton-image { aspect-ratio:16/9; margin-bottom:8px; }" in html
-    assert ".skeleton-row { height:44px; margin-bottom:8px; }" in html
+    assert ".skeleton-image { aspect-ratio:16/9; margin-bottom:var(--space-sm); }" in html
+    assert ".skeleton-row { height:44px; margin-bottom:var(--space-sm); }" in html
     assert ".skeleton-inline { display:inline-block; width:90px; height:12px; margin-bottom:0; vertical-align:middle; }" in html
 
 

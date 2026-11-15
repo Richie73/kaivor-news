@@ -24,27 +24,35 @@
             --green-dark:#059669; --green-darker:#064e3b;
             --red:#f87171; --red-soft:#fca5a5; --amber:#fbbf24; --blue:#7dd3fc;
             --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
+            /* FP096: type scale (15 sizes -> 8 steps), line-heights
+               (7 values -> 4) and spacing (4/8/12/16). Sizes that stay
+               hardcoded are single-use: the weather/scroll-top icon
+               glyphs (18/22/44px) and a few off-scale margins. */
+            --text-xs:10px; --text-sm:11px; --text-base:12px; --text-md:13px;
+            --text-lg:14px; --text-xl:16px; --text-2xl:20px; --text-hero:48px;
+            --leading-none:1; --leading-snug:1.4; --leading-normal:1.5; --leading-relaxed:1.6;
+            --space-xs:4px; --space-sm:8px; --space-md:12px; --space-lg:16px;
         }
         body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:70px; padding-bottom:64px; }
-        header { position:fixed; top:0; left:0; right:0; background:var(--bg); z-index:1000; padding:16px; font-size:20px; font-weight:bold; border-bottom:1px solid var(--line); text-align:center; letter-spacing:1px; color:var(--text-bright); }
-        .install-app { margin-top:7px; padding:5px 10px; font-size:11px; border-radius:var(--radius-pill); }
-        .sub-header { font-size:11px; color:var(--green); text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
-        .brand-mark { width:26px; height:26px; border-radius:var(--radius-sm); vertical-align:-6px; margin-right:8px; }
-        .container { padding:16px; max-width:600px; margin:0 auto; }
-        .market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:var(--surface); border-radius:var(--radius-md); border:1px solid var(--border); white-space:nowrap; cursor:pointer; }
+        header { position:fixed; top:0; left:0; right:0; background:var(--bg); z-index:1000; padding:var(--space-lg); font-size:var(--text-2xl); font-weight:bold; border-bottom:1px solid var(--line); text-align:center; letter-spacing:1px; color:var(--text-bright); }
+        .install-app { margin-top:7px; padding:5px 10px; font-size:var(--text-sm); border-radius:var(--radius-pill); }
+        .sub-header { font-size:var(--text-sm); color:var(--green); text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+        .brand-mark { width:26px; height:26px; border-radius:var(--radius-sm); vertical-align:-6px; margin-right:var(--space-sm); }
+        .container { padding:var(--space-lg); max-width:600px; margin:0 auto; }
+        .market-bar { display:block; overflow:hidden; padding:var(--space-md) 0; margin-bottom:var(--space-lg); font-size:var(--text-md); background:var(--surface); border-radius:var(--radius-md); border:1px solid var(--border); white-space:nowrap; cursor:pointer; }
         .market-track { display:flex; width:max-content; will-change:transform; animation:marketTickerScroll 38s linear infinite; }
         .market-group { display:flex; flex:0 0 auto; align-items:center; gap:18px; padding:0 18px 0 12px; }
         .market-group > span { flex:0 0 auto; }
         .market-bar:hover .market-track,.market-bar:focus-within .market-track { animation-play-state:paused; }
         @keyframes marketTickerScroll { from { transform:translateX(0); } to { transform:translateX(-50%); } }
         .market-bar::-webkit-scrollbar,.chips::-webkit-scrollbar { display:none; }
-        .market-panel { background:var(--green-panel); border:1px solid var(--green-border); border-radius:var(--radius-md); padding:12px; margin-bottom:16px; }
-        .market-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
-        .market-panel-title { color:var(--green-pale); font-size:12px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; }
-        .market-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        #market-refresh { padding:7px 10px; font-size:12px; }
+        .market-panel { background:var(--green-panel); border:1px solid var(--green-border); border-radius:var(--radius-md); padding:var(--space-md); margin-bottom:var(--space-lg); }
+        .market-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:var(--space-sm); }
+        .market-panel-title { color:var(--green-pale); font-size:var(--text-base); font-weight:700; letter-spacing:.7px; text-transform:uppercase; }
+        .market-controls { display:flex; align-items:center; gap:var(--space-sm); flex-wrap:wrap; }
+        #market-refresh { padding:7px 10px; font-size:var(--text-base); }
         #market-refresh:disabled { opacity:.6; cursor:wait; }
-        .market-status { color:var(--muted); font-size:11px; line-height:1.4; }
+        .market-status { color:var(--muted); font-size:var(--text-sm); line-height:var(--leading-snug); }
         .market-status.stale { color:var(--amber); }
         .market-status.error { color:var(--red-soft); }
         .market-bar { margin-bottom:0; }
@@ -55,62 +63,75 @@
         .market-value.price-flash { animation:marketFlash 1.2s ease-out; }
         @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #10b98166; } 100% { box-shadow:0 0 0 0 transparent; } }
         @media (prefers-reduced-motion: reduce) { .market-track { animation:none; } .market-value { transition:none; } .market-value.price-flash { animation:none; } }
-        .manager-card,.card { background:var(--surface); border-radius:var(--radius-md); padding:16px; margin-bottom:16px; border:1px solid var(--border); }
+        .manager-card,.card { background:var(--surface); border-radius:var(--radius-md); padding:var(--space-lg); margin-bottom:var(--space-lg); border:1px solid var(--border); }
+        /* FP092: skip rendering off-screen cards — the browser only
+           paints them as they scroll into view. The intrinsic size
+           keeps the scrollbar roughly right while they are skipped. */
+        .card { content-visibility:auto; contain-intrinsic-size:0 340px; }
+        #news-load-more { text-align:center; margin:4px 0 24px; }
+        .news-load-more-count { font-size:var(--text-base); color:var(--faint); margin:0 0 8px; }
+        /* FP093: slim offline notice, shown only when navigator.onLine
+           is false. */
+        #offline-banner { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; font-size:var(--text-base); color:var(--muted); text-align:center; margin-bottom:var(--space-md); }
         .settings-body { padding:0 14px 14px; }
         .settings-feeds { margin:14px 0 4px; }
-        .settings-feeds summary { cursor:pointer; color:var(--green); font-size:13px; font-weight:700; padding:6px 0; }
+        .settings-feeds summary { cursor:pointer; color:var(--green); font-size:var(--text-md); font-weight:700; padding:6px 0; }
         .settings-list { max-height:260px; overflow-y:auto; margin-top:6px; border-top:1px solid var(--border); }
-        .feed-row { display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; }
+        .feed-row { display:flex; gap:var(--space-sm); align-items:baseline; padding:7px 0; border-bottom:1px solid var(--line); font-size:var(--text-md); }
         .feed-row-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .feed-row-cat { color:var(--muted); font-size:11px; }
-        .feed-row-count { color:var(--faint); font-size:11px; white-space:nowrap; }
-        .feed-row-status { font-size:11px; white-space:nowrap; }
-        .markets-row { display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+        .feed-row-cat { color:var(--muted); font-size:var(--text-sm); }
+        .feed-row-count { color:var(--faint); font-size:var(--text-sm); white-space:nowrap; }
+        .feed-row-status { font-size:var(--text-sm); white-space:nowrap; }
+        .markets-row { display:flex; gap:var(--space-md); align-items:center; padding:var(--space-md) 0; border-bottom:1px solid var(--line); }
         .markets-row:last-child { border-bottom:none; }
         .markets-name { flex:1; min-width:0; }
-        .markets-name strong { display:block; font-size:14px; }
-        .markets-range { color:var(--faint); font-size:11px; }
+        .markets-name strong { display:block; font-size:var(--text-lg); }
+        .markets-range { color:var(--faint); font-size:var(--text-sm); }
         .markets-spark { flex:none; }
         .markets-price { text-align:right; }
-        .markets-price strong { display:block; font-size:15px; }
-        .markets-change { font-size:12px; white-space:nowrap; }
+        .markets-price strong { display:block; font-size:var(--text-xl); }
+        .markets-change { font-size:var(--text-base); white-space:nowrap; }
         .markets-up { color:var(--brand); }
         .markets-down { color:var(--red); }
-        .settings-label { color:var(--muted); font-size:11px; margin:2px 0 8px; text-transform:uppercase; letter-spacing:.6px; }
-        .api-key-row { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
-        .manager-input { width:100%; padding:8px 12px; margin-bottom:8px; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); box-sizing:border-box; font-size:13px; }
-        .card h3 { font-size:16px; margin:0 0 8px; line-height:1.4; }
+        .settings-label { color:var(--muted); font-size:var(--text-sm); margin:2px 0 8px; text-transform:uppercase; letter-spacing:.6px; }
+        .api-key-row { margin-top:var(--space-md); padding-top:12px; border-top:1px solid var(--border); }
+        .manager-input { width:100%; padding:8px 12px; margin-bottom:var(--space-sm); background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); box-sizing:border-box; font-size:var(--text-md); }
+        .card h3 { font-size:var(--text-xl); margin:0 0 8px; line-height:var(--leading-snug); }
         .card h3 a { color:var(--text); text-decoration:none; }
-        .source-tag { font-size:11px; color:var(--green); text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
-        .source-name { font-size:11px; color:var(--faint); margin-bottom:8px; }
+        .source-tag { font-size:var(--text-sm); color:var(--green); text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
+        .source-name { font-size:var(--text-sm); color:var(--faint); margin-bottom:var(--space-sm); }
         .card-image { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:var(--radius-sm); margin:0 0 8px; display:block; background:var(--surface-2); }
-        .card-source { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .card-source { display:flex; align-items:baseline; gap:var(--space-sm); flex-wrap:wrap; margin-bottom:var(--space-sm); }
         .card-source .source-name { margin-bottom:0; }
-        .published { font-size:11px; color:var(--faint); margin-bottom:8px; }
+        .published { font-size:var(--text-sm); color:var(--faint); margin-bottom:var(--space-sm); }
+        /* FP096: the description's styling lived as an inline style
+           in both card renders (Jinja + Saved view JS) — one rule
+           now, so the two renders cannot drift apart. */
+        .article-description { font-size:var(--text-md); color:var(--muted); line-height:var(--leading-snug); margin-bottom:var(--space-md); }
         .skeleton { background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%); background-size:200% 100%; animation:skeleton-shimmer 1.4s linear infinite; border-radius:var(--radius-sm); }
         @keyframes skeleton-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
-        .skeleton-line { height:12px; margin-bottom:8px; }
+        .skeleton-line { height:12px; margin-bottom:var(--space-sm); }
         .skeleton-line-short { width:40%; }
         .skeleton-line-long { width:85%; }
-        .skeleton-image { aspect-ratio:16/9; margin-bottom:8px; }
-        .skeleton-hero { height:64px; margin-bottom:8px; }
-        .skeleton-row { height:44px; margin-bottom:8px; }
+        .skeleton-image { aspect-ratio:16/9; margin-bottom:var(--space-sm); }
+        .skeleton-hero { height:64px; margin-bottom:var(--space-sm); }
+        .skeleton-row { height:44px; margin-bottom:var(--space-sm); }
         .skeleton-inline { display:inline-block; width:90px; height:12px; margin-bottom:0; vertical-align:middle; }
-        .skeleton-note { color:var(--muted); font-size:12px; margin:0 0 14px; }
+        .skeleton-note { color:var(--muted); font-size:var(--text-base); margin:0 0 14px; }
         .card-image-placeholder { cursor:default; }
-        .stock-credit { font-size:10px; color:var(--faint); margin:-4px 0 8px; }
-        .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
-        .chat-msg { padding:10px 12px; border-radius:var(--radius-md); font-size:14px; line-height:1.5; max-width:88%; }
+        .stock-credit { font-size:var(--text-xs); color:var(--faint); margin:-4px 0 8px; }
+        .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:var(--space-md); }
+        .chat-msg { padding:10px 12px; border-radius:var(--radius-md); font-size:var(--text-lg); line-height:var(--leading-normal); max-width:88%; }
         .chat-msg.user { align-self:flex-end; background:#14532d; color:var(--text); }
         .chat-msg.assistant { align-self:flex-start; background:var(--surface-2); color:var(--text-2); }
-        .chat-msg.system { align-self:center; background:none; color:var(--faint); font-size:12px; text-align:center; max-width:100%; }
-        .chat-form { display:flex; gap:8px; }
-        .chat-form input { flex:1; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); font-size:14px; }
+        .chat-msg.system { align-self:center; background:none; color:var(--faint); font-size:var(--text-base); text-align:center; max-width:100%; }
+        .chat-form { display:flex; gap:var(--space-sm); }
+        .chat-form input { flex:1; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); font-size:var(--text-lg); }
         .chat-form button { padding:10px 16px; }
-        .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+        .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:var(--text-md); color:var(--muted); cursor:pointer; white-space:nowrap; }
         .chat-web-toggle input { accent-color:#22c55e; }
-        .chat-web-badge { font-size:12px; opacity:0.85; }
-        .chat-sources { margin-top:8px; font-size:12px; color:var(--muted); }
+        .chat-web-badge { font-size:var(--text-base); opacity:0.85; }
+        .chat-sources { margin-top:var(--space-sm); font-size:var(--text-base); color:var(--muted); }
         .chat-sources ol { margin:4px 0 0; padding-left:18px; }
         .chat-sources a { color:#86efac; }
         .chips {
@@ -132,76 +153,76 @@
             box-sizing: border-box;
             -webkit-overflow-scrolling: touch;
         }
-        .chip { flex: 0 0 auto; background:var(--surface-2); color:var(--muted); padding:6px 14px; border-radius:var(--radius-pill); font-size:13px; white-space:nowrap; border:1px solid var(--border-strong); cursor:pointer; }
+        .chip { flex: 0 0 auto; background:var(--surface-2); color:var(--muted); padding:6px 14px; border-radius:var(--radius-pill); font-size:var(--text-md); white-space:nowrap; border:1px solid var(--border-strong); cursor:pointer; }
         .chip.active { background:var(--green); color:#000; font-weight:600; border-color:var(--green); }
         /* FP073: weather section. FP082: slim home strip + full Weather
            view (hero, details grid, 7-day list instead of a strip). */
-        .weather-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; margin-bottom:16px; }
-        .weather-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
-        .weather-place { font-size:15px; font-weight:700; color:var(--text-bright); }
-        .weather-updated { font-size:11px; color:var(--faint); margin-left:8px; }
+        .weather-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; margin-bottom:var(--space-lg); }
+        .weather-head { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); margin-bottom:var(--space-sm); }
+        .weather-place { font-size:var(--text-xl); font-weight:700; color:var(--text-bright); }
+        .weather-updated { font-size:var(--text-sm); color:var(--faint); margin-left:8px; }
         .weather-hero { display:flex; align-items:center; gap:14px; margin:6px 0 12px; }
-        .weather-hero-icon { font-size:44px; line-height:1; }
-        .weather-hero-temp { font-size:48px; font-weight:700; color:var(--text-bright); line-height:1; }
-        .weather-hero-condition { font-size:15px; font-weight:600; color:var(--text-bright); }
-        .weather-hero-sub { font-size:12px; color:var(--muted); margin-top:4px; }
-        .weather-details { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+        .weather-hero-icon { font-size:44px; line-height:var(--leading-none); }
+        .weather-hero-temp { font-size:var(--text-hero); font-weight:700; color:var(--text-bright); line-height:var(--leading-none); }
+        .weather-hero-condition { font-size:var(--text-xl); font-weight:600; color:var(--text-bright); }
+        .weather-hero-sub { font-size:var(--text-base); color:var(--muted); margin-top:var(--space-xs); }
+        .weather-details { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm); margin-bottom:var(--space-md); }
         .weather-detail { background:var(--surface-2); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:8px 10px; }
-        .weather-detail-label { font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.5px; }
-        .weather-detail-value { font-size:13px; color:var(--text-2); margin-top:2px; }
-        .weather-summary { font-size:13px; color:var(--green-soft); margin-bottom:8px; }
-        .weather-strip-label { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
-        .weather-hourly { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+        .weather-detail-label { font-size:var(--text-xs); color:var(--faint); text-transform:uppercase; letter-spacing:.5px; }
+        .weather-detail-value { font-size:var(--text-md); color:var(--text-2); margin-top:2px; }
+        .weather-summary { font-size:var(--text-md); color:var(--green-soft); margin-bottom:var(--space-sm); }
+        .weather-strip-label { font-size:var(--text-sm); color:var(--faint); text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
+        .weather-hourly { display:flex; gap:var(--space-sm); overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
         .weather-hourly::-webkit-scrollbar { display:none; }
         .weather-hour { flex:0 0 auto; min-width:56px; background:var(--surface-2); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:8px 6px; text-align:center; }
-        .weather-hour-time { font-size:11px; color:var(--muted); }
+        .weather-hour-time { font-size:var(--text-sm); color:var(--muted); }
         .weather-hour-icon { font-size:18px; margin:4px 0; }
-        .weather-hour-temp { font-size:13px; font-weight:600; color:var(--text-bright); }
-        .weather-hour-rain { font-size:11px; color:var(--blue); margin-top:2px; min-height:14px; }
+        .weather-hour-temp { font-size:var(--text-md); font-weight:600; color:var(--text-bright); }
+        .weather-hour-rain { font-size:var(--text-sm); color:var(--blue); margin-top:2px; min-height:14px; }
         .weather-days { display:flex; flex-direction:column; }
         .weather-day-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--line); }
         .weather-day-row:last-child { border-bottom:none; }
-        .weather-day-row-name { flex:1; font-size:13px; color:var(--text-2); }
+        .weather-day-row-name { flex:1; font-size:var(--text-md); color:var(--text-2); }
         .weather-day-row-icon { font-size:18px; }
-        .weather-day-row-rain { font-size:12px; color:var(--blue); min-width:56px; text-align:right; }
-        .weather-day-row-temp { font-size:13px; font-weight:600; color:var(--text-bright); min-width:68px; text-align:right; }
-        .weather-strip { display:flex; align-items:center; gap:8px; width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:16px; font:inherit; font-size:13px; color:var(--text-3); cursor:pointer; text-align:left; }
+        .weather-day-row-rain { font-size:var(--text-base); color:var(--blue); min-width:56px; text-align:right; }
+        .weather-day-row-temp { font-size:var(--text-md); font-weight:600; color:var(--text-bright); min-width:68px; text-align:right; }
+        .weather-strip { display:flex; align-items:center; gap:var(--space-sm); width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:var(--space-lg); font:inherit; font-size:var(--text-md); color:var(--text-3); cursor:pointer; text-align:left; }
         .weather-strip-place { font-weight:700; color:var(--text-bright); white-space:nowrap; }
         .weather-strip-now { white-space:nowrap; }
         .weather-strip-summary { color:var(--green-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .weather-strip-open { margin-left:auto; color:var(--faint); font-size:16px; line-height:1; }
-        .weather-search { display:flex; gap:8px; margin-top:12px; }
-        .weather-search input { flex:1; background:var(--surface-2); color:var(--text-bright); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:8px 10px; font:inherit; font-size:13px; min-width:0; }
-        .weather-results { margin-top:8px; display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--muted); }
-        .weather-result { text-align:left; background:var(--surface-2); color:var(--text-3); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:8px 10px; font:inherit; font-size:13px; cursor:pointer; }
+        .weather-strip-open { margin-left:auto; color:var(--faint); font-size:var(--text-xl); line-height:var(--leading-none); }
+        .weather-search { display:flex; gap:var(--space-sm); margin-top:var(--space-md); }
+        .weather-search input { flex:1; background:var(--surface-2); color:var(--text-bright); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:8px 10px; font:inherit; font-size:var(--text-md); min-width:0; }
+        .weather-results { margin-top:var(--space-sm); display:flex; flex-direction:column; gap:6px; font-size:var(--text-md); color:var(--muted); }
+        .weather-result { text-align:left; background:var(--surface-2); color:var(--text-3); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:8px 10px; font:inherit; font-size:var(--text-md); cursor:pointer; }
         .weather-recent { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center; }
-        .weather-recent-label { font-size:11px; color:var(--faint); }
-        .weather-recent-chip { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:4px 10px; font-size:12px; cursor:pointer; }
+        .weather-recent-label { font-size:var(--text-sm); color:var(--faint); }
+        .weather-recent-chip { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:4px 10px; font-size:var(--text-base); cursor:pointer; }
         /* FP091: saved places + days toggle + attribution. */
         .weather-head-actions { display:flex; gap:6px; align-items:center; }
-        #weather-save-place { background:var(--surface-2); color:var(--text-2); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:4px 10px; font-size:12px; cursor:pointer; }
+        #weather-save-place { background:var(--surface-2); color:var(--text-2); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:4px 10px; font-size:var(--text-base); cursor:pointer; }
         #weather-save-place.saved { color:var(--brand); border-color:var(--btn-border); }
-        .weather-days-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
-        #weather-days-toggle { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:3px 10px; font-size:11px; cursor:pointer; }
+        .weather-days-head { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); }
+        #weather-days-toggle { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:3px 10px; font-size:var(--text-sm); cursor:pointer; }
         .weather-saved { margin-top:10px; }
-        .weather-saved-label { font-size:11px; color:var(--faint); display:block; margin-bottom:4px; }
-        .weather-saved-row { display:flex; gap:4px; align-items:center; margin-bottom:4px; }
-        .weather-saved-name { flex:1; text-align:left; background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:12px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .weather-saved-btn { background:var(--surface-2); color:var(--muted); border:1px solid var(--border); border-radius:var(--radius-sm); padding:5px 8px; font-size:12px; cursor:pointer; }
+        .weather-saved-label { font-size:var(--text-sm); color:var(--faint); display:block; margin-bottom:var(--space-xs); }
+        .weather-saved-row { display:flex; gap:var(--space-xs); align-items:center; margin-bottom:var(--space-xs); }
+        .weather-saved-name { flex:1; text-align:left; background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:var(--text-base); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .weather-saved-btn { background:var(--surface-2); color:var(--muted); border:1px solid var(--border); border-radius:var(--radius-sm); padding:5px 8px; font-size:var(--text-base); cursor:pointer; }
         .weather-saved-btn:disabled { opacity:.35; cursor:default; }
-        .weather-saved-input { flex:1; background:var(--surface-3); color:var(--text); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:12px; }
-        .weather-credit { font-size:11px; color:var(--faint); margin:12px 0 0; }
+        .weather-saved-input { flex:1; background:var(--surface-3); color:var(--text); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:var(--text-base); }
+        .weather-credit { font-size:var(--text-sm); color:var(--faint); margin:12px 0 0; }
         .weather-credit a { color:var(--green-soft); text-decoration:none; }
-        .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-        button,.btn-link { background:var(--btn-bg); color:var(--green); border:1px solid var(--btn-border); padding:8px 14px; border-radius:var(--radius-sm); font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
+        .btn-group { display:flex; gap:var(--space-sm); margin-top:var(--space-md); flex-wrap:wrap; }
+        button,.btn-link { background:var(--btn-bg); color:var(--green); border:1px solid var(--btn-border); padding:8px 14px; border-radius:var(--radius-sm); font-size:var(--text-md); cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
         button:hover,.btn-link:hover { background:var(--btn-border); }
         .btn-save { background:var(--green-dark); color:var(--text-bright); border:none; }
         .btn-save.saved { background:var(--green-darker); border:1px solid var(--green); }
-        .ai-drawer { margin-top:14px; background:linear-gradient(180deg,#111816 0%,#0f1513 100%); border:1px solid var(--green-border); padding:15px; border-radius:var(--radius-md); font-size:13px; color:#d7eee5; display:none; line-height:1.6; box-shadow:inset 0 1px 0 rgba(255,255,255,.02); }
-         .ai-card-head { display:flex; align-items:center; gap:9px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #20362e; }
-         .ai-card-icon { width:28px; height:28px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; background:#123126; color:var(--green-bright); font-size:14px; }
-         .ai-card-title { color:var(--green-pale); font-weight:700; font-size:14px; }
-         .ai-card-subtitle { color:#71847c; font-size:10px; margin-top:1px; }
+        .ai-drawer { margin-top:14px; background:linear-gradient(180deg,#111816 0%,#0f1513 100%); border:1px solid var(--green-border); padding:15px; border-radius:var(--radius-md); font-size:var(--text-md); color:#d7eee5; display:none; line-height:var(--leading-relaxed); box-shadow:inset 0 1px 0 rgba(255,255,255,.02); }
+         .ai-card-head { display:flex; align-items:center; gap:9px; margin-bottom:var(--space-md); padding-bottom:10px; border-bottom:1px solid #20362e; }
+         .ai-card-icon { width:28px; height:28px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; background:#123126; color:var(--green-bright); font-size:var(--text-lg); }
+         .ai-card-title { color:var(--green-pale); font-weight:700; font-size:var(--text-lg); }
+         .ai-card-subtitle { color:#71847c; font-size:var(--text-xs); margin-top:1px; }
          .ai-content { color:#c9d8d2; }
          .ai-content p { margin:0 0 10px; }
          .ai-content p:last-child { margin-bottom:0; }
@@ -211,40 +232,43 @@
          .ai-content .ai-number span { color:var(--green-bright); font-weight:700; min-width:18px; }
          .ai-content .ai-bullet { margin:7px 0 7px 2px; padding-left:14px; position:relative; }
          .ai-content .ai-bullet::before { content:'•'; position:absolute; left:0; color:var(--green-bright); }
-         .ai-source-note { margin-top:12px; padding-top:9px; border-top:1px solid #1e3029; color:#70827b; font-size:10px; }
+         .ai-source-note { margin-top:var(--space-md); padding-top:9px; border-top:1px solid #1e3029; color:#70827b; font-size:var(--text-xs); }
          .ai-loading { color:#9ab5aa; }
          .ai-error { color:#f0b6b6; background:#251718; border:1px solid #4a282b; padding:9px 10px; border-radius:8px; }
-        .status { color:var(--muted); font-size:12px; margin:-6px 0 14px; }
+        .status { color:var(--muted); font-size:var(--text-base); margin:-6px 0 14px; }
         /* FP090: the section title (Top Stories / Weather / Chat / Saved /
            Settings) was an inline style; it now lives here with the rest
            of the design system. */
-        #section-title { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+        #section-title { font-size:var(--text-lg); color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:var(--space-xs); }
+        /* FP095: title and refresh button share one row. */
+        #section-title-row { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); }
+        #section-title-row #refresh-news-btn { flex-shrink:0; }
         .intel-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 10px; }
-        .intel-badge { font-size:10px; color:var(--green-soft); background:#10231c; border:1px solid #1f4d3b; border-radius:var(--radius-pill); padding:4px 7px; }
+        .intel-badge { font-size:var(--text-xs); color:var(--green-soft); background:#10231c; border:1px solid #1f4d3b; border-radius:var(--radius-pill); padding:4px 7px; }
         .importance-badge,.confidence-badge { font-weight:600; }
-        .intel-hint { font-size:12px; color:#b7c8c0; line-height:1.45; margin:0 0 10px; }
-        .evidence-note { font-size:12px; color:var(--muted); line-height:1.45; margin:0 0 10px; }
+        .intel-hint { font-size:var(--text-base); color:#b7c8c0; line-height:var(--leading-normal); margin:0 0 10px; }
+        .evidence-note { font-size:var(--text-base); color:var(--muted); line-height:var(--leading-normal); margin:0 0 10px; }
 
         /* FP018.4 mobile story-card refinement */
         .card { padding:13px; margin-bottom:11px; }
-        .card h3 { font-size:16px; line-height:1.38; margin:2px 0 6px; }
-        .source-tag { display:inline-block; margin:0 7px 4px 0; font-size:10px; letter-spacing:.45px; }
-        .source-name { display:inline-block; margin:0 0 4px; font-size:10px; }
-        .story-meta-compact { color:var(--faint); font-size:10px; margin:0 0 8px; }
+        .card h3 { font-size:var(--text-xl); line-height:var(--leading-snug); margin:2px 0 6px; }
+        .source-tag { display:inline-block; margin:0 7px 4px 0; font-size:var(--text-xs); letter-spacing:.45px; }
+        .source-name { display:inline-block; margin:0 0 4px; font-size:var(--text-xs); }
+        .story-meta-compact { color:var(--faint); font-size:var(--text-xs); margin:0 0 8px; }
         .intel-row { gap:5px; margin:7px 0 9px; }
-        .intel-badge { padding:3px 6px; font-size:9px; }
-        .intel-hint { margin-bottom:8px; font-size:12px; line-height:1.5; }
-        .article-description { font-size:12px !important; line-height:1.5 !important; margin-bottom:9px !important; }
+        .intel-badge { padding:3px 6px; font-size:var(--text-xs); }
+        .intel-hint { margin-bottom:var(--space-sm); font-size:var(--text-base); line-height:var(--leading-normal); }
+        .article-description { font-size:var(--text-base) !important; line-height:var(--leading-normal) !important; margin-bottom:9px !important; }
         .evidence-details { margin:8px 0 10px; border:1px solid #292d32; border-radius:var(--radius-sm); background:#131315; }
-        .evidence-details summary { padding:9px 10px; color:var(--green-soft); font-size:11px; font-weight:600; cursor:pointer; }
+        .evidence-details summary { padding:9px 10px; color:var(--green-soft); font-size:var(--text-sm); font-weight:600; cursor:pointer; }
         .evidence-details-body { padding:0 10px 10px; }
-        .evidence-details-body .evidence-note { font-size:11px; margin:0 0 8px; overflow-wrap:anywhere; }
+        .evidence-details-body .evidence-note { font-size:var(--text-sm); margin:0 0 8px; overflow-wrap:anywhere; }
         .btn-group { gap:6px; margin-top:9px; }
-        .btn-group button,.btn-group .btn-link { padding:7px 9px; font-size:11px; border-radius:var(--radius-sm); }
+        .btn-group button,.btn-group .btn-link { padding:7px 9px; font-size:var(--text-sm); border-radius:var(--radius-sm); }
         @media (max-width:380px) {
             .card { padding:11px; }
             .btn-group { gap:5px; }
-            .btn-group button,.btn-group .btn-link { padding:7px 8px; font-size:10px; }
+            .btn-group button,.btn-group .btn-link { padding:7px 8px; font-size:var(--text-xs); }
         }
 
         .ai-drawer strong { color:var(--green-soft); }
@@ -252,35 +276,35 @@
          .ai-bullet { margin:5px 0 5px 16px; }
          .ask-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; align-items:flex-end; justify-content:center; z-index:2000; }
          .ask-modal { width:min(600px,100%); background:var(--surface); border:1px solid var(--border-strong); border-radius:18px 18px 0 0; padding:18px; box-sizing:border-box; box-shadow:0 -12px 40px rgba(0,0,0,.45); }
-         .ask-modal h3 { margin:0 0 12px; font-size:17px; }
-         .ask-modal textarea { width:100%; min-height:92px; box-sizing:border-box; resize:vertical; background:var(--surface-2); color:var(--text-bright); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:12px; font:inherit; }
-         .ask-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+         .ask-modal h3 { margin:0 0 12px; font-size:var(--text-xl); }
+         .ask-modal textarea { width:100%; min-height:92px; box-sizing:border-box; resize:vertical; background:var(--surface-2); color:var(--text-bright); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:var(--space-md); font:inherit; }
+         .ask-modal-actions { display:flex; gap:var(--space-sm); justify-content:flex-end; margin-top:var(--space-md); }
          .btn-secondary { background:var(--surface-2); color:var(--text-3); border-color:var(--border-input); }
         .timeline-event { padding:10px 0; border-top:1px solid #20342c; }
         .timeline-event:first-child { border-top:none; padding-top:0; }
-        .timeline-meta { font-size:11px; color:#7f918a; margin-bottom:4px; }
-        .timeline-title { font-size:13px; color:var(--green-pale); line-height:1.4; }
-        .timeline-type { font-size:10px; color:var(--green-soft); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
-        .timeline-note { font-size:11px; color:var(--muted); margin-top:10px; line-height:1.45; }
+        .timeline-meta { font-size:var(--text-sm); color:#7f918a; margin-bottom:var(--space-xs); }
+        .timeline-title { font-size:var(--text-md); color:var(--green-pale); line-height:var(--leading-snug); }
+        .timeline-type { font-size:var(--text-xs); color:var(--green-soft); margin-top:var(--space-xs); text-transform:uppercase; letter-spacing:.5px; }
+        .timeline-note { font-size:var(--text-sm); color:var(--muted); margin-top:10px; line-height:var(--leading-normal); }
 
 .ai-section-heading {
     color: #a7f3d0;
-    font-size: 1.02rem;
-    line-height: 1.4;
+    font-size: var(--text-xl);
+    line-height:var(--leading-snug);
     font-weight: 750;
     margin: 18px 0 8px;
 }
 .ai-section-heading:first-child { margin-top: 0; }
 .ai-markdown-list {
-    margin: 8px 0 12px;
+    margin: var(--space-sm) 0 var(--space-md);
     padding-left: 22px;
 }
 .ai-markdown-list li {
     margin: 6px 0;
     padding-left: 3px;
-    line-height: 1.6;
+    line-height:var(--leading-relaxed);
 }
-.ai-content p { margin: 8px 0; line-height: 1.65; }
+.ai-content p { margin: var(--space-sm) 0; line-height:var(--leading-relaxed); }
 .ai-content code {
     padding: 1px 4px;
     border-radius: 4px;
@@ -307,7 +331,7 @@
             box-shadow: 0 5px 18px rgba(0,0,0,.4);
             font-size: 22px;
             font-weight: 800;
-            line-height: 1;
+            line-height:var(--leading-none);
         }
         #kaivor-scroll-top.is-visible { display: flex; }
         #kaivor-scroll-top:focus-visible { outline: 3px solid var(--green-pale); outline-offset: 3px; }
@@ -316,8 +340,8 @@
            always visible and thumb-friendly. The rail above keeps only
            the news categories. */
         #bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:1000; display:flex; background:var(--bg); border-top:1px solid var(--line); padding:6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
-        .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:var(--muted); font-size:11px; padding:6px 0 2px; cursor:pointer; text-decoration:none; font-family:inherit; }
-        .nav-item .nav-icon { font-size:20px; line-height:1; }
+        .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:var(--muted); font-size:var(--text-sm); padding:6px 0 2px; cursor:pointer; text-decoration:none; font-family:inherit; }
+        .nav-item .nav-icon { font-size:var(--text-2xl); line-height:var(--leading-none); }
         .nav-item.active { color:var(--brand); }
         body.kaivor-swipe-active { overscroll-behavior-x: contain; }
         @media (prefers-reduced-motion: reduce) {
@@ -333,8 +357,8 @@
         .splash-logo { width:120px; height:120px; animation:splash-pop .6s ease both; }
         .splash-logo-wrap { position:relative; width:120px; height:120px; border-radius:26px; overflow:hidden; }
         .splash-shine { position:absolute; top:-20%; bottom:-20%; left:-70%; width:45%; background:linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent); transform:skewX(-20deg); animation:splash-shine 1.4s .45s ease both; }
-        .splash-word { font-size:20px; font-weight:700; letter-spacing:3px; color:var(--text-bright); margin-top:18px; animation:splash-rise .6s .15s ease both; }
-        .splash-tag { font-size:12px; color:var(--faint); letter-spacing:1px; margin-top:6px; animation:splash-rise .6s .25s ease both; }
+        .splash-word { font-size:var(--text-2xl); font-weight:700; letter-spacing:3px; color:var(--text-bright); margin-top:18px; animation:splash-rise .6s .15s ease both; }
+        .splash-tag { font-size:var(--text-base); color:var(--faint); letter-spacing:1px; margin-top:6px; animation:splash-rise .6s .25s ease both; }
         .splash-bar { width:160px; height:3px; background:var(--border); border-radius:2px; margin-top:24px; overflow:hidden; animation:splash-rise .6s .3s ease both; }
         .splash-bar span { display:block; height:100%; width:40%; background:var(--brand); border-radius:2px; animation:splash-slide 1.1s ease-in-out infinite; }
         @keyframes splash-pop { from { opacity:0; transform:scale(.85); } to { opacity:1; transform:scale(1); } }
@@ -358,6 +382,10 @@
 </div>
 <header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
 <div class="container">
+    <!-- FP093: shown when the phone is offline (see updateOfflineBanner
+         below). The stories on screen are the last ones the service
+         worker cached; the time is when that page was rendered. -->
+    <div id="offline-banner" data-news-updated="{{ news_last_updated|int }}" style="display:none"><span id="offline-banner-text"></span></div>
     <section class="market-panel" aria-label="Markets tracker">
         <div class="market-panel-head">
             <div class="market-panel-title">Market watch</div>
@@ -445,7 +473,13 @@
         <p class="evidence-note">Prices from Yahoo Finance and Frankfurter. History covers the last five trading days.</p>
     </section>
 
-    <h3 id="section-title">Top Stories</h3>
+    <!-- FP095: manual news refresh. The button starts the same
+         background refresh the cron job runs; the page reloads
+         once the new stories land (see refreshNewsFromButton). -->
+    <div id="section-title-row">
+        <h3 id="section-title">Top Stories</h3>
+        <button id="refresh-news-btn" type="button" class="install-app" onclick="refreshNewsFromButton(this)">↻ Refresh news</button>
+    </div>
     <div id="status" class="status">Stories are deduplicated and saved locally on this device.</div>
 
     <div id="articles-container">
@@ -474,7 +508,7 @@
                     <p class="evidence-note"><strong>Sources:</strong> {{ article.story_sources | join(', ') if article.story_sources else article.source }}</p>
                 </div>
             </details>
-            <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">{{ article.description }}</p>
+            <p class="article-description">{{ article.description }}</p>
             <div class="btn-group">
                 <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
                 {% if article_subscription_access(article).supported %}<a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link" title="{{ article_subscription_access(article).label }}">Subscription Reader · {{ article_subscription_access(article).publisher }}</a>{% endif %}
@@ -497,6 +531,13 @@
         <div class="card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-line skeleton-line-short"></div><div class="skeleton skeleton-image"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line skeleton-line-long"></div></div>
         <p id="skeleton-note" class="skeleton-note">Loading the latest stories…</p>
     {% endif %}
+    </div>
+    <!-- FP092: the news list shows 50 stories at a time (see
+         applyNewsPagination below). The button reveals the next 50;
+         the block hides itself when every matching story is shown. -->
+    <div id="news-load-more" style="display:none">
+        <p id="news-load-more-count" class="news-load-more-count"></p>
+        <button type="button" id="news-load-more-btn" class="btn-secondary" onclick="loadMoreNews()">Load more stories</button>
     </div>
 </div>
 
@@ -710,6 +751,9 @@ function filterCategory(category, element) {
     hideWeatherView();
     hideMarketsView();
     restoreNewsContainer();
+    // FP092: a new category starts back at the first page.
+    newsCurrentCategory = category;
+    newsVisibleCount = NEWS_PAGE_SIZE;
     const wasDifferent = !element.classList.contains('active');
     const categoryChips = Array.from(document.querySelectorAll('.chip[onclick^="filterCategory("]'));
     const previousIndex = categoryChips.findIndex(chip => chip.classList.contains('active'));
@@ -736,7 +780,120 @@ function filterCategory(category, element) {
         ? 'Football is prioritised first; other sports remain available below.'
         : 'Stories are deduplicated and saved locally on this device.';
     if (wasDifferent) scrollKaivorToTop();
+    applyNewsPagination();
 }
+
+// FP092 NEWS PAGINATION: BEGIN
+// The page renders every story into the DOM (600+ on a full feed),
+// which is heavy on a phone. Only the first page is shown; the
+// "Load more stories" button reveals the next 50. Matching is
+// computed from the current category, not from display state —
+// filterCategory resets display on every call, but loadMoreNews
+// does not, so reading display here would count only the cards
+// already visible. Skeleton cards are never counted.
+const NEWS_PAGE_SIZE = 50;
+let newsCurrentCategory = 'All';
+let newsVisibleCount = NEWS_PAGE_SIZE;
+function newsVisibleSlice(total, visibleCount) {
+    const safeTotal = Math.max(total, 0);
+    const shown = Math.min(safeTotal, Math.max(visibleCount, 0));
+    return {shown: shown, remaining: safeTotal - shown};
+}
+function applyNewsPagination() {
+    const container = document.getElementById('articles-container');
+    const block = document.getElementById('news-load-more');
+    if (!container || !block) return;
+    const matching = Array.from(container.querySelectorAll('.card')).filter(card => {
+        if (card.classList.contains('skeleton-card')) return false;
+        return newsCurrentCategory === 'All' || (card.dataset.category || '').toLowerCase() === newsCurrentCategory.toLowerCase();
+    });
+    const state = newsVisibleSlice(matching.length, newsVisibleCount);
+    matching.forEach((card, index) => { card.style.display = index < state.shown ? 'block' : 'none'; });
+    if (state.remaining > 0) {
+        block.style.display = 'block';
+        document.getElementById('news-load-more-count').textContent = 'Showing ' + state.shown + ' of ' + matching.length + ' stories';
+    } else {
+        block.style.display = 'none';
+    }
+}
+function loadMoreNews() {
+    newsVisibleCount += NEWS_PAGE_SIZE;
+    applyNewsPagination();
+}
+function hideNewsLoadMore() {
+    const block = document.getElementById('news-load-more');
+    if (block) block.style.display = 'none';
+}
+// FP092 NEWS PAGINATION: END
+
+// FP093 OFFLINE BANNER: BEGIN
+// The service worker caches the last rendered homepage, so the app
+// still opens offline — but the stories on screen are old, and the
+// reader deserves to know. This banner says so, with the time the
+// cached page was rendered (stamped on the banner by the server).
+function formatOfflineTime(epochSeconds) {
+    if (!epochSeconds) return '';
+    const date = new Date(epochSeconds * 1000);
+    // 24-hour clock whatever the device locale is.
+    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
+}
+function updateOfflineBanner() {
+    const banner = document.getElementById('offline-banner');
+    if (!banner) return;
+    if (navigator.onLine) { banner.style.display = 'none'; return; }
+    const when = formatOfflineTime(Number(banner.dataset.newsUpdated || 0));
+    document.getElementById('offline-banner-text').textContent = when
+        ? "You're offline — showing stories from " + when + "."
+        : "You're offline — showing your last loaded stories.";
+    banner.style.display = 'block';
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+// FP093 OFFLINE BANNER: END
+
+// FP095 NEWS REFRESH: BEGIN
+// The refresh button starts the same background refresh the cron
+// job runs (POST /api/refresh returns at once) and polls
+// /api/health until the stories' timestamp moves, then reloads
+// the page onto the fresh list. Refreshing is PIN-gated like the
+// other news mutations: a locked browser is told to unlock via
+// Reading instead of hanging. Mirrors the refreshMarkets poll.
+let newsRefreshInFlight = false;
+async function refreshNewsFromButton(button) {
+    if (newsRefreshInFlight) return;
+    newsRefreshInFlight = true;
+    const statusEl = document.getElementById('status');
+    if (button) { button.disabled = true; button.textContent = 'Refreshing…'; }
+    try {
+        const before = await fetch('/api/health', {cache:'no-store'}).then(r => r.json()).catch(() => ({}));
+        const beforeTs = Number(before.news_last_updated || 0);
+        const response = await fetch('/api/refresh', {method:'POST', headers:{'Accept':'application/json'}});
+        const result = await response.json().catch(() => ({}));
+        if (response.status === 401 || response.status === 503) {
+            if (statusEl) statusEl.textContent = 'Unlock Reading to refresh the news.';
+            return;
+        }
+        if (!response.ok || !result.success) throw new Error(result.error || result.message || 'Refresh could not start');
+        if (statusEl) statusEl.textContent = 'Refreshing the news — this takes about a minute…';
+        const deadline = Date.now() + 180000;
+        while (Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            const health = await fetch('/api/health', {cache:'no-store'}).then(r => r.json()).catch(() => ({}));
+            if (Number(health.news_last_updated || 0) > beforeTs) {
+                window.location.reload();
+                return;
+            }
+        }
+        if (statusEl) statusEl.textContent = 'Refresh is taking longer than usual — try again shortly.';
+    } catch (error) {
+        if (statusEl) statusEl.textContent = 'Refresh failed: ' + (error && error.message ? error.message : 'try again shortly');
+        console.error('News refresh error:', error);
+    } finally {
+        newsRefreshInFlight = false;
+        if (button) { button.disabled = false; button.textContent = '↻ Refresh news'; }
+    }
+}
+// FP095 NEWS REFRESH: END
 
 // FP085.1: the Saved, Chat and Settings views replace the news cards
 // in #articles-container, so tapping a news category afterwards found
@@ -750,6 +907,7 @@ let cachedNewsHtml = null;
 let newsViewReplaced = false;
 function cacheNewsContainer() {
     if (newsViewReplaced) return;
+    hideNewsLoadMore();
     const container = document.getElementById('articles-container');
     if (!container) return;
     cachedNewsHtml = container.innerHTML;
@@ -956,7 +1114,7 @@ async function showSaved(element) {
                         <p class="evidence-note"><strong>Sources:</strong> ${escapeHtml((article.story_sources || []).join(', ') || article.source || 'Unknown source')}</p>
                     </div>
                 </details>
-                <p class="article-description" style="font-size:13px;color:#9ca3af;line-height:1.4;margin-bottom:12px;">${escapeHtml(article.description)}</p>
+                <p class="article-description">${escapeHtml(article.description)}</p>
                 <div class="btn-group">
                     <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
                     ${subscriptionReaderLink(article)}
@@ -1034,7 +1192,7 @@ function showChat(element) {
                 <label class="chat-web-toggle"><input id="chat-web" type="checkbox" onchange="saveChatWebToggle()"> 🌐 Web</label>
                 <button type="submit">Send</button>
             </form>
-            <button onclick="clearChatHistory()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:12px;padding:4px 0;cursor:pointer;">Clear chat</button>
+            <button onclick="clearChatHistory()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:var(--text-base);padding:4px 0;cursor:pointer;">Clear chat</button>
         </div>`;
     renderChatLog();
     const webToggle = document.getElementById('chat-web');
@@ -1126,7 +1284,7 @@ function showSettings(element){
     document.getElementById('section-title').textContent = 'Settings';
     document.getElementById('status').textContent = 'News sources, API keys and your relevance profile.';
     const container=document.getElementById('articles-container');
-    container.innerHTML=`<div class="card" data-category="Settings"><h3>📰 News sources</h3><p class="evidence-note">Add a feed of your own, or check the ones Kaivor already follows.</p><div class="settings-label">Custom RSS source</div><input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)"><input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)..."><button onclick="addCustomFeed()">Add Source</button><details class="settings-feeds"><summary id="settings-feeds-summary">Your feeds — loading…</summary><div id="settings-feeds-list" class="settings-list"></div></details><h3>🔑 API keys</h3><div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div><div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div><div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div><div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div><div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div><div style="font-size:11px;color:#9ca3af;margin-top:6px;">Saving keys and sources needs the app unlocked — unlock via the 📚 Reading tab (same PIN).</div></div><div class="card" data-category="Settings"><h3>🎯 Personal relevance</h3><p class="evidence-note">Choose how strongly each news category matters to you. Add keywords that should increase relevance.</p><div id="settings-relevance">Loading your relevance profile…</div></div><div class="card" data-category="Settings"><h3>ℹ️ About Kaivor</h3><div id="settings-about">Loading…</div></div>`;
+    container.innerHTML=`<div class="card" data-category="Settings"><h3>📰 News sources</h3><p class="evidence-note">Add a feed of your own, or check the ones Kaivor already follows.</p><div class="settings-label">Custom RSS source</div><input type="text" id="feed-name" class="manager-input" placeholder="Feed Name / Category (e.g. World, Tech)"><input type="text" id="feed-url" class="manager-input" placeholder="RSS URL or publication name (e.g. The Athletic)..."><button onclick="addCustomFeed()">Add Source</button><details class="settings-feeds"><summary id="settings-feeds-summary">Your feeds — loading…</summary><div id="settings-feeds-list" class="settings-list"></div></details><h3>🔑 API keys</h3><div class="api-key-row"><input type="password" id="openrouter-key-input" class="manager-input" placeholder="OpenRouter API Key..."><button onclick="saveApiKey('openrouter')" class="btn-save">Save OpenRouter Key</button></div><div class="api-key-row"><input type="password" id="openai-key-input" class="manager-input" placeholder="OpenAI API Key..."><button onclick="saveApiKey('openai')" class="btn-save">Save OpenAI Key</button></div><div class="api-key-row"><input type="password" id="guardian-key-input" class="manager-input" placeholder="Guardian API Key..."><button onclick="saveApiKey('guardian')" class="btn-save">Save Guardian Key</button></div><div class="api-key-row"><input type="password" id="brave-key-input" class="manager-input" placeholder="Brave Search API Key..."><button onclick="saveApiKey('brave')" class="btn-save">Save Brave Key</button></div><div class="api-key-row"><input type="password" id="newsdata-key-input" class="manager-input" placeholder="NewsData.io API Key..."><button onclick="saveApiKey('newsdata')" class="btn-save">Save NewsData.io Key</button></div><div style="font-size:var(--text-sm);color:#9ca3af;margin-top:6px;">Saving keys and sources needs the app unlocked — unlock via the 📚 Reading tab (same PIN).</div></div><div class="card" data-category="Settings"><h3>🎯 Personal relevance</h3><p class="evidence-note">Choose how strongly each news category matters to you. Add keywords that should increase relevance.</p><div id="settings-relevance">Loading your relevance profile…</div></div><div class="card" data-category="Settings"><h3>ℹ️ About Kaivor</h3><div id="settings-about">Loading…</div></div>`;
     loadSettingsFeeds();
     loadSettingsRelevance();
     loadSettingsAbout();
@@ -1401,6 +1559,18 @@ function renderAiMarkdown(text){
         safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         safe = safe.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>');
         safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // FP094: links the model gives are tappable. Markdown links
+        // first, then bare URLs — the prefix guard (start of line,
+        // whitespace or "(") keeps the second pass from re-linking
+        // a URL already inside an href. Only http(s) links, so a
+        // javascript: URL stays plain text. Trailing sentence
+        // punctuation is left outside the link.
+        safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        safe = safe.replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, (match, prefix, url) => {
+            const trimmed = url.replace(/[.,;:!?)]+$/, '');
+            const tail = url.slice(trimmed.length);
+            return prefix + '<a href="' + trimmed + '" target="_blank" rel="noopener noreferrer">' + trimmed + '</a>' + tail;
+        });
         return safe;
     };
 
@@ -1465,7 +1635,7 @@ function showTimeline(target, timeline, evidenceNote){
                 <div class="timeline-meta">${escapeHtml(formatDisplayDate(event.published))} · ${escapeHtml(event.source)}</div>
                 <div class="timeline-title">${escapeHtml(event.title)}</div>
                 <div class="timeline-type">${escapeHtml(event.coverage_type)}</div>
-                <div style="margin-top:6px;"><a href="${escapeAttr(event.link)}" target="_blank" rel="noopener" style="color:#10b981;text-decoration:none;font-size:11px;">Open report</a></div>
+                <div style="margin-top:6px;"><a href="${escapeAttr(event.link)}" target="_blank" rel="noopener" style="color:#10b981;text-decoration:none;font-size:var(--text-sm);">Open report</a></div>
             </div>`).join('');
     }
     html += '<div class="timeline-note">' + escapeHtml(evidenceNote || 'Timeline is based only on reports currently held by Kaivor for this story.') + '</div>';
@@ -1531,7 +1701,7 @@ function openManualTextBrief(button){
                 <textarea rows="7" maxlength="30000" class="manual-article-text"
                     style="width:100%;box-sizing:border-box;background:#111827;color:#f3f4f6;border:1px solid #374151;border-radius:8px;padding:10px"
                     placeholder="Paste the article text here…"></textarea>
-                <div style="font-size:11px;color:#9ca3af;margin:5px 0">
+                <div style="font-size:var(--text-sm);color:#9ca3af;margin:5px 0">
                     Text is sent to the AI provider configured for Kaivor when you request a summary.
                     Do not paste content unless your access and the applicable terms permit this use.
                 </div>
@@ -2253,6 +2423,7 @@ function showWeather(element) {
     if (strip) strip.style.display = 'none';
     const section = document.getElementById('weather-section');
     if (section) section.style.display = 'block';
+    hideNewsLoadMore();
 }
 
 function hideWeatherView() {
@@ -2281,6 +2452,7 @@ function showMarkets() {
     if (strip) strip.style.display = 'none';
     const section = document.getElementById('markets-section');
     if (section) section.style.display = 'block';
+    hideNewsLoadMore();
     loadMarketsHistory();
 }
 function hideMarketsView() {
@@ -2374,12 +2546,24 @@ function fillTickerFromHistory(history) {
 
 // FP083 SPLASH: BEGIN
 // The splash covers the first paint so the app opens on the logo, not a
-// half-rendered page. It hides as soon as the page is usable (900ms
-// after the content is parsed, or 400ms after everything loads), and a
-// hard 3s timeout guarantees it can never trap the user on a slow load.
+// half-rendered page. It hides once the page is usable, but never before
+// its own animation has had time to play — the shine finishes at 1.85s,
+// and hiding at 900ms (the old timing) cut it off mid-sweep. A hard 3s
+// timeout still guarantees it can never trap the user on a slow load.
+const splashStart = Date.now();
+const SPLASH_MIN_MS = 2000;
+let splashHideScheduled = false;
 function hideSplash() {
     const splash = document.getElementById('splash');
     if (!splash || splash.dataset.hidden === 'true') return;
+    const remaining = SPLASH_MIN_MS - (Date.now() - splashStart);
+    if (remaining > 0) {
+        if (!splashHideScheduled) {
+            splashHideScheduled = true;
+            window.setTimeout(hideSplash, remaining);
+        }
+        return;
+    }
     splash.dataset.hidden = 'true';
     splash.classList.add('splash-hidden');
     window.setTimeout(() => { splash.style.display = 'none'; }, 500);
@@ -2399,6 +2583,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     initializeMarketTicker();
     updateFinanceTicker();
     marketPollTimer=setInterval(updateFinanceTicker,30000);
+    // FP092: the first page of stories shows on load; the rest wait
+    // behind "Load more stories". (A # view opened below hides the
+    // button again through cacheNewsContainer/showWeather.)
+    applyNewsPagination();
+    // FP093: show the offline banner if the phone has no connection.
+    updateOfflineBanner();
     // FP084: deep links from the Reading page's bottom bar — open the
     // requested view on load. (#weather / #chat / #saved; plain / is News.)
     // FP085: #settings opens the Settings view the same way.

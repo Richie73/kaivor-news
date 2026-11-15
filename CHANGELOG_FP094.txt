@@ -1,0 +1,25 @@
+Kaivor FP094 — Clickable links in chat
+====================================
+
+WHAT CHANGED
+------------
+renderAiMarkdown had no link support, so a web address the model
+gave in a chat reply (or an AI brief) showed as plain text you
+could not tap.
+
+Now both forms render as links opening in a new tab:
+- Markdown links: [BBC report](https://www.bbc.co.uk/news)
+- Bare URLs: https://example.com/foo
+
+Only http(s) links are made tappable, so a javascript: URL stays
+plain text. Code spans are never linked. Trailing sentence
+punctuation (a full stop after a bare URL) stays outside the
+link. Bold, italic and code formatting still work alongside.
+
+FILES
+-----
+- templates/index.html (replacement — inline() in
+  renderAiMarkdown)
+- tests/test_chat_links_fp094.py (new — 3 tests)
+- CHANGELOG_FP094.txt, README_INSTALL_FP094.txt,
+  BUNDLE_MANIFEST_FP094.txt (new docs)

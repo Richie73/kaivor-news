@@ -50,7 +50,9 @@ def test_v3_icon_files_exist_at_the_right_sizes():
 
 def test_service_worker_caches_v3_icons():
     worker = SERVICE_WORKER.read_text(encoding="utf-8")
-    assert "kaivor-news-fp083-icon-v3" in worker
+    # FP093 note: the cache name moved on (kaivor-news-fp093-offline-v1)
+    # when offline reading arrived; the v3 icons are still cached.
+    assert "kaivor-news-fp093-offline-v1" in worker
     assert "/icons/kaivor-news-192-v3.png" in worker
     assert "/icons/kaivor-news-512-v3.png" in worker
     assert "v2" not in worker

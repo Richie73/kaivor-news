@@ -1,0 +1,28 @@
+Kaivor FP092 — Faster news list
+==============================
+
+WHAT CHANGED
+------------
+The news page renders every story into the DOM (600+ on a full
+feed), which is heavy on a phone. Two changes:
+
+1. Pagination: only the first 50 stories show. A "Load more
+   stories" button under the list reveals the next 50, with a
+   "Showing X of Y stories" count. The button hides itself when
+   every matching story is shown. Picking a category starts back
+   at the first 50. The Saved, Chat, Settings, Weather and
+   Markets views hide the button while they are open.
+2. Cards get content-visibility, so the browser skips painting
+   off-screen cards until they scroll into view.
+
+Matching is computed from the current category, not from display
+state: filterCategory resets display on every call, but
+loadMoreNews does not, so reading display would count only the
+cards already visible. Skeleton cards are never counted.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_news_pagination_fp092.py (new — 8 tests)
+- CHANGELOG_FP092.txt, README_INSTALL_FP092.txt,
+  BUNDLE_MANIFEST_FP092.txt (new docs)

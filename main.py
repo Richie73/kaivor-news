@@ -1190,29 +1190,32 @@ def _cron_refresh_worker() -> None:
         with _cron_refresh_lock:
             _cron_refresh_state["running"] = False
 
-@app.route("/api/cron/refresh", methods=["GET", "POST"])
-def api_cron_refresh():
-    if not _cron_authorized():
-        return jsonify({"success": False, "error": "Unauthorized"}), 401
+def _start_background_refresh(thread_name):
+    """Start one background news refresh, if none is running.
 
+    Returns (payload, http_status). Shared by the cron endpoint and
+    the manual /api/refresh button (FP095): both start the same
+    worker, and a second caller while one runs gets already_running
+    instead of a duplicate refresh.
+    """
     with _cron_refresh_lock:
         now = time.time()
         if _cron_refresh_state["running"]:
-            return jsonify({
+            return {
                 "success": True,
                 "status": "already_running",
                 "message": "News refresh is already running.",
-            }), 202
+            }, 202
 
         retry_after = float(_cron_refresh_state.get("retry_after") or 0)
         if retry_after > now:
-            return jsonify({
+            return {
                 "success": False,
                 "status": "cooldown",
                 "message": "News refresh is temporarily cooling down after repeated failure.",
                 "retry_after": retry_after,
                 "retry_after_seconds": round(retry_after - now, 1),
-            }), 429
+            }, 429
 
         _cron_refresh_state["running"] = True
         _cron_refresh_state["started_at"] = now
@@ -1223,24 +1226,33 @@ def api_cron_refresh():
         threading.Thread(
             target=_cron_refresh_worker,
             daemon=True,
-            name="kaivor-cron-refresh",
+            name=thread_name,
         ).start()
     except Exception as exc:
         with _cron_refresh_lock:
             _cron_refresh_state["running"] = False
             _cron_refresh_state["last_error"] = type(exc).__name__
 
-        return jsonify({
+        return {
             "success": False,
             "error": "Could not start refresh",
-        }), 500
+        }, 500
 
-    return jsonify({
+    return {
         "success": True,
         "status": "started",
         "message": "News refresh started in background.",
         "started_at": datetime.now(timezone.utc).isoformat(),
-    }), 202
+    }, 202
+
+
+@app.route("/api/cron/refresh", methods=["GET", "POST"])
+def api_cron_refresh():
+    if not _cron_authorized():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    payload, status = _start_background_refresh("kaivor-cron-refresh")
+    return jsonify(payload), status
 
 
 def _ensure_news_refresh_started() -> bool:
@@ -1295,8 +1307,9 @@ def index():
         )
     with _news_lock:
         articles = list(_news_cache.get("articles", []))
+        news_last_updated = float(_news_cache.get("last_updated") or 0)
     saved_ids = {item["id"] for item in load_saved_articles()}
-    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, article_provider_label=article_provider_label, article_subscription_access=article_subscription_access, article_freedium_access=article_freedium_access)
+    return render_template("index.html", market=market_data, articles=articles, saved_ids=saved_ids, news_last_updated=news_last_updated, article_provider_label=article_provider_label, article_subscription_access=article_subscription_access, article_freedium_access=article_freedium_access)
 
 
 @app.route("/api/ticker", methods=["GET"])
@@ -1376,8 +1389,13 @@ def api_finance_refresh():
 
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
-    articles = refresh_news()
-    return jsonify({"success": True, "count": len(articles)})
+    # FP095: this used to run refresh_news() inline — about 90s on
+    # Render, so a button tap hung until gunicorn nearly timed out.
+    # Now it starts the same background worker the cron endpoint
+    # uses and returns at once; the page polls /api/health until
+    # news_last_updated moves, then reloads.
+    payload, status = _start_background_refresh("kaivor-manual-refresh")
+    return jsonify(payload), status
 
 
 @app.route("/api/sources", methods=["GET"])

@@ -54,7 +54,7 @@ def test_main_surfaces_use_tokens():
         "body { background:var(--bg); color:var(--text);",
         "header { position:fixed; top:0; left:0; right:0; background:var(--bg);",
         ".manager-card,.card { background:var(--surface); border-radius:var(--radius-md);",
-        ".market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:var(--surface);",
+        ".market-bar { display:block; overflow:hidden; padding:var(--space-md) 0; margin-bottom:var(--space-lg); font-size:var(--text-md); background:var(--surface);",
         ".weather-card { background:var(--surface); border:1px solid var(--border);",
         ".chip { flex: 0 0 auto; background:var(--surface-2); color:var(--muted);",
         ".market-panel { background:var(--green-panel); border:1px solid var(--green-border);",
@@ -80,8 +80,8 @@ def test_card_radii_converged():
 def test_section_title_is_a_stylesheet_rule():
     html = TEMPLATE.read_text()
     assert (
-        "#section-title { font-size:14px; color:var(--muted); "
-        "text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }"
+        "#section-title { font-size:var(--text-lg); color:var(--muted); "
+        "text-transform:uppercase; letter-spacing:1px; margin-bottom:var(--space-xs); }"
         in html
     )
     assert '<h3 id="section-title">Top Stories</h3>' in html

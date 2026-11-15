@@ -35,7 +35,7 @@ def test_market_bar_opens_the_markets_view():
     html = template_text()
     assert 'onclick="showMarkets()"' in html
     assert 'aria-label="Live market prices — tap to open the full markets view"' in html
-    assert ".market-bar { display:block; overflow:hidden; padding:12px 0; margin-bottom:16px; font-size:13px; background:var(--surface); border-radius:var(--radius-md); border:1px solid var(--border); white-space:nowrap; cursor:pointer; }" in html
+    assert ".market-bar { display:block; overflow:hidden; padding:var(--space-md) 0; margin-bottom:var(--space-lg); font-size:var(--text-md); background:var(--surface); border-radius:var(--radius-md); border:1px solid var(--border); white-space:nowrap; cursor:pointer; }" in html
 
 
 def test_markets_section_hidden_by_default():

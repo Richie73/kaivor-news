@@ -89,10 +89,20 @@ def test_refresh_route_is_guarded(monkeypatch, authed_client):
     assert main.app.test_client().post("/api/refresh").status_code == 503
     _configure(monkeypatch)
     assert main.app.test_client().post("/api/refresh").status_code == 401
-    with patch.object(main, "refresh_news", return_value=[]):
-        response = authed_client.post("/api/refresh")
-    assert response.status_code == 200
-    assert response.get_json()["success"] is True
+    # FP095: /api/refresh now starts the background worker and
+    # returns 202 instead of refreshing inline (200 + count).
+    old_state = dict(main._cron_refresh_state)
+    try:
+        with main._cron_refresh_lock:
+            main._cron_refresh_state.update({"running": False, "retry_after": 0.0})
+        with patch.object(main.threading, "Thread") as thread:
+            response = authed_client.post("/api/refresh")
+        assert response.status_code == 202
+        assert response.get_json()["status"] == "started"
+        thread.return_value.start.assert_called_once()
+    finally:
+        with main._cron_refresh_lock:
+            main._cron_refresh_state.update(old_state)
 
 
 def test_finance_refresh_route_is_guarded(monkeypatch, authed_client):

@@ -1,0 +1,20 @@
+Kaivor FP095 bundle manifest
+
+REPLACEMENT:
+- main.py
+- templates/index.html
+- tests/test_news_mutation_auth_fp069.py
+
+NEW:
+- tests/test_news_refresh_button_fp095.py
+- README_INSTALL_FP095.txt
+- CHANGELOG_FP095.txt
+- BUNDLE_MANIFEST_FP095.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

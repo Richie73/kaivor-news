@@ -1,0 +1,32 @@
+Kaivor FP095 — News refresh button
+===============================
+
+WHAT CHANGED
+------------
+There was no way to pull fresh stories by hand — after a deploy
+the feed sat empty until the next scheduled refresh.
+
+1. A "↻ Refresh news" button sits beside the section title.
+2. POST /api/refresh used to run the refresh inline (about 90s
+   on Render — a tap would hang until gunicorn nearly timed
+   out). It now starts the same background worker the cron
+   endpoint uses, through a shared _start_background_refresh
+   helper, and returns at once (202 started / already_running,
+   429 in cooldown). The cron endpoint uses the same helper —
+   its behaviour is unchanged, covered by the existing FP020 /
+   FP022 tests.
+3. The button polls /api/health until the stories' timestamp
+   moves, then reloads the page onto the fresh list (up to 3
+   minutes, then it says to try again shortly).
+4. Refreshing stays PIN-gated like the other news mutations: a
+   locked browser is told to unlock via Reading.
+
+FILES
+-----
+- main.py (replacement — shared starter + async /api/refresh)
+- templates/index.html (replacement — button + poll script)
+- tests/test_news_refresh_button_fp095.py (new — 7 tests)
+- tests/test_news_mutation_auth_fp069.py (updated — the guard
+  test now expects 202 started instead of 200 + count)
+- CHANGELOG_FP095.txt, README_INSTALL_FP095.txt,
+  BUNDLE_MANIFEST_FP095.txt (new docs)

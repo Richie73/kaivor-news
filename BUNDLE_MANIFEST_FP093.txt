@@ -1,0 +1,21 @@
+Kaivor FP093 bundle manifest
+
+REPLACEMENT:
+- static/service-worker.js
+- templates/index.html
+- main.py
+- tests/test_logo_splash_fp083.py
+
+NEW:
+- tests/test_offline_reading_fp093.py
+- README_INSTALL_FP093.txt
+- CHANGELOG_FP093.txt
+- BUNDLE_MANIFEST_FP093.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.
