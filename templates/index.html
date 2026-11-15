@@ -66,7 +66,10 @@
         .card h3 a { color:#f3f4f6; text-decoration:none; }
         .source-tag { font-size:11px; color:#10b981; text-transform:uppercase; margin-bottom:6px; display:block; font-weight:bold; }
         .source-name { font-size:11px; color:#6b7280; margin-bottom:8px; }
-        .card-image { width:100%; height:auto; max-height:220px; object-fit:cover; border-radius:9px; margin:0 0 8px; display:block; background:#1f1f23; }
+        .card-image { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:9px; margin:0 0 8px; display:block; background:#1f1f23; }
+        .card-source { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .card-source .source-name { margin-bottom:0; }
+        .published { font-size:11px; color:#6b7280; margin-bottom:8px; }
         .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
         .chat-msg { padding:10px 12px; border-radius:12px; font-size:14px; line-height:1.5; max-width:88%; }
         .chat-msg.user { align-self:flex-end; background:#14532d; color:#f3f4f6; }
@@ -395,12 +398,12 @@
     <div id="articles-container">
     {% for article in articles %}
         <div class="card" data-category="{{ article.category }}" data-subscription-publisher="{{ article_subscription_access(article).publisher }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
-            <span class="source-tag">{{ article.category }}</span>
+            <div class="card-source"><span class="source-tag">{{ article.category }}</span>
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
-            <div class="source-name">{{ article.source }}</div>
+            <div class="source-name">{{ article.source }}</div></div>
             {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% endif %}
             <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
-            <div class="published" style="font-size:11px;color:#6b7280;margin-bottom:8px;">{{ article.published | display_date }}</div>
+            <div class="published">{{ article.published | display_date }}</div>
             <div class="intel-row">
                 <span class="intel-badge">{{ article.evidence_status }}</span>
                 <span class="intel-badge importance-badge">Importance: {{ article.importance_label|default('Medium') }} · {{ article.importance_score|default(0) }}/100</span>
@@ -791,12 +794,12 @@ async function showSaved(element) {
         }
         container.innerHTML = data.articles.map(article => `
             <div class="card" data-category="${escapeHtml(article.category)}" data-article-id="${escapeHtml(article.id)}" data-cluster-id="${escapeHtml(article.cluster_id || '')}" data-source-count="${Number(article.source_count || 1)}" data-report-count="${Number(article.report_count || 1)}" data-repeat-count="${Number(article.repeated_same_source_reports || 0)}" data-story-sources="${escapeAttr((article.story_sources || []).join('|'))}" data-importance-score="${Number(article.importance_score || 0)}" data-importance-label="${escapeAttr(article.importance_label || 'Medium')}" data-confidence-score="${Number(article.confidence_score || 0)}" data-confidence-label="${escapeAttr(article.confidence_label || 'Low')}" data-relevance-score="${Number(article.relevance_score || 0)}" data-relevance-label="${escapeAttr(article.relevance_label || 'Low')}" data-sport-focus="${escapeAttr(article.sport_focus || 'other')}" data-published-ts="${Number(article.published_ts || 0)}">
-                <span class="source-tag">${escapeHtml(article.category)}</span>
+                <div class="card-source"><span class="source-tag">${escapeHtml(article.category)}</span>
                 <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
-                <div class="source-name">${escapeHtml(article.source)}</div>
+                <div class="source-name">${escapeHtml(article.source)}</div></div>
                 ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : ''}
                 <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
-                <div class="published" data-published="${escapeHtml(article.published)}" style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escapeHtml(formatDisplayDate(article.published))}</div>
+                <div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>
                 <div class="intel-row">
                     <span class="intel-badge">${escapeHtml(article.evidence_status || article.confidence || 'Single-source')}</span>
                     <span class="intel-badge">Importance: ${escapeHtml(article.importance_label || 'Medium')} · ${Number(article.importance_score || 0)}/100</span>

@@ -1,0 +1,32 @@
+Kaivor FP087 — News cards: consistent crops, labels, timestamps
+=============================================================
+
+WHAT CHANGED (first of the polish pass)
+---------------------------------------
+1. CONSISTENT IMAGE CROPS. Card images were natural height capped
+   at 220px, so every card's picture was a different shape.
+   .card-image now has a fixed 16:9 aspect ratio with object-fit:
+   cover — every picture the same shape, cropped to fit.
+2. SOURCE LABELS ON ONE LINE. The category tag and provider badge
+   sat on one line and the source name dropped onto its own line
+   below. All three now sit on one .card-source flex row, in BOTH
+   card renders (the news list and the Saved view).
+3. CLEAN TIMESTAMPS. The timestamp's inline style moves into a
+   .published stylesheet rule in both renders, so the date line
+   is styled in one place. The class name stays .published —
+   formatArticleDates (the date rewriter) and articleFromCard
+   both depend on it. The date format itself is unchanged
+   ("14 Nov 2026 · 17:45").
+
+TECHNICAL
+---------
+- templates/index.html only (CSS + both card renders). No Python,
+  no new routes, no keys, no cost.
+- The image onerror handler (hide a broken picture) is unchanged.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_news_cards_fp087.py (new, 5 tests)
+- CHANGELOG_FP087.txt, README_INSTALL_FP087.txt,
+  BUNDLE_MANIFEST_FP087.txt (new docs)
