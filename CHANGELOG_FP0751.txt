@@ -1,0 +1,39 @@
+Kaivor FP075.1 — Sharper pictures: BBC thumbnails upgraded
+==========================================================
+
+WHAT CHANGED (reported by Richie, 15 Nov 2026)
+----------------------------------------------
+"The pictures that are populated are a bit blurry."
+
+DIAGNOSIS (measured live, 15 Nov 2026)
+--------------------------------------
+Every card image on the live site was downloaded and measured:
+- BBC (ichef.bbci.co.uk): 240x135 — the biggest image source
+  in the feed (96 of 400 cards) and by far the smallest. A
+  240px image stretched across a card is the blurriness.
+- Guardian (i.guim.co.uk): 700x560 — acceptable.
+- NYT: 1800x1800. Independent: 1200x800. Sky: 1920x1080.
+  Ars Technica: 1024x648. Stock photos (Openverse): 1024px
+  on the long edge. All fine.
+
+HOW IT WORKS NOW
+----------------
+The BBC's image service takes the width in the URL, so
+_clean_image_url in news_store.py (the choke point every
+article's image passes through) rewrites the width to 1024:
+  .../ace/standard/240/... -> .../ace/standard/1024/...
+  .../news/320/...         -> .../news/1024/...
+Verified live: the same BBC image returns 1024x576 (148 KB
+instead of 10 KB). The Guardian's URLs carry a signed hash,
+so they cannot be rewritten the same way — they stay at the
+700px the API gives, which is acceptable.
+
+FILES
+-----
+- news_store.py (replacement — BBC width rewrite in
+  _clean_image_url)
+- tests/test_story_images_fp075.py (replacement — 1 new test:
+  BBC /ace/standard/ and /news/ URLs upgrade to 1024,
+  Guardian URLs untouched)
+- CHANGELOG_FP0751.txt, README_INSTALL_FP0751.txt,
+  BUNDLE_MANIFEST_FP0751.txt (new docs)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from threading import RLock
@@ -72,6 +73,15 @@ def _clean_image_url(value: Any) -> str:
     an <img src>, so javascript:/data: URIs and relative paths are
     rejected. This is the central choke point — every article passes
     through normalise_article on refresh and on save.
+
+    FP075.1: the BBC's RSS feeds serve 240px-wide thumbnails
+    (ichef.bbci.co.uk/.../standard/240/...), which look blurry
+    stretched across a card — the BBC is the biggest image source
+    in the feed (96 of 400 cards on 15 Nov 2026). The ichef
+    service takes the width in the URL, so the width is bumped to
+    1024 (verified live: the same image returns 1024x576). The
+    Guardian's image URLs carry a signed hash, so they cannot be
+    rewritten the same way — they stay at the 700px the API gives.
     """
     url = str(value or "").strip()
     if len(url) > 2048:
@@ -79,6 +89,13 @@ def _clean_image_url(value: Any) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return ""
+    if parsed.netloc == "ichef.bbci.co.uk":
+        url = re.sub(
+            r"(ichef\.bbci\.co\.uk/(?:ace/standard|news)/)\d+/",
+            r"\g<1>1024/",
+            url,
+            count=1,
+        )
     return url
 
 

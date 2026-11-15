@@ -109,6 +109,23 @@ def test_normalise_defaults_missing_image_url():
     assert item["image_url"] == ""
 
 
+def test_normalise_upgrades_bbc_thumbnail_to_1024():
+    # FP075.1: the BBC's feeds serve 240px thumbnails, which look
+    # blurry stretched across a card — the width in the ichef URL
+    # is bumped to 1024 (verified live 15 Nov 2026: the same image
+    # returns 1024x576).
+    item = normalise_article({"title": "T", "link": "https://example.com/x",
+                              "image_url": "https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/8bb5/live/938b6e20.jpg"})
+    assert item["image_url"] == "https://ichef.bbci.co.uk/ace/standard/1024/cpsprodpb/8bb5/live/938b6e20.jpg"
+    # The /news/ form upgrades too; other hosts are untouched.
+    item = normalise_article({"title": "T", "link": "https://example.com/x",
+                              "image_url": "https://ichef.bbci.co.uk/news/320/cpsprodpb/x.jpg"})
+    assert item["image_url"] == "https://ichef.bbci.co.uk/news/1024/cpsprodpb/x.jpg"
+    item = normalise_article({"title": "T", "link": "https://example.com/x",
+                              "image_url": "https://i.guim.co.uk/img/media/abc/master/1.jpg?width=700&s=deadbeef"})
+    assert item["image_url"] == "https://i.guim.co.uk/img/media/abc/master/1.jpg?width=700&s=deadbeef"
+
+
 # --- Guardian ---
 
 def test_guardian_requests_and_maps_thumbnail():
