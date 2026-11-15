@@ -1,0 +1,54 @@
+Kaivor FP091 — Weather improvements
+==================================
+
+WHAT CHANGED (from the weather proposal assessment, 15 Nov 2026)
+----------------------------------------------------------------
+1. ATTRIBUTION LINK. The Weather view now credits Open-Meteo with a
+   link to open-meteo.com (CC BY 4.0 asks for a link, not just
+   text) and credits the air-quality API too. The status line's
+   plain-text credit stays as well.
+2. AIR QUALITY. Two new cells in the details grid: European AQI
+   (number + label — Good/Fair/Moderate/Poor/Very poor/Extremely
+   poor) and PM2.5 (µg/m³). Data comes from Open-Meteo's
+   air-quality API (free, no key, same service as the forecast).
+   The call runs after the forecast and can never break it: on
+   failure the cells show "—".
+3. SAVED PLACES. The user keeps their own list of up to 10 places
+   in localStorage (kaivor-weather-saved), separate from the
+   automatic recents. A ☆ Save button in the Weather view header
+   saves the current place (★ Saved when it is already saved);
+   tapping a saved place loads its weather. Each saved place can
+   be renamed inline (✎, Enter or tap away to save, Escape to
+   cancel), moved up/down (↑/↓), or removed (✕). Places are
+   identified by coordinates, so two places with the same name
+   stay distinct.
+4. 24-HOUR STRIP + SUMMARY. The hourly strip and the one-line
+   summary ("Dry for the next N hours.") now cover 24 hours
+   (was 12).
+5. 16-DAY OPTION. The daily forecast is fetched as 16 days but
+   shown as 7 by default; a "Show 16 days" toggle reveals the
+   rest without a second fetch. The daily render moved into
+   renderWeatherDays() so the toggle can re-render it.
+
+FILES
+-----
+- templates/index.html (replacement — weather section markup,
+  weather CSS, weather JS)
+- tests/test_weather_improvements_fp091.py (new — 7 tests: node
+  test for the air-quality URL, AQI bands and the saved-place
+  list helpers; template tests for the attribution link, save
+  button, air-quality cells, 24-hour strip and 16-day toggle)
+- tests/test_weather_section_fp073.py (updated — forecast_days
+  7 -> 16, two assertions)
+- tests/test_weather_upgrades_fp074.py (updated — forecast_days
+  7 -> 16, strip/summary 12 -> 24, labels)
+- tests/test_weather_redesign_fp082.py (updated — summary call
+  12 -> 24)
+- CHANGELOG_FP091.txt, README_INSTALL_FP091.txt,
+  BUNDLE_MANIFEST_FP091.txt (new docs)
+
+NOT IN THIS MILESTONE
+---------------------
+UK weather warnings (Met Office DataHub) — needs a free DataHub
+account first; see WEATHER_PROPOSAL_ASSESSMENT.md. Notifications
+are parked (the morning site brief cron covers the need).

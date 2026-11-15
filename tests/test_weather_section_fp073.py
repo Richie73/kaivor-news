@@ -46,7 +46,7 @@ const forecastUrl = buildForecastUrl(53.25332, -3.00877);
 assert.ok(forecastUrl.startsWith('https://api.open-meteo.com/v1/forecast?'));
 assert.ok(forecastUrl.includes('latitude=53.25332'));
 assert.ok(forecastUrl.includes('longitude=-3.00877'));
-assert.ok(forecastUrl.includes('forecast_days=7'));
+assert.ok(forecastUrl.includes('forecast_days=16'));
 const geocodeUrl = buildGeocodeUrl('London');
 assert.ok(geocodeUrl.startsWith('https://geocoding-api.open-meteo.com/v1/search?'));
 assert.ok(geocodeUrl.includes('name=London'));
@@ -99,7 +99,7 @@ def test_open_meteo_endpoints_are_used():
     js = weather_js_block()
     assert "https://api.open-meteo.com/v1/forecast?" in js
     assert "https://geocoding-api.open-meteo.com/v1/search?" in js
-    assert "forecast_days: '7'" in js
+    assert "forecast_days: '16'" in js
     assert "current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day'" in js
     assert "daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'" in js
 

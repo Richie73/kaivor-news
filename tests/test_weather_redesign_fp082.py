@@ -159,7 +159,7 @@ def test_strip_renders_from_the_same_forecast():
     js = weather_js_block()
     assert "stripNowEl.textContent = icon + ' ' + temp + '° ' + info.text" in js
     assert "stripSummaryEl.textContent = summary" in js
-    assert "const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 12)" in js
+    assert "const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 24)" in js
 
 
 def test_days_render_as_list_rows():

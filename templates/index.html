@@ -177,6 +177,21 @@
         .weather-recent { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center; }
         .weather-recent-label { font-size:11px; color:var(--faint); }
         .weather-recent-chip { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:4px 10px; font-size:12px; cursor:pointer; }
+        /* FP091: saved places + days toggle + attribution. */
+        .weather-head-actions { display:flex; gap:6px; align-items:center; }
+        #weather-save-place { background:var(--surface-2); color:var(--text-2); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:4px 10px; font-size:12px; cursor:pointer; }
+        #weather-save-place.saved { color:var(--brand); border-color:var(--btn-border); }
+        .weather-days-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+        #weather-days-toggle { background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-pill); padding:3px 10px; font-size:11px; cursor:pointer; }
+        .weather-saved { margin-top:10px; }
+        .weather-saved-label { font-size:11px; color:var(--faint); display:block; margin-bottom:4px; }
+        .weather-saved-row { display:flex; gap:4px; align-items:center; margin-bottom:4px; }
+        .weather-saved-name { flex:1; text-align:left; background:var(--surface-2); color:var(--green-soft); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:12px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .weather-saved-btn { background:var(--surface-2); color:var(--muted); border:1px solid var(--border); border-radius:var(--radius-sm); padding:5px 8px; font-size:12px; cursor:pointer; }
+        .weather-saved-btn:disabled { opacity:.35; cursor:default; }
+        .weather-saved-input { flex:1; background:var(--surface-3); color:var(--text); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:12px; }
+        .weather-credit { font-size:11px; color:var(--faint); margin:12px 0 0; }
+        .weather-credit a { color:var(--green-soft); text-decoration:none; }
         .btn-group { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         button,.btn-link { background:var(--btn-bg); color:var(--green); border:1px solid var(--btn-border); padding:8px 14px; border-radius:var(--radius-sm); font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
         button:hover,.btn-link:hover { background:var(--btn-border); }
@@ -394,14 +409,17 @@
     <section id="weather-section" class="weather-card" aria-label="Weather" style="display:none">
         <div class="weather-head">
             <div><span id="weather-place" class="weather-place">Puddington, Wirral</span><span id="weather-updated" class="weather-updated"></span></div>
-            <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
+            <div class="weather-head-actions">
+                <button id="weather-save-place" type="button" onclick="toggleSaveWeatherPlace()" title="Save this place">☆ Save</button>
+                <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
+            </div>
         </div>
         <div id="weather-now" class="weather-now"><div class="skeleton skeleton-hero"></div></div>
         <div id="weather-details" class="weather-details"></div>
         <div id="weather-summary" class="weather-summary"></div>
-        <div class="weather-strip-label">Next 12 hours</div>
+        <div class="weather-strip-label">Next 24 hours</div>
         <div id="weather-hourly" class="weather-hourly"></div>
-        <div class="weather-strip-label">7-day forecast</div>
+        <div class="weather-days-head"><span class="weather-strip-label">Forecast</span><button id="weather-days-toggle" type="button" onclick="toggleWeatherDays()">Show 16 days</button></div>
         <div id="weather-days" class="weather-days"></div>
         <div class="weather-search">
             <input type="text" id="weather-search-input" placeholder="Search a place…" autocomplete="off" aria-label="Search for a place">
@@ -409,6 +427,8 @@
         </div>
         <div id="weather-search-results" class="weather-results" aria-live="polite"></div>
         <div id="weather-recent" class="weather-recent"></div>
+        <div id="weather-saved" class="weather-saved"></div>
+        <p class="weather-credit">Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · Air quality by <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener noreferrer">Open-Meteo Air Quality</a></p>
     </section>
 
     <!-- FP086: full Markets view, opened by tapping the Market Watch
@@ -1609,6 +1629,8 @@ const WEATHER_DEFAULT_PLACE = { name: 'Puddington, Wirral', latitude: 53.25332, 
 const WEATHER_RECENT_KEY = 'kaivor-weather-recent';
 const WEATHER_LAST_KEY = 'kaivor-weather-last';
 const WEATHER_MAX_RECENT = 5;
+const WEATHER_SAVED_KEY = 'kaivor-weather-saved';
+const WEATHER_MAX_SAVED = 10;
 
 const WEATHER_CODE_INFO = {
     0: { text: 'Clear sky', icon: '☀️' },
@@ -1667,9 +1689,34 @@ function buildForecastUrl(latitude, longitude) {
         hourly: 'temperature_2m,precipitation_probability,weather_code,is_day',
         daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
         timezone: 'auto',
-        forecast_days: '7'
+        forecast_days: '16'
     });
     return 'https://api.open-meteo.com/v1/forecast?' + params.toString();
+}
+
+// FP091: air quality comes from Open-Meteo's separate air-quality API
+// (same service, also free with no key). European AQI + PM2.5/PM10.
+function buildAirQualityUrl(latitude, longitude) {
+    const params = new URLSearchParams({
+        latitude: String(latitude),
+        longitude: String(longitude),
+        current: 'european_aqi,pm2_5,pm10'
+    });
+    return 'https://air-quality-api.open-meteo.com/v1/air-quality?' + params.toString();
+}
+
+// FP091: European AQI bands — 0-20 Good, 20-40 Fair, 40-60 Moderate,
+// 60-80 Poor, 80-100 Very poor, 100+ Extremely poor.
+function aqiLabel(aqi) {
+    if (aqi === null || aqi === undefined || aqi === '') return '';
+    const value = Number(aqi);
+    if (isNaN(value)) return '';
+    if (value < 20) return 'Good';
+    if (value < 40) return 'Fair';
+    if (value < 60) return 'Moderate';
+    if (value < 80) return 'Poor';
+    if (value < 100) return 'Very poor';
+    return 'Extremely poor';
 }
 
 function buildGeocodeUrl(query) {
@@ -1760,6 +1807,182 @@ function weatherLastPlace() {
     }
 }
 
+// FP091: saved places — the user's own list, managed by hand (unlike
+// recents, which are automatic). A place is identified by its
+// coordinates, so two places with the same name stay distinct.
+// The list helpers are pure (no DOM) so the node test can run them.
+function weatherSavedPlaceKey(place) {
+    return String(place.latitude) + ',' + String(place.longitude);
+}
+
+function addSavedPlace(saved, place, max) {
+    const key = weatherSavedPlaceKey(place);
+    const rest = saved.filter(item => weatherSavedPlaceKey(item) !== key);
+    rest.unshift({ name: place.name, latitude: place.latitude, longitude: place.longitude });
+    return rest.slice(0, max || WEATHER_MAX_SAVED);
+}
+
+function removeSavedPlace(saved, key) {
+    return saved.filter(item => weatherSavedPlaceKey(item) !== key);
+}
+
+function renameSavedPlace(saved, key, newName) {
+    const name = String(newName || '').trim();
+    if (!name) return saved;
+    return saved.map(item => weatherSavedPlaceKey(item) === key
+        ? { name: name, latitude: item.latitude, longitude: item.longitude }
+        : item);
+}
+
+function moveSavedPlace(saved, key, direction) {
+    const index = saved.findIndex(item => weatherSavedPlaceKey(item) === key);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= saved.length) return saved;
+    const next = saved.slice();
+    next[index] = saved[target];
+    next[target] = saved[index];
+    return next;
+}
+
+function weatherSavedPlaces() {
+    try {
+        const raw = localStorage.getItem(WEATHER_SAVED_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(place => place && place.name
+            && typeof place.latitude === 'number' && typeof place.longitude === 'number');
+    } catch (error) {
+        return [];
+    }
+}
+
+function weatherStoreSavedPlaces(saved) {
+    try {
+        localStorage.setItem(WEATHER_SAVED_KEY, JSON.stringify(saved));
+    } catch (error) {
+        // Storage unavailable — the list just does not persist.
+    }
+}
+
+function isWeatherPlaceSaved(place) {
+    if (!place) return false;
+    const key = weatherSavedPlaceKey(place);
+    return weatherSavedPlaces().some(item => weatherSavedPlaceKey(item) === key);
+}
+
+function updateSaveWeatherPlaceButton() {
+    const button = document.getElementById('weather-save-place');
+    if (!button) return;
+    if (isWeatherPlaceSaved(weatherCurrentPlace)) {
+        button.textContent = '★ Saved';
+        button.classList.add('saved');
+        button.title = 'Remove this place from saved places';
+    } else {
+        button.textContent = '☆ Save';
+        button.classList.remove('saved');
+        button.title = 'Save this place';
+    }
+}
+
+function toggleSaveWeatherPlace() {
+    if (!weatherCurrentPlace) return;
+    const key = weatherSavedPlaceKey(weatherCurrentPlace);
+    if (isWeatherPlaceSaved(weatherCurrentPlace)) {
+        weatherStoreSavedPlaces(removeSavedPlace(weatherSavedPlaces(), key));
+    } else {
+        weatherStoreSavedPlaces(addSavedPlace(weatherSavedPlaces(), weatherCurrentPlace));
+    }
+    updateSaveWeatherPlaceButton();
+    renderSavedPlaces();
+}
+
+function renderSavedPlaces() {
+    const container = document.getElementById('weather-saved');
+    if (!container) return;
+    const saved = weatherSavedPlaces();
+    container.innerHTML = '';
+    if (!saved.length) return;
+    const label = document.createElement('span');
+    label.className = 'weather-saved-label';
+    label.textContent = 'Saved places:';
+    container.appendChild(label);
+    saved.forEach((place, index) => {
+        const key = weatherSavedPlaceKey(place);
+        const row = document.createElement('div');
+        row.className = 'weather-saved-row';
+        const nameButton = document.createElement('button');
+        nameButton.type = 'button';
+        nameButton.className = 'weather-saved-name';
+        nameButton.textContent = place.name;
+        nameButton.addEventListener('click', () => loadWeather(place));
+        row.appendChild(nameButton);
+        const upButton = document.createElement('button');
+        upButton.type = 'button';
+        upButton.className = 'weather-saved-btn';
+        upButton.textContent = '↑';
+        upButton.title = 'Move up';
+        upButton.disabled = index === 0;
+        upButton.addEventListener('click', () => {
+            weatherStoreSavedPlaces(moveSavedPlace(weatherSavedPlaces(), key, -1));
+            renderSavedPlaces();
+        });
+        row.appendChild(upButton);
+        const downButton = document.createElement('button');
+        downButton.type = 'button';
+        downButton.className = 'weather-saved-btn';
+        downButton.textContent = '↓';
+        downButton.title = 'Move down';
+        downButton.disabled = index === saved.length - 1;
+        downButton.addEventListener('click', () => {
+            weatherStoreSavedPlaces(moveSavedPlace(weatherSavedPlaces(), key, 1));
+            renderSavedPlaces();
+        });
+        row.appendChild(downButton);
+        const renameButton = document.createElement('button');
+        renameButton.type = 'button';
+        renameButton.className = 'weather-saved-btn';
+        renameButton.textContent = '✎';
+        renameButton.title = 'Rename';
+        renameButton.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'weather-saved-input';
+            input.value = place.name;
+            input.setAttribute('aria-label', 'Rename saved place');
+            let done = false;
+            const finish = save => {
+                if (done) return;
+                done = true;
+                if (save) {
+                    weatherStoreSavedPlaces(renameSavedPlace(weatherSavedPlaces(), key, input.value));
+                }
+                renderSavedPlaces();
+            };
+            input.addEventListener('keydown', event => {
+                if (event.key === 'Enter') finish(true);
+                if (event.key === 'Escape') finish(false);
+            });
+            input.addEventListener('blur', () => finish(true));
+            row.replaceChild(input, nameButton);
+            input.focus();
+            input.select();
+        });
+        row.appendChild(renameButton);
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'weather-saved-btn';
+        removeButton.textContent = '✕';
+        removeButton.title = 'Remove from saved places';
+        removeButton.addEventListener('click', () => {
+            weatherStoreSavedPlaces(removeSavedPlace(weatherSavedPlaces(), key));
+            updateSaveWeatherPlaceButton();
+            renderSavedPlaces();
+        });
+        row.appendChild(removeButton);
+        container.appendChild(row);
+    });
+}
+
 function renderRecentPlaces() {
     const container = document.getElementById('weather-recent');
     if (!container) return;
@@ -1803,6 +2026,8 @@ async function loadWeather(place) {
     if (stripNowEl) stripNowEl.innerHTML = '<span class="skeleton skeleton-inline"></span>';
     if (stripSummaryEl) stripSummaryEl.textContent = '';
     renderRecentPlaces();
+    renderSavedPlaces();
+    updateSaveWeatherPlaceButton();
     try {
         const response = await fetch(buildForecastUrl(place.latitude, place.longitude));
         if (!response.ok) throw new Error('forecast request failed: ' + response.status);
@@ -1810,10 +2035,70 @@ async function loadWeather(place) {
         renderWeather(place, data);
         weatherRememberPlace(place);
         renderRecentPlaces();
+        // Air quality is a separate call and must never break the
+        // forecast: it runs after, with its own error handling.
+        loadAirQuality(place);
     } catch (error) {
         if (nowEl) nowEl.textContent = 'Weather unavailable — check your connection and try again.';
         if (stripNowEl) stripNowEl.textContent = 'Weather unavailable.';
     }
+}
+
+// FP091: air quality for the current place. The details grid already
+// holds two cells for it (written by renderWeather); this fills them
+// in when the call returns, or dashes them on failure.
+async function loadAirQuality(place) {
+    const aqiEl = document.getElementById('weather-aqi-value');
+    const pmEl = document.getElementById('weather-pm25-value');
+    try {
+        const response = await fetch(buildAirQualityUrl(place.latitude, place.longitude));
+        if (!response.ok) throw new Error('air quality request failed: ' + response.status);
+        const data = await response.json();
+        const current = data && data.current ? data.current : {};
+        if (aqiEl) {
+            const aqi = current.european_aqi;
+            aqiEl.textContent = (typeof aqi === 'number')
+                ? Math.round(aqi) + ' · ' + aqiLabel(aqi) : '—';
+        }
+        if (pmEl) {
+            const pm25 = current.pm2_5;
+            pmEl.textContent = (typeof pm25 === 'number')
+                ? Math.round(pm25 * 10) / 10 + ' µg/m³' : '—';
+        }
+    } catch (error) {
+        if (aqiEl) aqiEl.textContent = '—';
+        if (pmEl) pmEl.textContent = '—';
+    }
+}
+
+// FP091: the daily forecast is fetched as 16 days but shown as 7 by
+// default; the toggle reveals the rest without a second fetch.
+let weatherLastDaily = null;
+let weatherShowAllDays = false;
+
+function renderWeatherDays() {
+    const daysEl = document.getElementById('weather-days');
+    if (!daysEl || !weatherLastDaily || !Array.isArray(weatherLastDaily.time)) return;
+    const count = weatherShowAllDays ? weatherLastDaily.time.length : Math.min(7, weatherLastDaily.time.length);
+    const days = weatherLastDaily.time.slice(0, count).map((isoDate, index) => {
+        const dayInfo = weatherCodeInfo(weatherLastDaily.weather_code[index]);
+        const max = Math.round(Number(weatherLastDaily.temperature_2m_max[index]));
+        const min = Math.round(Number(weatherLastDaily.temperature_2m_min[index]));
+        const rainChance = weatherLastDaily.precipitation_probability_max
+            ? Math.round(Number(weatherLastDaily.precipitation_probability_max[index])) : null;
+        return '<div class="weather-day-row"><span class="weather-day-row-name">' + dayLabel(isoDate, index) + '</span>' +
+            '<span class="weather-day-row-icon">' + dayInfo.icon + '</span>' +
+            '<span class="weather-day-row-rain">' + (rainChance === null ? '' : '💧 ' + rainChance + '%') + '</span>' +
+            '<span class="weather-day-row-temp">' + max + '° / ' + min + '°</span></div>';
+    }).join('');
+    daysEl.innerHTML = days;
+    const toggle = document.getElementById('weather-days-toggle');
+    if (toggle) toggle.textContent = weatherShowAllDays ? 'Show 7 days' : 'Show 16 days';
+}
+
+function toggleWeatherDays() {
+    weatherShowAllDays = !weatherShowAllDays;
+    renderWeatherDays();
 }
 
 function renderWeather(place, data) {
@@ -1852,7 +2137,9 @@ function renderWeather(place, data) {
             '<div class="weather-detail"><div class="weather-detail-label">Wind</div><div class="weather-detail-value">' + windSpeed + ' km/h ' + windDir + (gusts !== null ? ' (gusts ' + gusts + ')' : '') + '</div></div>' +
             '<div class="weather-detail"><div class="weather-detail-label">Humidity</div><div class="weather-detail-value">' + humidity + '%</div></div>' +
             '<div class="weather-detail"><div class="weather-detail-label">Rain</div><div class="weather-detail-value">' + rain + ' mm</div></div>' +
-            '<div class="weather-detail"><div class="weather-detail-label">Sun</div><div class="weather-detail-value">' + (sunrise && sunset ? '↑ ' + sunrise + ' · ↓ ' + sunset : '—') + '</div></div>';
+            '<div class="weather-detail"><div class="weather-detail-label">Sun</div><div class="weather-detail-value">' + (sunrise && sunset ? '↑ ' + sunrise + ' · ↓ ' + sunset : '—') + '</div></div>' +
+            '<div class="weather-detail"><div class="weather-detail-label">Air quality</div><div class="weather-detail-value" id="weather-aqi-value">…</div></div>' +
+            '<div class="weather-detail"><div class="weather-detail-label">PM2.5</div><div class="weather-detail-value" id="weather-pm25-value">…</div></div>';
     }
     if (stripNowEl) stripNowEl.textContent = icon + ' ' + temp + '° ' + info.text;
     if (updatedEl && current.time) {
@@ -1860,11 +2147,11 @@ function renderWeather(place, data) {
     }
     if (data.hourly && Array.isArray(data.hourly.time) && data.hourly.precipitation_probability) {
         const start = hourlyStartIndex(data.hourly.time, current.time);
-        const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 12);
+        const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 24);
         if (summaryEl) summaryEl.textContent = summary;
         if (stripSummaryEl) stripSummaryEl.textContent = summary;
         if (hourlyEl) {
-            const hours = data.hourly.time.slice(start, start + 12).map((isoTime, offset) => {
+            const hours = data.hourly.time.slice(start, start + 24).map((isoTime, offset) => {
                 const index = start + offset;
                 const hourIsDay = data.hourly.is_day ? data.hourly.is_day[index] : 1;
                 const hourIcon = weatherIcon(data.hourly.weather_code[index], hourIsDay);
@@ -1880,18 +2167,8 @@ function renderWeather(place, data) {
         }
     }
     if (daysEl && data.daily && Array.isArray(data.daily.time)) {
-        const days = data.daily.time.map((isoDate, index) => {
-            const dayInfo = weatherCodeInfo(data.daily.weather_code[index]);
-            const max = Math.round(Number(data.daily.temperature_2m_max[index]));
-            const min = Math.round(Number(data.daily.temperature_2m_min[index]));
-            const rainChance = data.daily.precipitation_probability_max
-                ? Math.round(Number(data.daily.precipitation_probability_max[index])) : null;
-            return '<div class="weather-day-row"><span class="weather-day-row-name">' + dayLabel(isoDate, index) + '</span>' +
-                '<span class="weather-day-row-icon">' + dayInfo.icon + '</span>' +
-                '<span class="weather-day-row-rain">' + (rainChance === null ? '' : '💧 ' + rainChance + '%') + '</span>' +
-                '<span class="weather-day-row-temp">' + max + '° / ' + min + '°</span></div>';
-        }).join('');
-        daysEl.innerHTML = days;
+        weatherLastDaily = data.daily;
+        renderWeatherDays();
     }
 }
 
