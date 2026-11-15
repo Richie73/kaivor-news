@@ -76,6 +76,19 @@ def test_keywords_from_headline():
     ) == ["AI", "beats", "humans", "chess"]
 
 
+def test_keywords_two_letter_allowlist():
+    # FP089.4: most two-letter words are ambiguous ("AD" is an
+    # Athletic Director in a headline and an advertisement in a
+    # photo tag; "PM" is a Prime Minister or an afternoon), so
+    # only the six unambiguous ones survive as keywords.
+    assert stock_images.keywords_from_headline(
+        "AD says Utah coach stays"
+    ) == ["Utah", "coach", "stays"]
+    assert stock_images.keywords_from_headline(
+        "PM meets EU leaders in Brussels"
+    ) == ["meets", "EU", "leaders", "Brussels"]
+
+
 def test_distinctive_words_drops_generic():
     # The two FP089.2 live-check failures: the generic words drove
     # both the fetch and the match, so they are dropped entirely.
@@ -436,6 +449,45 @@ def test_score_acronym_alone_fails():
             "tags": [{"name": "nfl"}]}
     assert stock_images._image_passes(
         item, ["Patriots", "Lions", "Munich"], "Sport") is False
+
+
+MURAL_ITEM = {
+    "url": "https://images.example.com/mural.jpg",
+    "title": "Levi's Ad, Utah",
+    "creator": "joguldi",
+    "license": "by",
+    "license_version": "2.0",
+    "tags": [{"name": "landscape"}],
+}
+
+TORCH_ITEM = {
+    "url": "https://images.example.com/torch.jpg",
+    "title": "Olympic Torch, Provo, Utah, 2002 Winter Olympics",
+    "creator": "Ken Lund",
+    "license": "by",
+    "license_version": "2.0",
+    "tags": [{"name": "2002"}, {"name": "2002olympics"},
+             {"name": "olympics"}, {"name": "olympictorch"},
+             {"name": "provo"}, {"name": "torch"},
+             {"name": "utah"}],
+}
+
+
+def test_score_rejects_mural_picks_torch():
+    # The one FP089.3 live-check failure: the mural is titled
+    # "Levi's Ad, Utah" — "ad" (advertisement) plus "utah" gave it
+    # two keyword hits for a Utah football story, where "AD" meant
+    # Athletic Director. With "AD" dropped, the mural has one
+    # keyword and no sport word, so it fails, and the Olympic
+    # torch photo (keyword "utah" plus category word "olympic")
+    # wins instead.
+    payload = {"result_count": 2, "results": [MURAL_ITEM, TORCH_ITEM]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)):
+        result = stock_images.get_stock_image(
+            "Coaches under pressure, fiery AD statements and Utah "
+            "comes up clutch in Week 11", "Sport")
+    assert result["url"] == "https://images.example.com/torch.jpg"
 
 
 def test_route_passes_category():

@@ -1,0 +1,43 @@
+Kaivor FP089.4 — Stock photos: two-letter keywords allowlisted
+================================================================
+
+WHAT CHANGED (found in FP089.3's live check, 15 Nov 2026)
+---------------------------------------------------------
+FP089.3's live check found 7 of 8 illustrative photos on-topic
+and both named failures fixed (screwdriver story: screwdriver
+photo; NHL story: hockey photo). One fail remained: a Levi's
+wall mural on "Coaches under pressure, fiery AD statements and
+Utah comes up clutch in Week 11".
+
+DIAGNOSIS (verified against the live endpoint and Openverse)
+-----------------------------------------------------------
+The mural is titled "Levi's Ad, Utah". "AD" in the headline
+means Athletic Director; "ad" in the photo's title means
+advertisement. "ad" plus "utah" gave the mural two keyword
+hits, which passes the Sport gate. A two-letter homonym
+collision — the same class of problem as "PM" (Prime Minister
+or afternoon) and "MP" (Member of Parliament or megapixels).
+
+HOW IT WORKS NOW
+----------------
+Two-letter words only count as keywords when they are in the
+allowlist _TWO_LETTER_KEYWORDS: AI, UK, US, TV, EU, UN. Every
+other two-letter word is dropped from the queries and the
+scoring. (FP089.3 had let all two-letter words through.)
+
+LIVE DRY-RUN (working copy against the real Openverse, 15 Nov)
+--------------------------------------------------------------
+The Utah story now gets NO PHOTO: the top results for "Utah"
+are Salt Lake City and St. George scenery, correctly rejected
+by the Sport gate (one keyword, no sport word). The mocked
+test proves an Olympic torch photo in Utah would win when it
+appears in a fetched page (keyword "utah" plus category word
+"olympic").
+
+FILES
+-----
+- stock_images.py (replacement — two-letter allowlist)
+- tests/test_stock_images_fp089.py (replacement — 2 new tests:
+  two-letter allowlist; mural rejected, torch picked)
+- CHANGELOG_FP0894.txt, README_INSTALL_FP0894.txt,
+  BUNDLE_MANIFEST_FP0894.txt (new docs)

@@ -145,6 +145,15 @@ _STOPWORDS = frozenset({
     "one", "two", "first", "go", "up", "do", "so", "no",
 })
 
+# Two-letter words that are safe to search and score on. Most
+# two-letter words are ambiguous ("AD" is an Athletic Director in a
+# headline and an advertisement in a photo tag — a Levi's mural
+# titled "Levi's Ad, Utah" matched a Utah football story on "ad"
+# plus "utah" in FP089.3's live check; "PM" is a Prime Minister
+# or an afternoon, "MP" is a Member of Parliament or megapixels).
+# Only these six are unambiguous enough to keep.
+_TWO_LETTER_KEYWORDS = frozenset({"ai", "uk", "us", "tv", "eu", "un"})
+
 _LICENSE_LABELS = {
     "by": "CC BY",
     "by-sa": "CC BY-SA",
@@ -167,13 +176,17 @@ def keywords_from_headline(title):
 
     Leading/trailing quote marks are stripped ("here'" from a quoted
     headline becomes "here"); internal apostrophes stay ("We've").
-    Two-letter words count (FP089.3): AI, UK, US and TV are
-    distinctive, and the two-letter junk ("go", "up", "do", "so",
-    "no") is in _STOPWORDS.
+    Two-letter words count only when they are in
+    _TWO_LETTER_KEYWORDS (FP089.4): most are ambiguous ("AD" is an
+    Athletic Director in a headline and an advertisement in a photo
+    tag), so only AI, UK, US, TV, EU and UN survive.
     """
     words = re.findall(r"[A-Za-z][A-Za-z\-']+", str(title or ""))
     cleaned = [w.strip("'") for w in words]
-    return [w for w in cleaned if len(w) >= 2 and w.lower() not in _STOPWORDS]
+    return [w for w in cleaned
+            if len(w) >= 2
+            and w.lower() not in _STOPWORDS
+            and (len(w) > 2 or w.lower() in _TWO_LETTER_KEYWORDS)]
 
 
 def _distinctive_words(words):
