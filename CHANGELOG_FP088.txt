@@ -1,0 +1,41 @@
+Kaivor FP088 — Loading states: skeleton screens
+==============================================
+
+WHAT CHANGED (second of the polish pass)
+----------------------------------------
+1. NEWS. When the page loads with no stories — the cache is empty
+   right after a deploy — the feed used to be blank until someone
+   reloaded. Now three skeleton cards (shimmering grey shapes in
+   the card layout, image block 16:9) show with a "Loading the
+   latest stories…" note, and a small poll checks /api/health
+   every 10 seconds and reloads the page as soon as stories
+   exist. After 30 tries (5 minutes) it stops and the note says
+   to reload by hand. The poll only runs when skeleton cards are
+   on the page, so normal loads are untouched.
+2. WEATHER. The strip and the full-view hero show skeleton shimmer
+   while the forecast loads, instead of "Loading weather…" text.
+   The error message ("Weather unavailable…") is unchanged.
+3. MARKETS. The view opens with four skeleton rows instead of the
+   "Loading market history…" line.
+4. The shimmer is disabled under prefers-reduced-motion (added to
+   the FP083 reduced-motion list).
+
+TECHNICAL
+---------
+- templates/index.html only (CSS + markup + one poll script).
+  No Python, no new routes, no keys, no cost.
+- The news poll uses the existing open GET /api/health
+  (news_count). The page load itself already triggers the
+  background refresh when the cache is empty, so the poll just
+  waits for it to finish.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_loading_skeletons_fp088.py (new, 6 tests)
+- tests/test_logo_splash_fp083.py (replacement — reduced-motion
+  assertion gains .skeleton)
+- tests/test_settings_fp085.py (replacement — same reduced-motion
+  assertion gains .skeleton)
+- CHANGELOG_FP088.txt, README_INSTALL_FP088.txt,
+  BUNDLE_MANIFEST_FP088.txt (new docs)

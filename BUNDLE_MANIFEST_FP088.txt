@@ -1,0 +1,20 @@
+Kaivor FP088 bundle manifest
+
+REPLACEMENT:
+- templates/index.html
+- tests/test_logo_splash_fp083.py
+- tests/test_settings_fp085.py
+
+NEW:
+- tests/test_loading_skeletons_fp088.py
+- README_INSTALL_FP088.txt
+- CHANGELOG_FP088.txt
+- BUNDLE_MANIFEST_FP088.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

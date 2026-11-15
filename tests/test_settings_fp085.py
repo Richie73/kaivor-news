@@ -92,7 +92,7 @@ def test_splash_has_the_shine_animation():
     assert 'class="splash-logo-wrap"' in html
     assert 'class="splash-shine"' in html
     assert "@keyframes splash-shine" in html
-    assert ".splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine { animation:none; }" in html
+    assert ".splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine, .skeleton { animation:none; }" in html
     assert 'class="splash-logo"' in html
 
 

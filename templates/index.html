@@ -70,6 +70,16 @@
         .card-source { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
         .card-source .source-name { margin-bottom:0; }
         .published { font-size:11px; color:#6b7280; margin-bottom:8px; }
+        .skeleton { background:linear-gradient(90deg,#1f1f23 25%,#2a2a2e 50%,#1f1f23 75%); background-size:200% 100%; animation:skeleton-shimmer 1.4s linear infinite; border-radius:8px; }
+        @keyframes skeleton-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+        .skeleton-line { height:12px; margin-bottom:8px; }
+        .skeleton-line-short { width:40%; }
+        .skeleton-line-long { width:85%; }
+        .skeleton-image { aspect-ratio:16/9; margin-bottom:8px; }
+        .skeleton-hero { height:64px; margin-bottom:8px; }
+        .skeleton-row { height:44px; margin-bottom:8px; }
+        .skeleton-inline { display:inline-block; width:90px; height:12px; margin-bottom:0; vertical-align:middle; }
+        .skeleton-note { color:#9ca3af; font-size:12px; margin:0 0 14px; }
         .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
         .chat-msg { padding:10px 12px; border-radius:12px; font-size:14px; line-height:1.5; max-width:88%; }
         .chat-msg.user { align-self:flex-end; background:#14532d; color:#f3f4f6; }
@@ -275,7 +285,7 @@
         @media (prefers-reduced-motion: reduce) {
             html:focus-within { scroll-behavior: auto; }
             #splash { transition:none; }
-            .splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine { animation:none; }
+            .splash-logo, .splash-word, .splash-tag, .splash-bar, .splash-bar span, .splash-shine, .skeleton { animation:none; }
         }
 
         /* FP083: splash screen (logo + loading bar on app open). */
@@ -354,7 +364,7 @@
          recent places. -->
     <button id="weather-strip" type="button" class="weather-strip" onclick="showWeather(document.getElementById('nav-weather'))" aria-label="Open the full weather forecast">
         <span id="weather-strip-place" class="weather-strip-place">Puddington, Wirral</span>
-        <span id="weather-strip-now" class="weather-strip-now">Loading weather…</span>
+        <span id="weather-strip-now" class="weather-strip-now"><span class="skeleton skeleton-inline"></span></span>
         <span id="weather-strip-summary" class="weather-strip-summary"></span>
         <span class="weather-strip-open">›</span>
     </button>
@@ -363,7 +373,7 @@
             <div><span id="weather-place" class="weather-place">Puddington, Wirral</span><span id="weather-updated" class="weather-updated"></span></div>
             <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
         </div>
-        <div id="weather-now" class="weather-now">Loading weather…</div>
+        <div id="weather-now" class="weather-now"><div class="skeleton skeleton-hero"></div></div>
         <div id="weather-details" class="weather-details"></div>
         <div id="weather-summary" class="weather-summary"></div>
         <div class="weather-strip-label">Next 12 hours</div>
@@ -388,7 +398,7 @@
             <div><span class="weather-place">Markets</span><span id="markets-updated" class="weather-updated"></span></div>
             <button type="button" onclick="refreshMarketsFromView()">↻ Refresh</button>
         </div>
-        <div id="markets-list"><p class="evidence-note">Loading market history…</p></div>
+        <div id="markets-list"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>
         <p class="evidence-note">Prices from Yahoo Finance and Frankfurter. History covers the last five trading days.</p>
     </section>
 
@@ -438,6 +448,12 @@
             <div class="ai-drawer" data-drawer="ask"></div>
         </div>
     {% endfor %}
+    {% if not articles %}
+        <div class="card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-line skeleton-line-short"></div><div class="skeleton skeleton-image"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line skeleton-line-long"></div></div>
+        <div class="card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-line skeleton-line-short"></div><div class="skeleton skeleton-image"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line skeleton-line-long"></div></div>
+        <div class="card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-line skeleton-line-short"></div><div class="skeleton skeleton-image"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line skeleton-line-long"></div></div>
+        <p id="skeleton-note" class="skeleton-note">Loading the latest stories…</p>
+    {% endif %}
     </div>
 </div>
 
@@ -694,6 +710,26 @@ function cacheNewsContainer() {
     cachedNewsHtml = container.innerHTML;
     newsViewReplaced = true;
 }
+// FP088 SKELETONS: when the page loads with no stories (the news
+// cache is empty, e.g. right after a deploy), skeleton cards show
+// and this poll reloads the page as soon as stories exist.
+(function pollNewsReady() {
+    if (!document.querySelector('.skeleton-card')) return;
+    let attempts = 0;
+    const timer = setInterval(async () => {
+        attempts += 1;
+        try {
+            const res = await fetch('/api/health', {cache:'no-store'});
+            const data = await res.json();
+            if (data.news_count > 0) { clearInterval(timer); location.reload(); return; }
+        } catch (e) { /* try again next round */ }
+        if (attempts >= 30) {
+            clearInterval(timer);
+            const note = document.getElementById('skeleton-note');
+            if (note) note.textContent = 'Stories are taking a while — reload the page to try again.';
+        }
+    }, 10000);
+})();
 function restoreNewsContainer() {
     if (!newsViewReplaced) return true;
     const container = document.getElementById('articles-container');
@@ -1674,14 +1710,14 @@ async function loadWeather(place) {
     const stripNowEl = document.getElementById('weather-strip-now');
     const stripSummaryEl = document.getElementById('weather-strip-summary');
     if (placeEl) placeEl.textContent = place.name;
-    if (nowEl) nowEl.textContent = 'Loading weather…';
+    if (nowEl) nowEl.innerHTML = '<div class="skeleton skeleton-hero"></div>';
     if (detailsEl) detailsEl.innerHTML = '';
     if (summaryEl) summaryEl.textContent = '';
     if (hourlyEl) hourlyEl.innerHTML = '';
     if (daysEl) daysEl.innerHTML = '';
     if (updatedEl) updatedEl.textContent = '';
     if (stripPlaceEl) stripPlaceEl.textContent = place.name;
-    if (stripNowEl) stripNowEl.textContent = 'Loading weather…';
+    if (stripNowEl) stripNowEl.innerHTML = '<span class="skeleton skeleton-inline"></span>';
     if (stripSummaryEl) stripSummaryEl.textContent = '';
     renderRecentPlaces();
     try {
