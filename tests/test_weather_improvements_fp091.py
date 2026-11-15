@@ -155,7 +155,7 @@ def test_24_hour_strip_and_16_day_toggle():
     assert 'Next 24 hours' in html
     assert 'id="weather-days-toggle"' in html
     assert 'onclick="toggleWeatherDays()"' in html
-    assert 'Show 16 days' in html
+    assert 'Show all days' in html
     assert 'data.hourly.time.slice(start, start + 24)' in js
     assert 'weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 24)' in js
     assert "forecast_days: '16'" in js

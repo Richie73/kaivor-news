@@ -32,14 +32,47 @@ _STOCK_FAILURE_TTL_SECONDS = 60
 _MISSING = object()
 
 # Words that pass the stopword filter but are too generic to prove
-# a photo matches its headline ("new" would match any photo of New
-# York; "way" matches almost anything).
+# a photo matches its headline. The FP089.2 live check (15 Nov 2026)
+# showed why each group is here: a boxer photo tagged "black",
+# "friday" and "pro" matched a Black Friday screwdriver story, and
+# a TV cartoon titled "What are you watching tonight: Sunday show,
+# NFL or #Emmys?" matched an NHL story on "tonight" and "sunday".
 _SCORING_EXCLUDE = frozenset({
+    # Days of the week and time words.
+    "monday", "tuesday", "wednesday", "thursday", "friday",
+    "saturday", "sunday", "today", "tomorrow", "yesterday",
+    "tonight", "weekend", "morning", "evening", "night",
+    "daily", "weekly",
+    # Colours: a black-and-white photo is not a photo about "black".
+    "black", "white", "red", "blue", "green", "yellow", "orange",
+    "purple", "pink", "brown", "grey", "gray",
+    # Number words.
+    "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten",
+    # Weak verbs and fillers.
     "new", "news", "year", "years", "week", "time", "first", "last",
     "next", "back", "more", "way", "top", "find", "finding",
     "finds", "found", "make", "makes", "take", "takes", "get",
     "gets", "got", "set", "put", "say", "says", "said", "man",
-    "woman", "people", "person",
+    "woman", "people", "person", "pro", "off", "run", "run-up",
+    "follow", "live", "face", "here", "there", "watch", "show",
+    "shows", "look", "see", "sees", "come", "comes", "going",
+    "goes",
+})
+
+# Words dropped from the SEARCH queries as well as the scoring.
+# "new" is the exception: it is too weak to score on (any photo of
+# New York would match), but dropping it from queries would break
+# "New Zealand" and "New York" — "Wales Zealand" is a worse query
+# than "Wales New Zealand".
+_QUERY_EXCLUDE = _SCORING_EXCLUDE - {"new"}
+# title or tag proves little on its own — the NHL cartoon passed
+# FP089.2 because its title mentioned "NFL" as one TV option among
+# several — so an acronym-only category match needs a keyword
+# match alongside it (see _image_passes).
+_CATEGORY_ACRONYMS = frozenset({
+    "nfl", "nba", "mlb", "nhl", "fifa", "uefa", "ufc", "mma",
+    "ai", "nasa", "dna",
 })
 
 # FP089.2: topical words per news category. For a gated category a
@@ -47,35 +80,41 @@ _SCORING_EXCLUDE = frozenset({
 # headline keywords — one keyword alone is not enough (a lion in
 # Egypt is not the Detroit Lions). World, UK and Culture are too
 # broad to gate, so they need one keyword match only.
+# FP089.3: words that are common in unrelated photo tags are pruned
+# ("digital" is on half of Flickr, "cloud" is on sky photos, "game"
+# is on video games and board games, "cup"/"belt"/"ring" are on
+# kitchenware and jewellery, "star" is on celebrities).
 _CATEGORY_WORDS = {
     "Sport": {
         "football", "soccer", "rugby", "cricket", "tennis", "golf",
         "hockey", "baseball", "basketball", "boxing", "ufc", "mma",
-        "wrestling", "stadium", "match", "game", "player", "team",
-        "ball", "sport", "athlete", "championship", "league", "cup",
+        "wrestling", "stadium", "match", "player", "team",
+        "ball", "sport", "athlete", "championship", "league",
         "goal", "race", "racing", "olympic", "medal", "coach",
-        "club", "pitch", "court", "ring", "belt", "trophy",
+        "club", "pitch", "court", "trophy",
         "score", "season", "draft", "quarterback", "touchdown",
-        "nfl", "nba", "mlb", "nhl", "fifa", "uefa",
+        "nfl", "nba", "mlb", "nhl", "fifa", "uefa", "tournament",
     },
     "Technology": {
         "computer", "phone", "smartphone", "software", "hardware",
-        "robot", "artificial", "intelligence", "tech", "digital",
+        "robot", "artificial", "intelligence", "tech",
         "screen", "code", "app", "internet", "data", "cyber",
         "chip", "device", "gadget", "laptop", "tablet", "network",
-        "cloud", "algorithm", "machine", "learning", "electric",
-        "battery", "drone", "satellite", "ai",
+        "algorithm", "learning", "electric",
+        "battery", "drone", "satellite", "ai", "computing",
+        "server", "servers",
     },
     "Android": {
         "computer", "phone", "smartphone", "software", "hardware",
-        "robot", "artificial", "intelligence", "tech", "digital",
+        "robot", "artificial", "intelligence", "tech",
         "screen", "code", "app", "internet", "data", "cyber",
         "chip", "device", "gadget", "laptop", "tablet", "network",
-        "cloud", "algorithm", "machine", "learning", "electric",
+        "algorithm", "learning", "electric",
         "battery", "drone", "satellite", "ai", "android",
+        "computing", "server", "servers",
     },
     "Science": {
-        "science", "space", "planet", "star", "research", "lab",
+        "science", "space", "planet", "research", "lab",
         "laboratory", "experiment", "scientist", "nature",
         "animal", "bird", "fish", "plant", "tree", "forest",
         "ocean", "sea", "climate", "weather", "earth", "moon",
@@ -103,7 +142,7 @@ _STOPWORDS = frozenset({
     "it", "its", "he", "she", "they", "his", "her", "their",
     "this", "that", "these", "those", "what", "when", "where",
     "who", "why", "how", "not", "but", "says", "said",
-    "one", "two", "first",
+    "one", "two", "first", "go", "up", "do", "so", "no",
 })
 
 _LICENSE_LABELS = {
@@ -128,10 +167,27 @@ def keywords_from_headline(title):
 
     Leading/trailing quote marks are stripped ("here'" from a quoted
     headline becomes "here"); internal apostrophes stay ("We've").
+    Two-letter words count (FP089.3): AI, UK, US and TV are
+    distinctive, and the two-letter junk ("go", "up", "do", "so",
+    "no") is in _STOPWORDS.
     """
     words = re.findall(r"[A-Za-z][A-Za-z\-']+", str(title or ""))
     cleaned = [w.strip("'") for w in words]
-    return [w for w in cleaned if len(w) >= 3 and w.lower() not in _STOPWORDS]
+    return [w for w in cleaned if len(w) >= 2 and w.lower() not in _STOPWORDS]
+
+
+def _distinctive_words(words):
+    """Words worth searching for and scoring on: everything the
+    query exclusion list drops is too generic to prove a photo
+    matches (a photo tagged "friday" is not a photo about the
+    story). Possessives are normalised first ("Sunday's" is the
+    day "sunday", not a distinctive word)."""
+    distinctive = []
+    for word in words:
+        base = word.lower().rstrip("'").removesuffix("'s")
+        if base not in _QUERY_EXCLUDE:
+            distinctive.append(word)
+    return distinctive
 
 
 def _candidate_queries(words):
@@ -141,7 +197,11 @@ def _candidate_queries(words):
     nothing for a news headline (verified live 15 Nov 2026: "We've
     waited years here Wales" -> 0 results, "Wales New Zealand" ->
     240). Try the full set first (best match when it works), then
-    the proper nouns, then the single most distinctive word.
+    the proper nouns, then the single most distinctive word: an
+    all-caps acronym (NHL, NFL) if there is one, else the longest
+    word (FP089.3 — an acronym is the most distinctive word in a
+    headline, and the longest word beats a niche brand name:
+    "screwdriver" beats "Fanttik").
     """
     if not words:
         return []
@@ -157,8 +217,11 @@ def _candidate_queries(words):
         joined = " ".join(proper)
         if joined.lower() != candidates[0].lower():
             candidates.append(joined)
-    pool = proper or words
-    best = max(pool, key=len)
+    acronyms = [w for w in words if w.isupper() and len(w) >= 2]
+    if acronyms:
+        best = max(acronyms, key=len)
+    else:
+        best = max(words, key=len)
     if best.lower() not in [c.lower() for c in candidates]:
         candidates.append(best)
     return candidates
@@ -229,8 +292,8 @@ def _keyword_matches(words, keywords):
     titled 'patriotic' (that is how the bulldog got through)."""
     hits = set()
     for keyword in keywords:
-        word = keyword.lower()
-        if word in _SCORING_EXCLUDE or len(word) < 3:
+        word = keyword.lower().rstrip("'").removesuffix("'s")
+        if word in _SCORING_EXCLUDE or len(word) < 2:
             continue
         forms = {word, word + "s"}
         if word.endswith("s"):
@@ -254,13 +317,24 @@ def _score_image(item, keywords, category):
 def _image_passes(item, keywords, category):
     """Does this photo belong with its headline? For a gated
     category (Sport, Technology, Android, Science, Business) it
-    must match a topical word or two headline keywords; otherwise
-    one keyword match is enough. A photo that passes nothing is
-    worse than no photo at all."""
+    passes when a full topical word matches (a photo tagged
+    "football" is a photo about football), or when two headline
+    keywords match, or when one keyword matches alongside an
+    acronym-only category match (a photo tagged "nfl" for a story
+    that says "NFL"). A bare acronym alone does NOT pass: the NHL
+    cartoon passed FP089.2 because its title mentioned "NFL" as
+    one TV option among several. Ungated categories (World, UK,
+    Culture) need one keyword match. A photo that passes nothing
+    is worse than no photo at all."""
     keyword_hits, category_hits = _score_image(item, keywords, category)
-    if category in _CATEGORY_WORDS:
-        return bool(category_hits) or len(keyword_hits) >= 2
-    return len(keyword_hits) >= 1
+    if category not in _CATEGORY_WORDS:
+        return len(keyword_hits) >= 1
+    topical = {w for w in category_hits if w not in _CATEGORY_ACRONYMS}
+    if topical:
+        return True
+    if category_hits and keyword_hits:
+        return True
+    return len(keyword_hits) >= 2
 
 
 def _fetch_from_openverse(query, keywords, category=None):
@@ -302,18 +376,23 @@ def get_stock_image(headline, category=None):
     headline's full query, so a repeat headline costs no new lookup.
     The category gates relevance (see _image_passes) and is part of
     the cache key, so the same words in different categories score
-    independently.
+    independently. FP089.3: the queries and the scoring both use
+    only the distinctive words — generic words ("friday", "tonight",
+    "black") drove the FP089.2 mismatches by fetching and matching
+    unrelated photos.
     """
     words = keywords_from_headline(headline)
-    if not words:
+    distinctive = _distinctive_words(words)
+    if not distinctive:
         return None
     category = category or ""
-    full_key = _normalise_query(" ".join(words[:5])) + "|" + category.lower()
+    full_key = (_normalise_query(" ".join(distinctive[:5]))
+                + "|" + category.lower())
     hit = _cache_get(full_key)
     if hit is not _MISSING:
         return hit
     result = None
-    for query in _candidate_queries(words):
+    for query in _candidate_queries(distinctive):
         key = _normalise_query(query) + "|" + category.lower()
         cached = _cache_get(key)
         if cached is not _MISSING:
@@ -321,7 +400,7 @@ def get_stock_image(headline, category=None):
             if result is not None:
                 break
             continue
-        result = _fetch_from_openverse(query, words, category)
+        result = _fetch_from_openverse(query, distinctive, category)
         _cache_put(key, result)
         if result is not None:
             break

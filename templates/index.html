@@ -419,7 +419,7 @@
         <div id="weather-summary" class="weather-summary"></div>
         <div class="weather-strip-label">Next 24 hours</div>
         <div id="weather-hourly" class="weather-hourly"></div>
-        <div class="weather-days-head"><span class="weather-strip-label">Forecast</span><button id="weather-days-toggle" type="button" onclick="toggleWeatherDays()">Show 16 days</button></div>
+        <div class="weather-days-head"><span class="weather-strip-label">Forecast</span><button id="weather-days-toggle" type="button" onclick="toggleWeatherDays()">Show all days</button></div>
         <div id="weather-days" class="weather-days"></div>
         <div class="weather-search">
             <input type="text" id="weather-search-input" placeholder="Search a place…" autocomplete="off" aria-label="Search for a place">
@@ -2099,7 +2099,7 @@ function renderWeatherDays() {
     }).join('');
     daysEl.innerHTML = days;
     const toggle = document.getElementById('weather-days-toggle');
-    if (toggle) toggle.textContent = weatherShowAllDays ? 'Show 7 days' : 'Show 16 days';
+    if (toggle) toggle.textContent = weatherShowAllDays ? 'Show 7 days' : 'Show all days';
 }
 
 function toggleWeatherDays() {

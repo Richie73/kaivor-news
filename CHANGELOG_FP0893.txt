@@ -1,0 +1,81 @@
+Kaivor FP089.3 — Stock photos: distinctive words only
+=====================================================
+
+WHAT CHANGED (found in FP089.2's live check, 15 Nov 2026)
+---------------------------------------------------------
+FP089.2 fixed the bulldog and the fighter jet, but the live
+check still found 2 wrong photos in the first 20 cards:
+- a black-and-white torso on "Fanttik's S1 Pro electric
+  screwdriver is $40 off in the run-up to Black Friday"
+- a TV cartoon on "NHL Tonight: What to watch in Sunday's
+  five showdowns"
+
+DIAGNOSIS (verified against the live endpoint and Openverse)
+-----------------------------------------------------------
+Both photos matched GENERIC headline words. The torso is tagged
+"black", "friday" and "pro" — three keyword hits. The cartoon
+is titled "What are you watching tonight: Sunday show, NFL or
+#Emmys?" — "tonight" and "sunday" matched, and "NFL" matched
+the Sport category wordlist even though the photo is about TV,
+not hockey. The scoring was fine; the WORDS were the problem.
+
+HOW IT WORKS NOW
+----------------
+- Queries and scoring both use only the DISTINCTIVE words of a
+  headline. Generic words are dropped entirely: days of the
+  week, time words (today, tonight, tomorrow, weekend, ...),
+  colours (a black-and-white photo is not a photo about
+  "black"), number words, and weak verbs and fillers ("pro",
+  "off", "run", "follow", "live", "watch", "show", ...).
+  Possessives are normalised first ("Sunday's" is the day
+  "sunday"). "new" stays in queries (dropping it would break
+  "New Zealand" / "New York") but still does not score.
+- Two-letter words count as keywords (AI, UK, US, TV are
+  distinctive); the two-letter junk ("go", "up", "do", "so",
+  "no") is stopworded.
+- The single-word fallback prefers an all-caps acronym (NHL,
+  NFL) when there is one, else the longest word ("screwdriver"
+  beats the niche brand name "Fanttik's").
+- A bare league acronym in a title or tag is no longer enough
+  on its own for a gated category: it needs a keyword match
+  alongside it. A full topical word ("football", "rugby",
+  "phone") still passes on its own, and two keyword matches
+  still pass on their own.
+- Category wordlists pruned of words that are common in
+  unrelated photo tags: "digital", "machine", "cloud" (Tech);
+  "game", "cup", "belt", "ring" (Sport); "star" (Science).
+  "computing", "server"/"servers" and "tournament" added.
+
+LIVE DRY-RUN (working copy against the real Openverse, 15 Nov)
+--------------------------------------------------------------
+- Fanttik screwdriver story -> a screwdriver photo (was: torso)
+- NHL story -> a hockey photo via the "NHL" query (was: cartoon)
+- Lions/Patriots story -> an NFL Munich photo from the U.S.
+  Consulate General Munich (was: bulldog)
+- Wales rugby story -> NO PHOTO. The top results for "Wales New
+  Zealand" are Milford Sound landscapes, correctly rejected.
+  The headline never says "rugby" and the app's sport_focus is
+  only "football" or "other", so the sport cannot be inferred
+  — no photo is the right outcome here.
+
+ALSO FIXED IN THIS MILESTONE
+----------------------------
+The days toggle said "Show 16 days" but showed 15 rows when
+Open-Meteo's 16th day had no data (found in FP089.2's live
+check). It now says "Show all days", which is true however
+many days have data.
+
+FILES
+-----
+- stock_images.py (replacement — distinctive words, acronym
+  rule, pruned wordlists)
+- templates/index.html (replacement — "Show all days" label)
+- tests/test_stock_images_fp089.py (replacement — 5 new tests:
+  distinctive-words filter, acronym-preference candidates,
+  cartoon rejection, acronym-with-keyword pass,
+  acronym-alone fail; candidate/fallback/all-fail tests
+  updated for distinctive words; 2-letter keyword assertion)
+- tests/test_weather_improvements_fp091.py (updated — toggle
+  label assertion)
+- CHANGELOG_FP0893.txt, README_INSTALL_FP0893.txt,
+  BUNDLE_MANIFEST_FP0893.txt (new docs)

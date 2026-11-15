@@ -69,6 +69,27 @@ def test_keywords_from_headline():
     assert stock_images.keywords_from_headline(
         "Wales fans ecstatic after win over New Zealand"
     ) == ["Wales", "fans", "ecstatic", "win", "New", "Zealand"]
+    # Two-letter words count (FP089.3): AI, UK, US and TV are
+    # distinctive; the two-letter junk is in _STOPWORDS.
+    assert stock_images.keywords_from_headline(
+        "AI beats humans at chess"
+    ) == ["AI", "beats", "humans", "chess"]
+
+
+def test_distinctive_words_drops_generic():
+    # The two FP089.2 live-check failures: the generic words drove
+    # both the fetch and the match, so they are dropped entirely.
+    assert stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "NHL Tonight: What to watch in Sunday's five showdowns"
+        )
+    ) == ["NHL", "showdowns"]
+    assert stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "Fanttik's S1 Pro electric screwdriver is $40 off in "
+            "the run-up to Black Friday"
+        )
+    ) == ["Fanttik's", "electric", "screwdriver"]
 
 
 def test_keywords_empty_headline():
@@ -80,23 +101,57 @@ def test_keywords_empty_headline():
 # --- candidate queries (FP089.1) ------------------------------------
 
 def test_candidate_queries_wales_headline():
-    words = stock_images.keywords_from_headline(
-        "'We've waited 73 years to be here' - Wales fans ecstatic "
-        "after win over New Zealand"
+    words = stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "'We've waited 73 years to be here' - Wales fans ecstatic "
+            "after win over New Zealand"
+        )
+    )
+    # The single word is the longest word ("ecstatic") — a junk
+    # last resort, but the relevance gate rejects its results, and
+    # the proper-noun query hits first in practice.
+    assert stock_images._candidate_queries(words) == [
+        "We've waited Wales fans ecstatic",
+        "Wales New Zealand",
+        "ecstatic",
+    ]
+
+
+def test_candidate_queries_prefer_acronym():
+    # An all-caps acronym is the most distinctive word in a
+    # headline, so it is the single-word fallback.
+    words = stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "NHL Tonight: What to watch in Sunday's five showdowns"
+        )
     )
     assert stock_images._candidate_queries(words) == [
-        "We've waited years here Wales",
-        "Wales New Zealand",
-        "Zealand",
+        "NHL showdowns",
+        "NHL",
+    ]
+    # Without an acronym the longest word wins — "screwdriver"
+    # beats the niche brand name "Fanttik's".
+    words = stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "Fanttik's S1 Pro electric screwdriver is $40 off in "
+            "the run-up to Black Friday"
+        )
+    )
+    assert stock_images._candidate_queries(words) == [
+        "Fanttik's electric screwdriver",
+        "Fanttik's",
+        "screwdriver",
     ]
 
 
 def test_candidate_queries_no_proper_nouns():
-    words = stock_images.keywords_from_headline(
-        "rain expected across the country tomorrow"
+    words = stock_images._distinctive_words(
+        stock_images.keywords_from_headline(
+            "rain expected across the country tomorrow"
+        )
     )
     assert stock_images._candidate_queries(words) == [
-        "rain expected across country tomorrow",
+        "rain expected across country",
         "expected",
     ]
 
@@ -111,7 +166,7 @@ def test_get_stock_image_falls_back_to_shorter_query():
 
     def fake_fetch(query, keywords, category=None):
         calls.append(query)
-        if query == "We've waited years here Wales":
+        if query == "We've waited Wales fans ecstatic":
             return None
         return {"url": "https://images.example.com/wales.jpg",
                 "credit": "Jane · CC0", "query": query}
@@ -124,7 +179,8 @@ def test_get_stock_image_falls_back_to_shorter_query():
         )
     assert result["url"] == "https://images.example.com/wales.jpg"
     assert result["query"] == "Wales New Zealand"
-    assert calls == ["We've waited years here Wales", "Wales New Zealand"]
+    assert calls == ["We've waited Wales fans ecstatic",
+                     "Wales New Zealand"]
     # Second call for the same headline costs no new lookup.
     with patch.object(stock_images, "_fetch_from_openverse",
                       side_effect=fake_fetch):
@@ -141,13 +197,14 @@ def test_get_stock_image_all_fail_then_cached():
         assert stock_images.get_stock_image(
             "Zxqwv jklmnop qrstuv wxyzab cdefgh"
         ) is None
-        # Full query + the lone capitalised word; the single-word
-        # fallback is the same word, so it is not tried twice.
-        assert fetch.call_count == 2
+        # Full query + the lone capitalised word + the longest word
+        # (FP089.3: the single-word fallback is the longest word,
+        # not the longest proper noun, so it is tried too).
+        assert fetch.call_count == 3
         assert stock_images.get_stock_image(
             "Zxqwv jklmnop qrstuv wxyzab cdefgh"
         ) is None
-        assert fetch.call_count == 2
+        assert fetch.call_count == 3
 
 
 # --- fetch + cache --------------------------------------------------
@@ -330,6 +387,55 @@ def test_score_ungated_category_needs_one_keyword():
         result = stock_images.get_stock_image(
             "Rain expected across the country tomorrow", "World")
     assert result["url"] == "https://images.example.com/rain.jpg"
+
+
+CARTOON_ITEM = {
+    "url": "https://images.example.com/cartoon.jpg",
+    "title": "What are you watching tonight: Sunday show, NFL or "
+             "#Emmys? #Glade",
+    "creator": "David Armano",
+    "license": "by",
+    "license_version": "2.0",
+    "tags": [{"name": "instagramapp"}, {"name": "iphoneography"},
+             {"name": "square"}, {"name": "business"}],
+}
+
+
+def test_score_rejects_cartoon_for_nhl_headline():
+    # The second FP089.2 live-check failure: the cartoon's title
+    # mentions "NFL" as one TV option among several, and the
+    # headline's generic words ("tonight", "sunday") used to match
+    # it. With distinctive words only, "NHL" and "showdowns" match
+    # nothing and a bare acronym is not enough on its own.
+    payload = {"result_count": 1, "results": [CARTOON_ITEM]}
+    with patch.object(stock_images.requests, "get",
+                      return_value=FakeResponse(200, payload)) as get:
+        assert stock_images.get_stock_image(
+            "NHL Tonight: What to watch in Sunday's five showdowns",
+            "Sport") is None
+        assert get.call_count == 2
+
+
+def test_score_acronym_with_keyword_passes():
+    # An acronym category match plus a keyword match is a real
+    # match: a photo tagged "nfl" for a story that says "NFL".
+    item = {"url": "https://images.example.com/nfl.jpg",
+            "title": "NFL logo", "creator": "",
+            "license": "cc0", "license_version": "",
+            "tags": [{"name": "nfl"}]}
+    assert stock_images._image_passes(
+        item, ["NFL", "Patriots", "Lions"], "Sport") is True
+
+
+def test_score_acronym_alone_fails():
+    # ... but the same photo for a story that never says "NFL"
+    # proves nothing — the acronym is a tangential mention.
+    item = {"url": "https://images.example.com/nfl.jpg",
+            "title": "NFL logo", "creator": "",
+            "license": "cc0", "license_version": "",
+            "tags": [{"name": "nfl"}]}
+    assert stock_images._image_passes(
+        item, ["Patriots", "Lions", "Munich"], "Sport") is False
 
 
 def test_route_passes_category():
