@@ -27,14 +27,17 @@ _STOCK_FAILURE_TTL_SECONDS = 60
 
 _MISSING = object()
 
-# Words that carry no picture meaning in a headline.
+# Words that carry no picture meaning in a headline. "new" is
+# deliberately NOT here: dropping it would break "New Zealand",
+# "New York" and other proper names, and the FP089.1 fallback chain
+# makes a weak word harmless.
 _STOPWORDS = frozenset({
     "the", "a", "an", "and", "or", "of", "to", "in", "on", "for",
     "with", "after", "as", "at", "by", "from", "into", "over",
     "under", "about", "is", "are", "was", "were", "be", "been",
     "it", "its", "he", "she", "they", "his", "her", "their",
     "this", "that", "these", "those", "what", "when", "where",
-    "who", "why", "how", "not", "but", "says", "said", "new",
+    "who", "why", "how", "not", "but", "says", "said",
     "one", "two", "first",
 })
 
@@ -56,10 +59,44 @@ _cache: "OrderedDict[str, tuple]" = OrderedDict()
 
 
 def keywords_from_headline(title):
-    """Pull up to five picture-worthy words out of a headline."""
+    """Picture-worthy words from a headline, in headline order.
+
+    Leading/trailing quote marks are stripped ("here'" from a quoted
+    headline becomes "here"); internal apostrophes stay ("We've").
+    """
     words = re.findall(r"[A-Za-z][A-Za-z\-']+", str(title or ""))
-    kept = [w for w in words if len(w) >= 3 and w.lower() not in _STOPWORDS]
-    return " ".join(kept[:5]).strip()
+    cleaned = [w.strip("'") for w in words]
+    return [w for w in cleaned if len(w) >= 3 and w.lower() not in _STOPWORDS]
+
+
+def _candidate_queries(words):
+    """Query attempts for a headline's keywords, most specific first.
+
+    Openverse matches all terms, so a five-word query usually returns
+    nothing for a news headline (verified live 15 Nov 2026: "We've
+    waited years here Wales" -> 0 results, "Wales New Zealand" ->
+    240). Try the full set first (best match when it works), then
+    the proper nouns, then the single most distinctive word.
+    """
+    if not words:
+        return []
+    candidates = [" ".join(words[:5])]
+    # Proper nouns: capitalised words other than the first, which is
+    # capitalised by headline convention ("We've waited..." — "We've"
+    # is not a place). If the first word is the only capitalised one,
+    # it is the best guess available ("Wales win the cup").
+    proper = [w for w in words[1:] if w and w[0].isupper()]
+    if not proper and words[0] and words[0][0].isupper():
+        proper = [words[0]]
+    if proper:
+        joined = " ".join(proper)
+        if joined.lower() != candidates[0].lower():
+            candidates.append(joined)
+    pool = proper or words
+    best = max(pool, key=len)
+    if best.lower() not in [c.lower() for c in candidates]:
+        candidates.append(best)
+    return candidates
 
 
 def _normalise_query(query):
@@ -133,16 +170,30 @@ def _fetch_from_openverse(query):
 def get_stock_image(headline):
     """Best Openverse image for a headline, or None.
 
-    Returns {"url", "credit", "query"} on a hit. The result is
-    cached per normalised keyword query.
+    Returns {"url", "credit", "query"} on a hit. Tries the candidate
+    queries in order and returns the first hit. Each attempt is cached
+    under its own query, and the final result is also cached under the
+    headline's full query so a repeat headline costs no new lookup.
     """
-    query = keywords_from_headline(headline)
-    if not query:
+    words = keywords_from_headline(headline)
+    if not words:
         return None
-    key = _normalise_query(query)
-    hit = _cache_get(key)
+    full_key = _normalise_query(" ".join(words[:5]))
+    hit = _cache_get(full_key)
     if hit is not _MISSING:
         return hit
-    result = _fetch_from_openverse(query)
-    _cache_put(key, result)
+    result = None
+    for query in _candidate_queries(words):
+        key = _normalise_query(query)
+        cached = _cache_get(key)
+        if cached is not _MISSING:
+            result = cached
+            if result is not None:
+                break
+            continue
+        result = _fetch_from_openverse(query)
+        _cache_put(key, result)
+        if result is not None:
+            break
+    _cache_put(full_key, result)
     return result

@@ -82,11 +82,21 @@ def _clean_image_url(value: Any) -> str:
     return url
 
 
+def _clean_description(value):
+    # Some feeds carry the literal text "null"/"None" for a missing
+    # summary (seen on ESPN live-blog entries, 15 Nov 2026). Treat
+    # those as no description rather than showing the word.
+    text = str(value or "").strip()
+    if text.lower() in ("null", "none"):
+        return ""
+    return text
+
+
 def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
     item = {
         "id": article_id(article),
         "title": str(article.get("title") or "No Title").strip(),
-        "description": str(article.get("description") or "").strip(),
+        "description": _clean_description(article.get("description")),
         "category": str(article.get("category") or "World").strip(),
         "source": str(article.get("source") or article.get("category") or "Unknown").strip(),
         "published": str(article.get("published") or "Recent").strip(),

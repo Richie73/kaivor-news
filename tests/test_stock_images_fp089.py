@@ -61,16 +61,93 @@ def template_text():
 def test_keywords_from_headline():
     assert stock_images.keywords_from_headline(
         "The new football stadium opens after long delays"
-    ) == "football stadium opens long delays"
+    ) == ["new", "football", "stadium", "opens", "long", "delays"]
     assert stock_images.keywords_from_headline(
         "Chelsea beat Manchester City in the cup final"
-    ) == "Chelsea beat Manchester City cup"
+    ) == ["Chelsea", "beat", "Manchester", "City", "cup", "final"]
+    # "new" stays: dropping it would break New Zealand / New York.
+    assert stock_images.keywords_from_headline(
+        "Wales fans ecstatic after win over New Zealand"
+    ) == ["Wales", "fans", "ecstatic", "win", "New", "Zealand"]
 
 
 def test_keywords_empty_headline():
-    assert stock_images.keywords_from_headline("") == ""
-    assert stock_images.keywords_from_headline("The a an of to") == ""
+    assert stock_images.keywords_from_headline("") == []
+    assert stock_images.keywords_from_headline("The a an of to") == []
     assert stock_images.get_stock_image("The a an of to") is None
+
+
+# --- candidate queries (FP089.1) ------------------------------------
+
+def test_candidate_queries_wales_headline():
+    words = stock_images.keywords_from_headline(
+        "'We've waited 73 years to be here' - Wales fans ecstatic "
+        "after win over New Zealand"
+    )
+    assert stock_images._candidate_queries(words) == [
+        "We've waited years here Wales",
+        "Wales New Zealand",
+        "Zealand",
+    ]
+
+
+def test_candidate_queries_no_proper_nouns():
+    words = stock_images.keywords_from_headline(
+        "rain expected across the country tomorrow"
+    )
+    assert stock_images._candidate_queries(words) == [
+        "rain expected across country tomorrow",
+        "expected",
+    ]
+
+
+def test_candidate_queries_single_word():
+    assert stock_images._candidate_queries(["Rain"]) == ["Rain"]
+    assert stock_images._candidate_queries([]) == []
+
+
+def test_get_stock_image_falls_back_to_shorter_query():
+    calls = []
+
+    def fake_fetch(query):
+        calls.append(query)
+        if query == "We've waited years here Wales":
+            return None
+        return {"url": "https://images.example.com/wales.jpg",
+                "credit": "Jane · CC0", "query": query}
+
+    with patch.object(stock_images, "_fetch_from_openverse",
+                      side_effect=fake_fetch):
+        result = stock_images.get_stock_image(
+            "'We've waited 73 years to be here' - Wales fans ecstatic "
+            "after win over New Zealand"
+        )
+    assert result["url"] == "https://images.example.com/wales.jpg"
+    assert result["query"] == "Wales New Zealand"
+    assert calls == ["We've waited years here Wales", "Wales New Zealand"]
+    # Second call for the same headline costs no new lookup.
+    with patch.object(stock_images, "_fetch_from_openverse",
+                      side_effect=fake_fetch):
+        assert stock_images.get_stock_image(
+            "'We've waited 73 years to be here' - Wales fans ecstatic "
+            "after win over New Zealand"
+        )["url"] == "https://images.example.com/wales.jpg"
+    assert len(calls) == 2
+
+
+def test_get_stock_image_all_fail_then_cached():
+    with patch.object(stock_images, "_fetch_from_openverse",
+                      return_value=None) as fetch:
+        assert stock_images.get_stock_image(
+            "Zxqwv jklmnop qrstuv wxyzab cdefgh"
+        ) is None
+        # Full query + the lone capitalised word; the single-word
+        # fallback is the same word, so it is not tried twice.
+        assert fetch.call_count == 2
+        assert stock_images.get_stock_image(
+            "Zxqwv jklmnop qrstuv wxyzab cdefgh"
+        ) is None
+        assert fetch.call_count == 2
 
 
 # --- fetch + cache --------------------------------------------------
@@ -120,7 +197,9 @@ def test_failure_is_retried_after_ttl():
                       return_value=FakeResponse(200, {"results": []})) as get:
         assert stock_images.get_stock_image("football stadium") is None
         assert stock_images.get_stock_image("football stadium") is None
-        assert get.call_count == 1
+        # FP089.1: the first call tries both candidates ("football
+        # stadium", then "football"); the repeat call is cached.
+        assert get.call_count == 2
     with patch.object(stock_images.time, "time",
                       return_value=stock_images.time.time() + 61):
         with patch.object(stock_images.requests, "get",
@@ -193,13 +272,25 @@ def test_normalise_keeps_illustrative_fields():
     assert plain["image_credit"] == ""
 
 
+def test_normalise_drops_null_description():
+    # FP089.1: some feeds carry the literal text "null"/"None" for a
+    # missing summary (seen on ESPN live-blog entries, 15 Nov 2026).
+    assert normalise_article(
+        {"title": "T", "description": "null"})["description"] == ""
+    assert normalise_article(
+        {"title": "T", "description": "None"})["description"] == ""
+    assert normalise_article(
+        {"title": "T", "description": "Real summary"})["description"] == (
+        "Real summary")
+
+
 # --- template --------------------------------------------------------
 
 def test_placeholder_in_jinja_card():
     html = template_text()
     assert '{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}' in html
     assert ".card-image-placeholder { cursor:default; }" in html
-    assert ".stock-credit { font-size:10px; color:#6b7280; margin:-4px 0 8px; }" in html
+    assert ".stock-credit { font-size:10px; color:var(--faint); margin:-4px 0 8px; }" in html
 
 
 def test_observer_and_loader():

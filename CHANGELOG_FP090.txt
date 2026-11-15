@@ -1,0 +1,54 @@
+Kaivor FP090 — One design system across all tabs
+================================================
+
+WHAT CHANGED (last of the polish pass)
+--------------------------------------
+Every tab now draws from one set of design tokens instead of the
+hardcoded colours and radii that grew milestone by milestone. The
+look is the same — this is a tidy-up, not a redesign — except for
+a few radii that converge on the shared sizes (cards 13/14/16px
+all become 12px; small controls 7/9/10px all become 8px).
+
+HOW IT WORKS
+------------
+- templates/index.html gains a :root token block at the top of the
+  stylesheet: one palette (--bg, --surface, --surface-2,
+  --surface-3, --border, --border-strong, --border-input, --line,
+  --text, --text-bright, --text-2, --text-3, --muted, --faint,
+  --brand, --green, --green-bright, --green-soft, --green-pale,
+  --green-panel, --green-border, --btn-bg, --btn-border,
+  --green-dark, --green-darker, --red, --red-soft, --amber,
+  --blue) and four radii (--radius-sm 8px, --radius-md 12px,
+  --radius-lg 16px, --radius-pill 999px).
+- Every main surface, border and text colour in the news page now
+  uses those tokens: body, header, cards, market bar/panel, chips,
+  weather card/strip/details/hours/days, chat bubbles, buttons,
+  inputs, settings rows, markets rows, skeletons, bottom nav,
+  splash screen and the AI drawer/timeline accents.
+- The section title (Top Stories / Weather / Chat / Saved /
+  Settings) moves from an inline style on the <h3> into a
+  stylesheet rule (#section-title).
+- templates/reading.html already used variables, but with slightly
+  different values (bg #0b0b0d, panels #151519/#1d1d23, lines
+  #303039, muted #a1a1aa, text #f4f4f5). Its tokens are aligned to
+  the same values as the news page, it gains --brand and the radius
+  tokens, and its panels, buttons, inputs, pills and status boxes
+  use the shared radii. Both pages now read as one app.
+- Deliberately left hardcoded (single-use tints, not part of the
+  shared system): the market price-flash colours, the chat user
+  bubble, the intel-badge tint, the AI drawer's inner tints, the
+  evidence box, the scroll-top dark text, the chat toggle accent
+  and the chat source links.
+
+FILES
+-----
+- templates/index.html (replacement — token block + migration)
+- templates/reading.html (replacement — token alignment)
+- tests/test_design_system_fp090.py (new, 8 tests)
+- tests/test_markets_view_fp086.py (updated — .market-bar rule)
+- tests/test_bottom_nav_fp084.py (updated — .nav-item.active rule)
+- tests/test_news_cards_fp087.py (updated — .card-image, .published)
+- tests/test_loading_skeletons_fp088.py (updated — .skeleton rule)
+- tests/test_stock_images_fp089.py (updated — .stock-credit rule)
+- CHANGELOG_FP090.txt, README_INSTALL_FP090.txt,
+  BUNDLE_MANIFEST_FP090.txt (new docs)

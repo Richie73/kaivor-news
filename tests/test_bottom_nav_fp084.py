@@ -114,7 +114,7 @@ def test_content_clears_the_bottom_bar():
     assert nav_css
     assert "position:fixed" in nav_css.group(1).replace(" ", "")
     assert "env(safe-area-inset-bottom" in nav_css.group(1)
-    assert ".nav-item.active { color:#35FA33; }" in html
+    assert ".nav-item.active { color:var(--brand); }" in html
     assert "bottom: calc(78px + env(safe-area-inset-bottom, 0px));" in html
 
 

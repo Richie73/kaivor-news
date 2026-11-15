@@ -21,7 +21,7 @@ def template_text():
 
 def test_card_images_have_a_fixed_crop():
     html = template_text()
-    rule = ".card-image { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:9px; margin:0 0 8px; display:block; background:#1f1f23; }"
+    rule = ".card-image { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:var(--radius-sm); margin:0 0 8px; display:block; background:var(--surface-2); }"
     assert rule in html
     assert "max-height:220px" not in html
 
@@ -44,7 +44,7 @@ def test_both_card_renders_use_the_source_row():
 
 def test_published_style_lives_in_the_stylesheet():
     html = template_text()
-    assert ".published { font-size:11px; color:#6b7280; margin-bottom:8px; }" in html
+    assert ".published { font-size:11px; color:var(--faint); margin-bottom:8px; }" in html
     assert '<div class="published">{{ article.published | display_date }}</div>' in html
     assert '<div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>' in html
     assert 'class="published" style=' not in html

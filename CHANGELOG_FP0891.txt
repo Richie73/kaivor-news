@@ -1,0 +1,47 @@
+Kaivor FP089.1 — Stock photo fallback that actually finds photos
+================================================================
+
+WHAT CHANGED (fix for FP089, found live 15 Nov 2026)
+----------------------------------------------------
+FP089 deployed and its API endpoint worked, but almost no card
+gained a photo: the five-word keyword query returned zero results
+from Openverse for most headlines. Verified live: "We've waited
+years here Wales" -> 0 results, while "Wales New Zealand" -> 240
+and "Zealand" -> 240. The page wiring was fine (the placeholder
+appeared, then vanished when the lookup missed) — the queries were
+too specific.
+
+HOW IT WORKS
+------------
+- get_stock_image now tries a chain of candidate queries and takes
+  the first hit: (1) the full five-word set, (2) the proper nouns
+  (capitalised words other than the first, which is capitalised by
+  headline convention), (3) the single most distinctive word
+  (longest proper noun, else longest word). At most three
+  Openverse calls per headline.
+- keywords_from_headline now returns the word list (was the joined
+  string) so the chain can build its candidates. Leading/trailing
+  quote marks are stripped ("here'" -> "here"); internal
+  apostrophes stay ("We've").
+- "new" is no longer a stopword: dropping it broke "New Zealand",
+  "New York" and other proper names. A weak word is harmless now
+  because the chain falls back.
+- Caching: each attempt is cached under its own query, and the
+  final result is also cached under the headline's full query, so
+  a repeat headline costs no new lookup. Failures still retry
+  after 60s.
+- Also fixed in this milestone: some feeds carry the literal text
+  "null"/"None" for a missing summary (seen on ESPN live-blog
+  entries, 15 Nov 2026). normalise_article now treats those as no
+  description instead of showing the word.
+
+FILES
+-----
+- stock_images.py (replacement — candidate chain)
+- news_store.py (replacement — "null"/"None" description guard)
+- tests/test_stock_images_fp089.py (replacement — 6 new tests:
+  candidate queries x3, fallback chain x2, null description x1;
+  keyword tests updated for the list return; TTL test updated
+  for the two-candidate first call)
+- CHANGELOG_FP0891.txt, README_INSTALL_FP0891.txt,
+  BUNDLE_MANIFEST_FP0891.txt (new docs)
