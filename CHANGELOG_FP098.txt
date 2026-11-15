@@ -1,0 +1,45 @@
+Kaivor FP098 — Two live-check fixes
+=================================
+
+WHAT CHANGED
+------------
+Two real bugs found by the FP092–FP097 live check on 15 Nov 2026
+(both pre-existing, neither from the polish round):
+
+1. A literal "&nbsp;" showed in a card description. Some feeds
+   send HTML entities as literal text; the templates escape on
+   render, so "&nbsp;" became "&amp;nbsp;" and showed on screen.
+   normalise_article now decodes entities once (titles and
+   descriptions) via a new _decode_entities helper in
+   news_store.py; the template re-escapes anything that needs it
+   on the way out. Non-breaking spaces become regular spaces.
+
+2. The "why it matters" significance line often mismatched the
+   story — Russell Brand stories said "This is primarily a
+   motorsport development". Two causes in
+   story_intelligence._impact_hint:
+   (a) keywords matched as substrings, so "ai" hit "said" and
+       "race" hit "grace". Keywords now match as whole
+       words/phrases (_keyword_hit with \b boundaries); the
+       plurals the substring test used to cover for free
+       (wars, attacks, drones, chips, trials, vaccines, laws,
+       banks) are listed explicitly.
+   (b) the motorsport rule listed driver surnames, so "russell"
+       matched Russell Brand. Surnames and team names
+       (_MOTORSPORT_NAMES) now only count alongside a
+       motorsport context word (_MOTORSPORT_CONTEXT: race,
+       racing, driver, circuit, lap, podium, grid, pit,
+       championship). "Russell takes pole position" still
+       matches via the anchor phrases; "Verstappen wins the
+       race" matches via surname + context.
+   The uncertainty rules are intentionally unchanged — their
+   keywords are stems by design ("casualt", "injur").
+
+FILES
+-----
+- news_store.py (replacement)
+- story_intelligence.py (replacement)
+- tests/test_impact_hints_fp098.py (new — 8 tests)
+- tests/test_description_entities_fp098.py (new — 5 tests)
+- CHANGELOG_FP098.txt, README_INSTALL_FP098.txt,
+  BUNDLE_MANIFEST_FP098.txt (new docs)

@@ -1,0 +1,20 @@
+Kaivor FP098 bundle manifest
+
+REPLACEMENT:
+- news_store.py
+- story_intelligence.py
+
+NEW:
+- tests/test_impact_hints_fp098.py
+- tests/test_description_entities_fp098.py
+- README_INSTALL_FP098.txt
+- CHANGELOG_FP098.txt
+- BUNDLE_MANIFEST_FP098.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

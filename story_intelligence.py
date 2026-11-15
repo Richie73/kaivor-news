@@ -32,10 +32,11 @@ STOPWORDS = {
 
 IMPACT_RULES = [
     # Specific subjects must precede broad infrastructure/economy keywords.
+    # Keywords match as whole words/phrases (see _keyword_hit): substring
+    # matching let "ai" hit "said" and "race" hit "grace".
     ("motorsport", (
         "formula one", "formula 1", "grand prix", "f1", "qualifying",
-        "sprint race", "pit stop", "pole position", "verstappen", "hamilton",
-        "leclerc", "norris", "russell", "ferrari", "mclaren", "red bull racing",
+        "sprint race", "pit stop", "pole position", "red bull racing",
         "constructor championship", "drivers championship", "motorsport",
     ),
      "This is primarily a motorsport development. Its significance depends on race results, championship points, team strategy, driver performance and any confirmed consequences for upcoming sessions."),
@@ -46,19 +47,31 @@ IMPACT_RULES = [
         "basketball", "athlete", "fixture", "kick-off", "kickoff", "race win",
     ),
      "This is primarily a sporting development. It may affect results, standings, qualification, selection, team or athlete performance, or the wider competition picture."),
-    ("war", ("war", "strike", "strikes", "drone", "missile", "attack", "troops", "military", "ceasefire", "russia", "ukraine", "iran", "israel", "gaza", "houthi"),
+    ("war", ("war", "wars", "strike", "strikes", "drone", "drones", "missile", "missiles", "attack", "attacks", "troops", "military", "ceasefire", "russia", "ukraine", "iran", "israel", "gaza", "houthi"),
      "This concerns an active conflict or security event. If confirmed, developments of this type can affect civilian safety, infrastructure, military operations and the wider course of the conflict."),
-    ("politics", ("government", "minister", "chancellor", "president", "prime minister", "election", "parliament", "vote", "law", "policy", "resign"),
+    ("politics", ("government", "minister", "chancellor", "president", "prime minister", "election", "parliament", "vote", "law", "laws", "policy", "resign"),
      "This could affect government decisions, public policy or political stability. The practical impact depends on what action follows the reported development."),
-    ("technology", ("ai", "artificial intelligence", "chip", "semiconductor", "cyber", "hack", "software", "robot", "model", "data breach"),
+    ("technology", ("ai", "artificial intelligence", "chip", "chips", "semiconductor", "cyber", "hack", "software", "robot", "model", "data breach"),
      "This could affect technology capability, competition, security or how a product or service is used. The longer-term significance depends on adoption, verification and follow-up."),
-    ("science", ("study", "research", "trial", "scientists", "discovery", "climate", "vaccine", "disease", "space", "nasa"),
+    ("science", ("study", "research", "trial", "trials", "scientists", "discovery", "climate", "vaccine", "vaccines", "disease", "space", "nasa"),
      "The significance depends on the strength of the underlying evidence and whether the finding survives independent verification or further research."),
     ("infrastructure", ("bridge", "airport", "rail", "railway", "power", "grid", "pipeline", "port", "road", "station", "infrastructure"),
      "This concerns infrastructure that can affect movement, essential services or economic activity. If the reported damage is confirmed, disruption could extend beyond the immediate incident."),
-    ("economy", ("inflation", "interest rate", "rates", "jobs", "employment", "recession", "gdp", "economy", "market", "markets", "bank", "tariff", "trade"),
+    ("economy", ("inflation", "interest rate", "rates", "jobs", "employment", "recession", "gdp", "economy", "market", "markets", "bank", "banks", "tariff", "trade"),
      "This could affect prices, borrowing, employment, trade or financial markets. The scale of the impact depends on whether the development persists and how markets or policymakers respond."),
 ]
+
+# Driver surnames and team names are ambiguous on their own ("russell"
+# is Russell Brand as often as George Russell), so they only count
+# alongside a motorsport context word.
+_MOTORSPORT_NAMES = (
+    "verstappen", "hamilton", "leclerc", "norris", "russell",
+    "ferrari", "mclaren",
+)
+_MOTORSPORT_CONTEXT = (
+    "race", "racing", "driver", "circuit", "lap", "podium", "grid",
+    "pit", "championship",
+)
 
 UNCERTAINTY_RULES = [
     (("casualt", "injur", "killed", "dead"), "The current feed does not independently verify the final casualty or injury figures."),
@@ -125,11 +138,22 @@ def _cluster_id(members: list[dict[str, Any]]) -> str:
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
 
 
+def _keyword_hit(text: str, keyword: str) -> bool:
+    # Whole words/phrases only. The old substring test let "ai" match
+    # "said", "race" match "grace" and "war" match "warning".
+    return re.search(r"\b" + re.escape(keyword) + r"\b", text) is not None
+
+
 def _impact_hint(article: dict[str, Any]) -> str:
     text = f"{article.get('title', '')} {article.get('description', '')}".lower()
     category = str(article.get("category") or "news").lower()
-    for _, keywords, message in IMPACT_RULES:
-        if any(keyword in text for keyword in keywords):
+    for name, keywords, message in IMPACT_RULES:
+        if any(_keyword_hit(text, keyword) for keyword in keywords):
+            return message
+        if name == "motorsport" and (
+            any(_keyword_hit(text, name_) for name_ in _MOTORSPORT_NAMES)
+            and any(_keyword_hit(text, ctx) for ctx in _MOTORSPORT_CONTEXT)
+        ):
             return message
     if category == "business":
         return "This may have implications for companies, consumers or markets; the scale depends on the follow-up evidence and response."

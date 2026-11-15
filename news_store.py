@@ -7,6 +7,7 @@ milestones can move the storage backend without rewriting the UI.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import re
@@ -107,6 +108,15 @@ def _clean_image_url(value: Any) -> str:
     return url
 
 
+def _decode_entities(text: str) -> str:
+    # Feeds sometimes carry HTML entities as literal text ("&nbsp;",
+    # "&amp;"). The templates escape on render, so an undecoded entity
+    # shows up literally on screen ("&nbsp;" in the middle of a
+    # description, seen live 15 Nov 2026). Decode one level here; the
+    # template re-escapes anything that needs it on the way out.
+    return html.unescape(text).replace("\xa0", " ")
+
+
 def _clean_description(value):
     # Some feeds carry the literal text "null"/"None" for a missing
     # summary (seen on ESPN live-blog entries, 15 Nov 2026). Treat
@@ -114,13 +124,13 @@ def _clean_description(value):
     text = str(value or "").strip()
     if text.lower() in ("null", "none"):
         return ""
-    return text
+    return _decode_entities(text).strip()
 
 
 def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
     item = {
         "id": article_id(article),
-        "title": str(article.get("title") or "No Title").strip(),
+        "title": _decode_entities(str(article.get("title") or "No Title")).strip(),
         "description": _clean_description(article.get("description")),
         "category": str(article.get("category") or "World").strip(),
         "source": str(article.get("source") or article.get("category") or "Unknown").strip(),
