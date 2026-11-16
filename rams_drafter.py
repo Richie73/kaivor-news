@@ -1,4 +1,4 @@
-"""Draft a RAMS with AI (FP100).
+"""Draft a RAMS with AI (FP100; FP108: via the provider layer).
 
 The user describes the task and ticks the hazards that apply; the
 selected hazards' standard controls (rams_library) go into the
@@ -8,23 +8,19 @@ and the PPE list as JSON. The user reviews and edits every line
 in the app before anything is saved or printed — the draft is
 never used as-is.
 
-Provider chain follows the chat hub: OpenRouter first
-(deepseek/deepseek-chat), OpenAI (gpt-4o-mini) as fallback.
+The provider chain is the engine's: ProviderManager runs the
+priority order from config/providers.json (OpenRouter first,
+then OpenAI) and raises only when every provider has failed.
 """
 from __future__ import annotations
 
 import json
-import os
 import re
 
-import requests
-
+from core.ai.request import AIRequest
+from core.providers.base import ProviderError
+from core.providers.manager import ProviderManager
 from rams_library import hazard_by_id
-
-PROVIDERS = [
-    ("openrouter", "https://openrouter.ai/api/v1/chat/completions", "OPENROUTER_API_KEY", "deepseek/deepseek-chat"),
-    ("openai", "https://api.openai.com/v1/chat/completions", "OPENAI_API_KEY", "gpt-4o-mini"),
-]
 
 SYSTEM_PROMPT = (
     "You are drafting a UK construction Risk Assessment and Method Statement (RAMS) "
@@ -128,43 +124,14 @@ def draft_rams(task, site, hazard_ids, plant, notes):
     if not isinstance(task, str) or not task.strip():
         raise RamsDraftError("Describe the task first.")
     prompt = build_draft_prompt(task.strip(), site, hazard_ids, plant, notes)
-    last_error = None
-    for _name, url, env_key, model in PROVIDERS:
-        api_key = os.environ.get(env_key)
-        if not api_key:
-            continue
-        try:
-            response = requests.post(
-                url,
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "max_tokens": 2500,
-                },
-                timeout=90,
-            )
-        except requests.RequestException as error:
-            last_error = error
-            continue
-        if response.status_code != 200:
-            last_error = RuntimeError(f"provider returned {response.status_code}")
-            continue
-        try:
-            data = response.json()
-        except ValueError:
-            last_error = ValueError("bad provider JSON")
-            continue
-        choices = data.get("choices") or []
-        first = choices[0] if choices and isinstance(choices[0], dict) else {}
-        content = (first.get("message") or {}).get("content")
-        if not content:
-            last_error = ValueError("empty provider reply")
-            continue
-        return parse_rams_json(content)
-    if last_error is not None:
+    manager = ProviderManager()
+    chain = manager.fallback_chain()
+    if not any(manager.get(name) is not None and manager.get(name).configured() for name in chain):
+        raise RamsDraftError("No AI key is set — save an OpenRouter or OpenAI key in Settings first.")
+    try:
+        _provider, content = manager.generate_with_fallback(
+            AIRequest(system=SYSTEM_PROMPT, user=prompt, max_tokens=2500)
+        )
+    except ProviderError:
         raise RamsDraftError("The drafter could not reach the AI — check the connection and try again.")
-    raise RamsDraftError("No AI key is set — save an OpenRouter or OpenAI key in Settings first.")
+    return parse_rams_json(content)

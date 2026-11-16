@@ -10,15 +10,15 @@
         },
         "Google": {
             "enabled": false,
-            "priority": 3
+            "priority": 4
         },
         "Anthropic": {
             "enabled": false,
-            "priority": 4
+            "priority": 5
         },
         "OpenAI": {
-            "enabled": false,
-            "priority": 5
+            "enabled": true,
+            "priority": 3
         },
         "Ollama": {
             "enabled": false,

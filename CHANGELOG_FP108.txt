@@ -1,0 +1,69 @@
+FP108 — Route the AI callers through the provider layer (engine, stage 2)
+=============================================================================
+
+What it does
+------------
+FP107 built one working provider layer; this milestone wires the
+live AI callers to it. Five hand-rolled provider loops are gone:
+
+- The chat hub (/api/chat) — via AIRequest.direct_messages, which
+  passes the validated history through verbatim (the last message
+  is not always from the user, so splitting history/user would
+  have flipped roles). Temperature 0.7 preserved.
+- The article question route (/api/ask_ai).
+- The story intelligence drawer (/api/story_intelligence) — the
+  >80-character check and deterministic fallback preserved.
+- The RAMS drafter (rams_drafter.py) — max_tokens 2500 preserved.
+- The receipt reader (receipt_reader.py) — via AIRequest
+  .image_data_url, which makes the user message multimodal.
+  OpenRouter-only chain: the vision model is OpenRouter-specific,
+  so an OpenAI fallback with the same model name would fail.
+  The route no longer passes the key; the provider layer reads it.
+
+Changes underneath:
+- core/ai/request.py: user defaults to "" (direct_messages
+  callers need no dummy user string); new direct_messages and
+  image_data_url fields.
+- config/providers.json: OpenAI enabled (priority 3) — it is the
+  live fallback everywhere, so the config now says so. Order:
+  DeepSeek 1 (unconfigured, skipped), OpenRouter 2, OpenAI 3.
+- The three FP107 providers now raise ProviderError on an empty
+  reply (previously an empty reply counted as success, so the
+  chat hub would not have fallen back the way it used to).
+- Test doubles in the RAMS and receipt test files gained
+  raise_for_status() (they now behave like real Responses), and
+  the receipt tests use the new read_receipt(image) signature
+  with the key from the environment.
+
+Deliberate exception: /api/ai_brief keeps its own chain. Its
+per-provider brief validation and reason-code diagnostics are
+bespoke; forcing them through the manager would weaken the
+diagnostics or complicate the manager for one caller.
+
+Behaviour preserved (all covered by existing tests): the chat
+hub's 503 "No AI provider is configured" message, reply +
+provider name on success, the RAMS "no key" vs "unreachable"
+messages, the receipt error messages, and the intelligence
+deterministic fallback.
+
+Files
+-----
+- core/ai/request.py
+- config/providers.json
+- main.py
+- rams_drafter.py
+- receipt_reader.py
+- core/providers/openrouter.py (empty-reply check)
+- core/providers/openai.py (empty-reply check)
+- core/providers/deepseek.py (empty-reply check)
+- tests/test_provider_wiring_fp108.py (new, 8 tests)
+- tests/test_provider_layer_fp107.py (chain now includes OpenAI)
+- tests/test_rams_drafting_fp100.py (raise_for_status double)
+- tests/test_receipt_capture_fp102.py (raise_for_status double,
+  new read_receipt signature)
+
+Tests: 8 new, all passing locally (148 targeted incl. all chat,
+brief and guard tests). Phone suite expected 839.
+INSTALL ONLY AFTER FP106 AND FP107 ARE PUSHED: FP108 touches
+main.py (FP106) and three FP107 provider files, so installing
+early would contaminate those commits.

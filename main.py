@@ -54,6 +54,9 @@ from rams_library import HAZARDS
 from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
 from weather_warnings import get_warnings
+from core.ai.request import AIRequest
+from core.providers.base import ProviderError
+from core.providers.manager import ProviderManager
 from readwise_client import ReadwiseError, sync_highlights
 from morning_brief import (
     LONDON,
@@ -1522,9 +1525,9 @@ def api_receipt_scan():
     image = data.get("image")
     if not isinstance(image, str) or not image:
         return jsonify({"success": False, "error": "A receipt photo is required."}), 400
-    api_key = os.environ.get("OPENROUTER_API_KEY")
+    # FP108: the key now comes from the provider layer, not the route.
     try:
-        fields = read_receipt(image, api_key)
+        fields = read_receipt(image)
     except ReceiptReadError as error:
         return jsonify({"success": False, "error": str(error)}), 502
     return jsonify({"success": True, "fields": fields})
@@ -1874,30 +1877,22 @@ def api_story_intelligence():
         + "\n".join(context)
     )
 
-    providers = []
-    if os.environ.get("OPENROUTER_API_KEY"):
-        providers.append(("openrouter", "https://openrouter.ai/api/v1/chat/completions", os.environ["OPENROUTER_API_KEY"], "deepseek/deepseek-chat"))
-    if os.environ.get("OPENAI_API_KEY"):
-        providers.append(("openai", "https://api.openai.com/v1/chat/completions", os.environ["OPENAI_API_KEY"], "gpt-4o-mini"))
-
-    for provider, url, key, model in providers:
-        try:
-            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": "Produce the seven-section intelligence assessment now."},
-                ],
-                "temperature": 0.1,
-            }
-            response = requests.post(url, json=payload, headers=headers, timeout=15)
-            if response.status_code == 200:
-                content = response.json()["choices"][0]["message"]["content"].strip()
-                if len(content) > 80:
-                    return jsonify({"success": True, "analysis": content, "provider": provider, "evidence": {"source_count": source_count, "report_count": report_count}})
-        except Exception:
-            continue
+    # FP108: one provider call through the engine's provider layer.
+    # The manager runs the priority chain (OpenRouter, then OpenAI)
+    # and raises only when every provider has failed.
+    try:
+        provider, content = ProviderManager().generate_with_fallback(
+            AIRequest(
+                system=system,
+                user="Produce the seven-section intelligence assessment now.",
+                temperature=0.1,
+            )
+        )
+    except ProviderError:
+        content = ""
+        provider = None
+    if content and len(content) > 80:
+        return jsonify({"success": True, "analysis": content, "provider": provider, "evidence": {"source_count": source_count, "report_count": report_count}})
 
     return jsonify({"success": True, "fallback": True, "analysis": deterministic, "evidence": {"source_count": source_count, "report_count": report_count}})
 
@@ -2136,49 +2131,29 @@ def api_ask_ai():
     question = str(data.get("question") or "What are the implications?").strip()
     article_title = str(data.get("title") or "").strip()
     article_desc = str(data.get("description") or "").strip()
-    providers = []
-    if os.environ.get("OPENROUTER_API_KEY"):
-        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", os.environ["OPENROUTER_API_KEY"], "deepseek/deepseek-chat"))
-    if os.environ.get("OPENAI_API_KEY"):
-        providers.append(("OpenAI", "https://api.openai.com/v1/chat/completions", os.environ["OPENAI_API_KEY"], "gpt-4o-mini"))
-
-    if not providers:
+    # FP108: the engine's provider layer runs the chain (OpenRouter,
+    # then OpenAI) — no provider is configured when none of the
+    # chain has a key.
+    manager = ProviderManager()
+    chain = manager.fallback_chain()
+    if not any(manager.get(name) is not None and manager.get(name).configured() for name in chain):
         return jsonify({"success": False, "error": "No AI provider is configured. Add an OpenRouter or OpenAI API key in Sources & API Settings."}), 503
 
-    errors = []
-    for provider, url, key, model in providers:
-        try:
-            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": "You are Kaivor News. Answer the user's question about the supplied article concisely and professionally. Use only the supplied article context. Clearly distinguish facts from uncertainty. Do not invent facts."},
-                    {"role": "user", "content": f"Article title: {article_title}\nArticle summary: {article_desc}\n\nQuestion: {question}"},
-                ],
-                "temperature": 0.2,
-            }
-            response = requests.post(url, json=payload, headers=headers, timeout=15)
-            if response.status_code == 200:
-                content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-                if content:
-                    return jsonify({"success": True, "answer": content, "provider": provider})
-                errors.append(f"{provider}: empty response")
-            else:
-                try:
-                    detail = response.json().get("error", {}).get("message", "")
-                except Exception:
-                    detail = ""
-                errors.append(f"{provider}: HTTP {response.status_code}" + (f" — {detail[:180]}" if detail else ""))
-        except requests.RequestException as exc:
-            errors.append(f"{provider}: connection error ({type(exc).__name__})")
-        except Exception:
-            errors.append(f"{provider}: unexpected provider response")
-
-    return jsonify({
-        "success": False,
-        "error": "AI could not answer this question right now.",
-        "details": " | ".join(errors),
-    }), 503
+    try:
+        provider, content = manager.generate_with_fallback(
+            AIRequest(
+                system="You are Kaivor News. Answer the user's question about the supplied article concisely and professionally. Use only the supplied article context. Clearly distinguish facts from uncertainty. Do not invent facts.",
+                user=f"Article title: {article_title}\nArticle summary: {article_desc}\n\nQuestion: {question}",
+                temperature=0.2,
+            )
+        )
+    except ProviderError as exc:
+        return jsonify({
+            "success": False,
+            "error": "AI could not answer this question right now.",
+            "details": str(exc),
+        }), 503
+    return jsonify({"success": True, "answer": content, "provider": provider})
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -2227,13 +2202,12 @@ def api_chat():
             return jsonify({"success": False, "error": "A chat message is limited to 4000 characters."}), 400
         messages.append({"role": role, "content": content})
 
-    providers = []
-    if os.environ.get("OPENROUTER_API_KEY"):
-        providers.append(("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", os.environ["OPENROUTER_API_KEY"], "deepseek/deepseek-chat"))
-    if os.environ.get("OPENAI_API_KEY"):
-        providers.append(("OpenAI", "https://api.openai.com/v1/chat/completions", os.environ["OPENAI_API_KEY"], "gpt-4o-mini"))
-
-    if not providers:
+    # FP108: the engine's provider layer runs the chain (OpenRouter,
+    # then OpenAI) — no provider is configured when none of the
+    # chain has a key.
+    manager = ProviderManager()
+    chain = manager.fallback_chain()
+    if not any(manager.get(name) is not None and manager.get(name).configured() for name in chain):
         return jsonify({"success": False, "error": "No AI provider is configured. Add an OpenRouter or OpenAI API key in Sources & API Settings."}), 503
 
     # FP079: optional web search. The latest user message is the query.
@@ -2274,38 +2248,18 @@ def api_chat():
         "role": "system",
         "content": system_content,
     }
-    errors = []
-    for provider, url, key, model in providers:
-        try:
-            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-            payload = {
-                "model": model,
-                "messages": [system_prompt, *messages],
-                "temperature": 0.7,
-            }
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
-            if response.status_code == 200:
-                content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-                if content:
-                    sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
-                    return jsonify({"success": True, "reply": content, "provider": provider, "web_used": web_used, "sources": sources})
-                errors.append(f"{provider}: empty response")
-            else:
-                try:
-                    detail = response.json().get("error", {}).get("message", "")
-                except Exception:
-                    detail = ""
-                errors.append(f"{provider}: HTTP {response.status_code}" + (f" — {detail[:180]}" if detail else ""))
-        except requests.RequestException as exc:
-            errors.append(f"{provider}: connection error ({type(exc).__name__})")
-        except Exception:
-            errors.append(f"{provider}: unexpected provider response")
-
-    return jsonify({
-        "success": False,
-        "error": "AI could not reply right now.",
-        "details": " | ".join(errors),
-    }), 503
+    try:
+        provider, content = manager.generate_with_fallback(
+            AIRequest(direct_messages=[system_prompt, *messages], temperature=0.7)
+        )
+    except ProviderError as exc:
+        return jsonify({
+            "success": False,
+            "error": "AI could not reply right now.",
+            "details": str(exc),
+        }), 503
+    sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
+    return jsonify({"success": True, "reply": content, "provider": provider, "web_used": web_used, "sources": sources})
 
 
 _startup()

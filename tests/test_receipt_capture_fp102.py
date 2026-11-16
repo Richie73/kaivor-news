@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import requests
 
 import main
 import news_store
@@ -33,6 +34,11 @@ class FakeResponse:
 
     def json(self):
         return self._payload
+
+    def raise_for_status(self):
+        # FP108: the provider layer calls this like a real Response.
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {self.status_code}")
 
 
 def template_text():
@@ -79,10 +85,11 @@ def test_parse_receipt_json_rejects_garbage():
 
 # --- reader request ---
 
-def test_read_receipt_posts_image_to_openrouter():
+def test_read_receipt_posts_image_to_openrouter(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "key-123")
     reply = {"choices": [{"message": {"content": '{"merchant": "B&Q", "date": "2026-11-15", "total": 27.02, "vat": null, "currency": "GBP"}'}}]}
-    with patch.object(receipt_reader.requests, "post", return_value=FakeResponse(200, reply)) as post:
-        fields = read_receipt(TINY_JPEG, "key-123")
+    with patch.object(requests, "post", return_value=FakeResponse(200, reply)) as post:
+        fields = read_receipt(TINY_JPEG)
     assert fields["merchant"] == "B&Q"
     assert fields["total"] == 27.02
     _, kwargs = post.call_args
@@ -92,21 +99,25 @@ def test_read_receipt_posts_image_to_openrouter():
     assert kwargs["headers"]["Authorization"] == "Bearer key-123"
 
 
-def test_read_receipt_rejects_bad_inputs():
+def test_read_receipt_rejects_bad_inputs(monkeypatch):
+    # FP108: the key comes from the environment now, not an argument.
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(ReceiptReadError):
-        read_receipt(TINY_JPEG, "")
+        read_receipt(TINY_JPEG)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "key-123")
     with pytest.raises(ReceiptReadError):
-        read_receipt("not-a-data-url", "key-123")
+        read_receipt("not-a-data-url")
     with pytest.raises(ReceiptReadError):
-        read_receipt("data:image/gif;base64,AAAA", "key-123")
+        read_receipt("data:image/gif;base64,AAAA")
     with pytest.raises(ReceiptReadError):
-        read_receipt("data:image/jpeg;base64," + "A" * 6_000_000, "key-123")
+        read_receipt("data:image/jpeg;base64," + "A" * 6_000_000)
 
 
-def test_read_receipt_refusal_is_a_clean_error():
-    with patch.object(receipt_reader.requests, "post", return_value=FakeResponse(402, {})):
+def test_read_receipt_refusal_is_a_clean_error(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "key-123")
+    with patch.object(requests, "post", return_value=FakeResponse(402, {})):
         with pytest.raises(ReceiptReadError):
-            read_receipt(TINY_JPEG, "key-123")
+            read_receipt(TINY_JPEG)
 
 
 # --- store ---

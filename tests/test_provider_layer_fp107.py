@@ -54,12 +54,14 @@ def test_manager_registers_all_providers():
 
 def test_manager_orders_by_priority_from_config():
     manager = ProviderManager()
-    # config/providers.json enables DeepSeek (1) and OpenRouter (2).
-    assert manager.ordered() == ["DeepSeek", "OpenRouter"]
-    assert manager.fallback_chain() == ["DeepSeek", "OpenRouter"]
+    # FP108: config/providers.json enables DeepSeek (1), OpenRouter
+    # (2) and OpenAI (3) — OpenAI is the live fallback everywhere.
+    assert manager.ordered() == ["DeepSeek", "OpenRouter", "OpenAI"]
+    assert manager.fallback_chain() == ["DeepSeek", "OpenRouter", "OpenAI"]
     assert manager.primary() == "DeepSeek"
     assert manager.next_provider("DeepSeek") == "OpenRouter"
-    assert manager.next_provider("OpenRouter") is None
+    assert manager.next_provider("OpenRouter") == "OpenAI"
+    assert manager.next_provider("OpenAI") is None
     assert manager.next_provider("Nope") is None
 
 

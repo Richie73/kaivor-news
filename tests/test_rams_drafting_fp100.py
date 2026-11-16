@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import requests
 
 import main
 import news_store
@@ -47,6 +48,11 @@ class FakeResponse:
 
     def json(self):
         return self._payload
+
+    def raise_for_status(self):
+        # FP108: the provider layer calls this like a real Response.
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {self.status_code}")
 
 
 def template_text():
@@ -133,7 +139,7 @@ def test_draft_rams_calls_openrouter_first(monkeypatch):
     reply = {"choices": [{"message": {"content": '{"method_steps": ["Step one."], "risks": [], "ppe": ["Gloves"]}'}}]}
     monkeypatch.setenv("OPENROUTER_API_KEY", "key-1")
     monkeypatch.setenv("OPENAI_API_KEY", "key-2")
-    with patch.object(rams_drafter.requests, "post", return_value=FakeResponse(200, reply)) as post:
+    with patch.object(requests, "post", return_value=FakeResponse(200, reply)) as post:
         draft = draft_rams("Lay drainage", "Plot 12", ["excavation-collapse"], "", "")
     assert draft["method_steps"] == ["Step one."]
     assert draft["ppe"] == ["Gloves"]
@@ -147,7 +153,7 @@ def test_draft_rams_falls_back_to_openai(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "key-1")
     monkeypatch.setenv("OPENAI_API_KEY", "key-2")
     calls = []
-    with patch.object(rams_drafter.requests, "post", side_effect=[FakeResponse(500, {}), FakeResponse(200, reply)]) as post:
+    with patch.object(requests, "post", side_effect=[FakeResponse(500, {}), FakeResponse(200, reply)]) as post:
         draft = draft_rams("Lay drainage", "", [], "", "")
     assert draft["method_steps"] == ["Step one."]
     assert post.call_count == 2

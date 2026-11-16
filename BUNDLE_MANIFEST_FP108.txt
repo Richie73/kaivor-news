@@ -1,0 +1,22 @@
+FP108 bundle manifest — route the AI callers through the provider layer
+========================================================================
+
+core/ai/request.py
+config/providers.json
+main.py
+rams_drafter.py
+receipt_reader.py
+core/providers/openrouter.py
+core/providers/openai.py
+core/providers/deepseek.py
+tests/test_provider_wiring_fp108.py
+tests/test_provider_layer_fp107.py
+tests/test_rams_drafting_fp100.py
+tests/test_receipt_capture_fp102.py
+CHANGELOG_FP108.txt
+README_INSTALL_FP108.txt
+BUNDLE_MANIFEST_FP108.txt
+
+15 files. Tests: 8 new in tests/test_provider_wiring_fp108.py.
+Phone suite expected: 839 passed, 0 failed, 2 skipped.
+INSTALL ONLY AFTER FP106 AND FP107 ARE PUSHED.

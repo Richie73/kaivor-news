@@ -1,10 +1,15 @@
-"""Read a receipt photo with AI vision (OpenRouter).
+"""Read a receipt photo with AI vision (FP102; FP108: via the provider layer).
 
-FP102: the client sends a photo (data URL); this module sends it
-to a vision model and returns the fields as a dict. The model is
+The client sends a photo (data URL); this module sends it to a
+vision model and returns the fields as a dict. The model is
 configurable via KAIVOR_RECEIPT_MODEL; the default is
 google/gemini-2.5-flash (verified on OpenRouter 15 Nov 2026 —
 about $0.001 a scan at its listed prices).
+
+The call goes through ProviderManager with an OpenRouter-only
+chain: the vision model is OpenRouter-specific, so falling back
+to OpenAI with the same model name would fail. The key comes
+from the provider layer (OPENROUTER_API_KEY in the environment).
 """
 from __future__ import annotations
 
@@ -12,10 +17,11 @@ import json
 import os
 import re
 
-import requests
+from core.ai.request import AIRequest
+from core.providers.base import ProviderError
+from core.providers.manager import ProviderManager
 
 DEFAULT_MODEL = "google/gemini-2.5-flash"
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MAX_IMAGE_CHARS = 6_000_000  # ~4.5MB of base64
 ALLOWED_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
@@ -81,9 +87,7 @@ def parse_receipt_json(text):
     }
 
 
-def read_receipt(image_data_url, api_key, model=None):
-    if not api_key:
-        raise ReceiptReadError("No OpenRouter key is set — save one in Settings first.")
+def read_receipt(image_data_url, model=None):
     if not isinstance(image_data_url, str) or not image_data_url.startswith("data:image/"):
         raise ReceiptReadError("Send a receipt photo (JPEG, PNG or WebP).")
     media_type = image_data_url.split(";", 1)[0][5:]
@@ -91,35 +95,17 @@ def read_receipt(image_data_url, api_key, model=None):
         raise ReceiptReadError("Send a receipt photo (JPEG, PNG or WebP).")
     if len(image_data_url) > MAX_IMAGE_CHARS:
         raise ReceiptReadError("That photo is too large — try a smaller one (under ~4MB).")
-    payload = {
-        "model": model or os.environ.get("KAIVOR_RECEIPT_MODEL") or DEFAULT_MODEL,
-        "messages": [{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": PROMPT},
-                {"type": "image_url", "image_url": {"url": image_data_url}},
-            ],
-        }],
-        "max_tokens": 400,
-    }
+    manager = ProviderManager()
+    openrouter = manager.get("OpenRouter")
+    if openrouter is None or not openrouter.configured():
+        raise ReceiptReadError("No OpenRouter key is set — save one in Settings first.")
+    chosen_model = model or os.environ.get("KAIVOR_RECEIPT_MODEL") or DEFAULT_MODEL
     try:
-        response = requests.post(
-            OPENROUTER_URL,
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=60,
+        _provider, content = manager.generate_with_fallback(
+            AIRequest(user=PROMPT, image_data_url=image_data_url, max_tokens=400),
+            model=chosen_model,
+            chain=["OpenRouter"],
         )
-    except requests.RequestException:
+    except ProviderError:
         raise ReceiptReadError("Could not reach the reader — check the connection and try again.")
-    if response.status_code != 200:
-        raise ReceiptReadError("The reader refused the photo — try again.")
-    try:
-        data = response.json()
-    except ValueError:
-        raise ReceiptReadError("The reader returned nothing usable.")
-    choices = data.get("choices") or []
-    first = choices[0] if choices and isinstance(choices[0], dict) else {}
-    content = (first.get("message") or {}).get("content")
-    if not content:
-        raise ReceiptReadError("The reader returned nothing usable.")
     return parse_receipt_json(content)

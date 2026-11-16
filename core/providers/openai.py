@@ -44,7 +44,10 @@ class OpenAIProvider(BaseProvider):
                 timeout=60,
             )
             response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            content = response.json()["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or not content.strip():
+                raise ProviderError("OpenAI returned an empty reply.")
+            return content.strip()
         except requests.RequestException as exc:
             raise ProviderError(f"OpenAI request failed: {exc}") from exc
         except (KeyError, IndexError, TypeError, ValueError) as exc:

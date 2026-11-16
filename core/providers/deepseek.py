@@ -46,7 +46,10 @@ class DeepSeekProvider(BaseProvider):
                 timeout=120,
             )
             response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            content = response.json()["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or not content.strip():
+                raise ProviderError("DeepSeek returned an empty reply.")
+            return content.strip()
         except requests.RequestException as exc:
             raise ProviderError(f"DeepSeek request failed: {exc}") from exc
         except (KeyError, IndexError, TypeError, ValueError) as exc:
