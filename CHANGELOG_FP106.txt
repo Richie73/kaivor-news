@@ -1,0 +1,63 @@
+FP106 — Met Office Weather Warnings for Puddington
+===================================================
+
+What it does
+------------
+Shows Met Office Weather Warnings covering Puddington in three
+places: a banner at the top of the Weather view, a card in the
+morning hub (only when warnings exist), and a Warnings section in
+the morning brief text (FP104).
+
+- New module weather_warnings.py reads the NSWWS API: an Atom
+  feed entry point, then the GeoJSON "issued" collection it links
+  to (rel="related"). Docs verified 16 Nov 2026 (v1.0 public docs
+  at metoffice.github.io/nswws-public-api; v1.1 on the DataHub).
+  Both signup routes give the same shape, so both auth headers
+  (x-api-key for v1.0, apikey for v1.1) are sent with the same key.
+- Warnings are filtered to the ones whose polygon actually covers
+  Puddington (point-in-polygon on the MultiPolygon outer rings) —
+  a warning for Cumbria must not alert him just because it shares
+  the North West region. The collection covers the next 7 days,
+  so future warnings show too, with valid from/to times.
+- Results cached 15 minutes, like travel.
+- GET /api/weather/warnings — open read (public data, like travel).
+  Reports not_configured without the feed URL + key.
+- morning_brief.py gains brief_warning_lines + a warnings section
+  in the brief text; build_morning_brief takes an optional
+  warnings argument (FP104 callers unchanged).
+- Template: #weather-warnings banner in the Weather view,
+  #hub-warnings-card in the hub (hidden when no warnings),
+  warningBannerHtml + loadWeatherWarnings + loadMorningHubWarnings.
+  Level colours reuse tokens: YELLOW --amber, AMBER --orange,
+  RED --red. Warnings are always called "Met Office Weather
+  Warnings", per the NSWWS style guide.
+
+Files
+-----
+- weather_warnings.py (new)
+- morning_brief.py (warnings in the brief)
+- main.py (route + brief wiring)
+- templates/index.html (banner, hub card, JS)
+- render.yaml (KAIVOR_WARNINGS_FEED_URL, KAIVOR_WARNINGS_API_KEY)
+- tests/test_weather_warnings_fp106.py (new, 15 tests)
+
+Setup (Richie, after deploy)
+----------------------------
+Two routes to a key — DataHub is self-serve, the contact form
+needs a human reply. Either works with this build.
+
+Route A — Weather DataHub (recommended):
+1. Register a free account at datahub.metoffice.gov.uk.
+2. Subscribe to the Warnings plan (free within the daily quota).
+3. Copy the API key AND the Atom feed URL into Render as
+   KAIVOR_WARNINGS_API_KEY and KAIVOR_WARNINGS_FEED_URL.
+
+Route B — NSWWS Public API v1.0:
+1. Fill in the Met Office contact form requesting access to the
+   NSWWS Public API.
+2. They email back an API key and the Atom feed URL — paste both
+   into Render as above.
+
+Never paste the key or feed URL in chat.
+
+Tests: 15 new, all passing locally. Phone suite expected 819.

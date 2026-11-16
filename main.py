@@ -53,6 +53,7 @@ from rams_drafter import RamsDraftError, draft_rams
 from rams_library import HAZARDS
 from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
+from weather_warnings import get_warnings
 from readwise_client import ReadwiseError, sync_highlights
 from morning_brief import (
     LONDON,
@@ -1654,8 +1655,12 @@ def _build_live_brief():
         os.environ.get("TOMTOM_API_KEY"),
     )
     weather = fetch_brief_weather()
+    warnings_result = get_warnings(
+        os.environ.get("KAIVOR_WARNINGS_FEED_URL"),
+        os.environ.get("KAIVOR_WARNINGS_API_KEY"),
+    )
     return build_morning_brief(
-        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather
+        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather, warnings_result
     )
 
 
@@ -1730,6 +1735,18 @@ def api_readwise_sync():
             "last_sync": stored["last_sync"],
         }
     )
+
+
+# FP106: Met Office Weather Warnings for Puddington. Public data,
+# so the route is an open read like travel. The feed URL + key are
+# dashboard secrets; without them the route reports not_configured.
+@app.route("/api/weather/warnings", methods=["GET"])
+def api_weather_warnings():
+    result = get_warnings(
+        os.environ.get("KAIVOR_WARNINGS_FEED_URL"),
+        os.environ.get("KAIVOR_WARNINGS_API_KEY"),
+    )
+    return jsonify({"success": result.get("status") == "ok", **result})
 
 
 @app.route("/api/relevance_profile", methods=["GET", "PUT"])

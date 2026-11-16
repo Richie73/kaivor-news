@@ -46,6 +46,13 @@ services:
       # readwise.io/access_token, a dashboard secret (sync: false).
       - key: KAIVOR_READWISE_TOKEN
         sync: false
+      # FP106: Met Office Weather Warnings — the Atom feed URL and
+      # API key from the NSWWS signup (v1.0 contact form or v1.1
+      # DataHub), both dashboard secrets (sync: false).
+      - key: KAIVOR_WARNINGS_FEED_URL
+        sync: false
+      - key: KAIVOR_WARNINGS_API_KEY
+        sync: false
       - key: KAIVOR_COOKIE_SECURE
         value: "true"
       - key: KAIVOR_READING_REQUIRE_POSTGRES

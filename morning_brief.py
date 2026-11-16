@@ -179,6 +179,20 @@ def brief_calendar_lines(calendar_result):
     return lines
 
 
+def brief_warning_lines(warnings_result):
+    """Met Office warnings covering Puddington, as plain lines."""
+    if not isinstance(warnings_result, dict) or warnings_result.get("status") != "ok":
+        return []
+    lines = []
+    for warning in warnings_result.get("warnings") or []:
+        level = warning.get("level") or ""
+        types = ", ".join(warning.get("types") or [])
+        headline = warning.get("headline") or "Weather warning"
+        line = f"\u26a0\ufe0f {level} {types} \u2014 {headline}" if types else f"\u26a0\ufe0f {level} \u2014 {headline}"
+        lines.append(line)
+    return lines
+
+
 def brief_travel_lines(travel_result):
     """Rail + roads + tunnel summary lines, mirroring the hub card."""
     result = travel_result or {}
@@ -228,7 +242,7 @@ def brief_travel_lines(travel_result):
     return lines
 
 
-def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather):
+def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather, warnings=None):
     """Assemble the brief dict from already-fetched data (pure)."""
     greeting = brief_greeting(now.hour) + ", Richie"
     date_text = f"{now.strftime('%A')} {now.day} {now.strftime('%B %Y')}"
@@ -238,6 +252,7 @@ def build_morning_brief(now, articles, finance_data, calendar_result, travel_res
         "date_text": date_text,
         "generated_at": int(time.time()),
         "weather": weather or {"status": "error", "error": "Weather unavailable."},
+        "warnings": brief_warning_lines(warnings),
         "stories": brief_top_stories(articles),
         "markets": brief_markets(finance_data),
         "calendar": brief_calendar_lines(calendar_result),
@@ -259,6 +274,10 @@ def format_brief_text(brief):
         )
     else:
         parts.append("\nWeather unavailable.")
+    warnings = brief.get("warnings") or []
+    if warnings:
+        parts.append("\nWarnings:")
+        parts.extend(f"\u2022 {line}" for line in warnings)
     stories = brief.get("stories") or []
     if stories:
         parts.append("\nTop stories:")

@@ -478,6 +478,7 @@
                 <button id="weather-refresh" type="button" onclick="refreshWeather()" title="Refresh weather">↻</button>
             </div>
         </div>
+        <div id="weather-warnings"></div>
         <div id="weather-now" class="weather-now"><div class="skeleton skeleton-hero"></div></div>
         <div id="weather-details" class="weather-details"></div>
         <div id="weather-summary" class="weather-summary"></div>
@@ -519,6 +520,10 @@
             <div id="hub-weather" class="hub-weather"></div>
             <button type="button" style="margin-top:var(--space-sm);" onclick="showReceipts()">🧾 Scan a receipt</button>
             <button type="button" style="margin-top:var(--space-sm);" onclick="showRams()">📋 Draft a RAMS</button>
+        </div>
+        <div class="card" id="hub-warnings-card" style="display:none">
+            <h3>⚠️ Met Office Weather Warnings</h3>
+            <div id="hub-warnings" class="hub-list"></div>
         </div>
         <div class="card">
             <h3>Top stories</h3>
@@ -2555,6 +2560,7 @@ function showWeather(element) {
     const section = document.getElementById('weather-section');
     if (section) section.style.display = 'block';
     hideNewsLoadMore();
+    loadWeatherWarnings();
 }
 
 function hideWeatherView() {
@@ -2731,6 +2737,7 @@ function renderMorningHub() {
     loadMorningHubMarkets();
     loadMorningHubCalendar();
     loadMorningHubTravel();
+    loadMorningHubWarnings();
 }
 
 async function loadMorningHubCalendar() {
@@ -2796,6 +2803,61 @@ async function loadMorningHubTravel() {
         travelEl.innerHTML = lines.join('');
     } catch (error) {
         travelEl.textContent = 'Travel unavailable — check your connection and try again.';
+    }
+}
+
+// FP106: Met Office Weather Warnings for Puddington. The server
+// filters the NSWWS feed to warnings covering Puddington; the
+// banner shows in the Weather view and the hub when any exist.
+const WARNING_LEVEL_COLOURS = {YELLOW: 'var(--amber)', AMBER: 'var(--orange)', RED: 'var(--red)'};
+function warningLevelColour(level) {
+    return WARNING_LEVEL_COLOURS[level] || 'var(--amber)';
+}
+function warningValidText(warning) {
+    const from = warning.valid_from ? new Date(warning.valid_from) : null;
+    const to = warning.valid_to ? new Date(warning.valid_to) : null;
+    const fmt = {weekday: 'short', hour: '2-digit', minute: '2-digit'};
+    if (from && to) return from.toLocaleString('en-GB', fmt) + ' – ' + to.toLocaleString('en-GB', fmt);
+    if (from) return 'From ' + from.toLocaleString('en-GB', fmt);
+    return '';
+}
+function warningBannerHtml(warning) {
+    const colour = warningLevelColour(warning.level);
+    const types = (warning.types || []).join(', ');
+    const valid = warningValidText(warning);
+    return '<div class="hub-story" style="border-left:3px solid ' + colour + '; padding-left:var(--space-md);">'
+        + '<strong style="color:' + colour + ';">⚠️ ' + escapeHtml(warning.level || '') + (types ? ' ' + escapeHtml(types) : '') + '</strong><br>'
+        + escapeHtml(warning.headline || 'Weather warning')
+        + (valid ? '<br><span class="published">' + escapeHtml(valid) + '</span>' : '')
+        + '</div>';
+}
+async function loadWeatherWarnings() {
+    const warningsEl = document.getElementById('weather-warnings');
+    if (!warningsEl) return;
+    try {
+        const response = await fetch('/api/weather/warnings', {cache: 'no-store'});
+        const result = await response.json();
+        const warnings = (result.status === 'ok' ? result.warnings : []) || [];
+        warningsEl.innerHTML = warnings.length
+            ? '<div class="weather-days-head"><span class="weather-strip-label">Met Office Weather Warnings</span></div>' + warnings.map(warningBannerHtml).join('')
+            : '';
+    } catch (error) {
+        warningsEl.innerHTML = '';
+    }
+}
+async function loadMorningHubWarnings() {
+    const cardEl = document.getElementById('hub-warnings-card');
+    const warningsEl = document.getElementById('hub-warnings');
+    if (!cardEl || !warningsEl) return;
+    try {
+        const response = await fetch('/api/weather/warnings', {cache: 'no-store'});
+        const result = await response.json();
+        const warnings = (result.status === 'ok' ? result.warnings : []) || [];
+        if (!warnings.length) { cardEl.style.display = 'none'; return; }
+        cardEl.style.display = 'block';
+        warningsEl.innerHTML = warnings.map(warningBannerHtml).join('');
+    } catch (error) {
+        cardEl.style.display = 'none';
     }
 }
 
