@@ -61,10 +61,32 @@ def test_league_url_path_is_dropped_even_with_neutral_title(link):
     [
         "Two quarterbacks headline the draft class",
         "Baseballs used in the final sell for thousands",
+        "Two touchdowns seal the win in the fourth quarter",
     ],
 )
 def test_plurals_are_dropped(title):
     assert is_us_sport_story(_article(title)) is True
+
+
+def test_touchdown_only_college_story_is_dropped():
+    # FP109.1: the live gap — "Tennessee pulls away late to beat Texas
+    # A&M 22-7" (newportplaintalk.com via NewsData) carried no other
+    # signal word, so "touchdown" is now matched.
+    assert is_us_sport_story(_article(
+        "Tennessee pulls away late to beat Texas A&M 22-7",
+        "COLLEGE STATION, Texas — DaSaahn Brame had a touchdown catch "
+        "and Cooper Ranvier made a career-high five field goals.",
+        "https://www.newportplaintalk.com/sports/article_480b125e.html",
+    )) is True
+
+
+def test_space_landing_touchdown_is_dropped_too():
+    # FP109.1 trade-off (see news_store.py): "touchdown" cannot tell a
+    # football score from a spacecraft landing, and the football case is
+    # the one Richie asked to exclude.
+    assert is_us_sport_story(_article(
+        "Touchdown confirmed for Mars lander",
+        "The spacecraft touched down safely")) is True
 
 
 def test_world_series_of_darts_is_dropped_too():
@@ -79,7 +101,6 @@ def test_world_series_of_darts_is_dropped_too():
     [
         ("Arsenal beat Liverpool 2-1 at the Emirates", ""),
         ("Lakers win NBA thriller in overtime", ""),
-        ("Touchdown confirmed for Mars lander", "The spacecraft touched down safely"),
         ("Chancellor's budget is a home run, say markets", ""),
         ("England name squad for the autumn internationals", ""),
     ],

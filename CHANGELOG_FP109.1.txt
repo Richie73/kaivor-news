@@ -1,0 +1,24 @@
+FP109.1: Add "touchdown" to the American-football/baseball filter
+================================================================
+Date: 16 Nov 2026. Follow-up to FP109 (pushed as 2ab6551, verified
+live the same day: 0 whole-word NFL/MLB/Super Bowl/quarterback/
+World Series/baseball mentions on the homepage).
+
+The gap: one college-football story slipped through live —
+"Tennessee pulls away late to beat Texas A&M 22-7"
+(newportplaintalk.com, via NewsData). Its title, description and URL
+carried no FP109 term; the only signal word was "touchdown", which
+FP109 had deliberately left out (spacecraft landings use it too).
+
+The fix: "touchdowns?" joins _US_SPORT_PATTERNS in news_store.py.
+Accepted cost, agreed by Richie: a rare space-landing story using
+"touchdown" is dropped too. "Field goal" was considered and rejected
+— it is also a basketball term, and basketball stays in the feed.
+
+Tests: the FP109 file gains 2 net tests (27 total): the college
+story shape is dropped, the plural "touchdowns" is dropped, and the
+space-landing case now asserts dropped (trade-off documented, not
+accidental). Local: 872 passed / 11 known failures / 2 skipped.
+Phone expected: 858 passed / 0 failed / 2 skipped.
+
+Files: news_store.py, tests/test_us_sport_filter_fp109.py.

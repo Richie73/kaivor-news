@@ -167,8 +167,12 @@ def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
 # feed (16 Nov 2026). Matching is whole-word/phrase on the title +
 # description, plus the league URL paths (ESPN/BBC/Guardian/Sky all carry
 # them even when the headline does not name the league). Deliberately NOT
-# matched: "touchdown" (also used for spacecraft landings), "home run" and
-# "pitcher" (common outside baseball). Basketball/NBA is NOT excluded.
+# matched: "home run" and "pitcher" (common outside baseball).
+# Basketball/NBA is NOT excluded.
+# FP109.1: "touchdown" was first left out (spacecraft landings use it too),
+# but a college-football story slipped through live with "touchdown" as
+# its only signal word, so it is now matched. Accepted cost: a rare
+# space-landing story using "touchdown" is dropped too.
 # Known trade-off: "world series" also drops the occasional World Series of
 # Darts/Poker story; the MLB World Series is baseball's biggest event, so
 # the term stays.
@@ -177,6 +181,7 @@ _US_SPORT_PATTERNS = (
     re.compile(r"\bsuper bowl\b", re.IGNORECASE),
     re.compile(r"\bamerican football\b", re.IGNORECASE),
     re.compile(r"\bcollege football\b", re.IGNORECASE),
+    re.compile(r"\btouchdowns?\b", re.IGNORECASE),
     re.compile(r"\bquarterbacks?\b", re.IGNORECASE),
     re.compile(r"\bgridiron\b", re.IGNORECASE),
     re.compile(r"\bmlb\b", re.IGNORECASE),
