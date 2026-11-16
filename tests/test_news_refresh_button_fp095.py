@@ -96,8 +96,10 @@ def test_cron_endpoint_uses_shared_starter():
 def test_refresh_button_markup():
     html = TEMPLATE.read_text(encoding="utf-8")
     assert 'id="section-title-row"' in html
-    assert 'id="refresh-news-btn"' in html
-    assert 'onclick="refreshNewsFromButton(this)"' in html
+    # FP111: the title-row button is now the single refresh button —
+    # it follows the view via refreshCurrentView.
+    assert 'id="refresh-btn"' in html
+    assert 'onclick="refreshCurrentView(this)"' in html
     assert "↻ Refresh news" in html
 
 

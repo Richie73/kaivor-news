@@ -1,0 +1,42 @@
+FP111: One refresh button, following the view
+================================================
+Date: 16 Nov 2026. Richie's question: "Would it make sense to have
+the settings gear, the refresh market and refresh news buttons in
+the same place?"
+
+What was wrong: three refresh buttons overlapped. The news button
+sat in the section-title row, which stays visible in every view, so
+it showed even in Chat. The market panel had its own "Refresh
+markets" button. The Markets view had a third "Refresh" button —
+so the Markets view showed all three at once.
+
+The fix (agreed with Richie): one button in the title row,
+id="refresh-btn", onclick refreshCurrentView(this). updateRefreshButton()
+sets its label and visibility from the view state:
+  - Markets view open -> "Refresh markets", visible.
+  - News views -> "Refresh news", visible.
+  - Weather, Hub, or a container view (Saved, Chat, Settings,
+    Receipts, RAMS) -> hidden.
+refreshCurrentView dispatches to refreshMarketsFromView (prices plus
+the five-day history, as before) in Markets, else to
+refreshNewsFromButton. Both refresh functions now restore the
+button's label through updateRefreshButton() instead of hardcoding
+it, so a view change mid-refresh cannot mislabel the button.
+Settings stays in the header — it is global.
+
+Call sites for updateRefreshButton(): filterCategory,
+cacheNewsContainer (after the early return), restoreNewsContainer,
+showWeather, showMarkets, showMorningHub. The two old buttons and
+the #market-refresh CSS rules are removed.
+
+Tests: 8 in tests/test_unified_refresh_fp111.py (markup, old
+buttons gone, Settings in the header, call sites, restore paths,
+history reload, and two node tests — button states across six view
+combinations and the dispatch). FP095's markup test and FP086's
+markets-section test updated for the new button. Local: 880 passed
+/ 11 known failures / 2 skipped. Phone expected: 891 passed /
+0 failed / 2 skipped.
+
+Files: templates/index.html, tests/test_unified_refresh_fp111.py,
+tests/test_news_refresh_button_fp095.py,
+tests/test_markets_view_fp086.py.

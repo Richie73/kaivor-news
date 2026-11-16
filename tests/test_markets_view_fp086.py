@@ -43,7 +43,9 @@ def test_markets_section_hidden_by_default():
     assert '<section id="markets-section" class="weather-card" aria-label="Markets" style="display:none">' in html
     assert 'id="markets-list"' in html
     assert 'id="markets-updated"' in html
-    assert 'onclick="refreshMarketsFromView()"' in html
+    # FP111: the Markets view no longer has its own refresh button —
+    # the shared title-row button calls refreshMarketsFromView.
+    assert 'onclick="refreshMarketsFromView()"' not in html
 
 
 def test_show_markets_hides_without_destroying():

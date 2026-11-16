@@ -51,8 +51,6 @@
         .market-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:var(--space-sm); }
         .market-panel-title { color:var(--green-pale); font-size:var(--text-base); font-weight:700; letter-spacing:.7px; text-transform:uppercase; }
         .market-controls { display:flex; align-items:center; gap:var(--space-sm); flex-wrap:wrap; }
-        #market-refresh { padding:7px 10px; font-size:var(--text-base); }
-        #market-refresh:disabled { opacity:.6; cursor:wait; }
         .market-status { color:var(--muted); font-size:var(--text-sm); line-height:var(--leading-snug); }
         .market-status.stale { color:var(--amber); }
         .market-status.error { color:var(--red-soft); }
@@ -288,7 +286,7 @@
         #section-title { font-size:var(--text-lg); color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:var(--space-xs); }
         /* FP095: title and refresh button share one row. */
         #section-title-row { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); }
-        #section-title-row #refresh-news-btn { flex-shrink:0; }
+        #section-title-row #refresh-btn { flex-shrink:0; }
         .intel-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 10px; }
         .intel-badge { font-size:var(--text-xs); color:var(--green-soft); background:#10231c; border:1px solid #1f4d3b; border-radius:var(--radius-pill); padding:4px 7px; }
         .importance-badge,.confidence-badge { font-weight:600; }
@@ -437,7 +435,6 @@
             <div class="market-panel-title">Market watch</div>
             <div class="market-controls">
                 <span id="market-status" class="market-status" role="status" aria-live="polite">Waiting for market data</span>
-                <button id="market-refresh" type="button" onclick="refreshMarkets()">↻ Refresh markets</button>
             </div>
         </div>
         <div class="market-bar" aria-label="Live market prices — tap to open the full markets view" tabindex="0" onclick="showMarkets()" title="Tap to open the full markets view">
@@ -514,7 +511,6 @@
     <section id="markets-section" class="weather-card" aria-label="Markets" style="display:none">
         <div class="weather-head">
             <div><span class="weather-place">Markets</span><span id="markets-updated" class="weather-updated"></span></div>
-            <button type="button" onclick="refreshMarketsFromView()">↻ Refresh</button>
         </div>
         <div id="markets-list"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>
         <p class="evidence-note">Prices from Yahoo Finance and Frankfurter. History covers the last five trading days.</p>
@@ -555,10 +551,13 @@
 
     <!-- FP095: manual news refresh. The button starts the same
          background refresh the cron job runs; the page reloads
-         once the new stories land (see refreshNewsFromButton). -->
+         once the new stories land (see refreshNewsFromButton).
+         FP111: this is now the ONE refresh button — it follows
+         the view (news in the news views, markets in the Markets
+         view) via refreshCurrentView. -->
     <div id="section-title-row">
         <h3 id="section-title">Top Stories</h3>
-        <button id="refresh-news-btn" type="button" class="install-app" onclick="refreshNewsFromButton(this)">↻ Refresh news</button>
+        <button id="refresh-btn" type="button" class="install-app" onclick="refreshCurrentView(this)">↻ Refresh news</button>
     </div>
     <div id="status" class="status">Stories are deduplicated and saved locally on this device.</div>
 
@@ -868,6 +867,7 @@ function filterCategory(category, element) {
     if (wasDifferent) scrollKaivorToTop();
     applyNewsPagination();
     updateFootballScores(category);
+    updateRefreshButton();
 }
 
 // FP092 NEWS PAGINATION: BEGIN
@@ -977,7 +977,10 @@ async function refreshNewsFromButton(button) {
         console.error('News refresh error:', error);
     } finally {
         newsRefreshInFlight = false;
-        if (button) { button.disabled = false; button.textContent = '↻ Refresh news'; }
+        if (button) { button.disabled = false; }
+        // FP111: restore the label for the view the user is in now —
+        // they may have moved to Markets while the refresh ran.
+        updateRefreshButton();
     }
 }
 // FP095 NEWS REFRESH: END
@@ -997,6 +1000,7 @@ function cacheNewsContainer() {
     if (newsViewReplaced) return;
     hideFootballScores();
     hideNewsLoadMore();
+    updateRefreshButton();
     const container = document.getElementById('articles-container');
     if (!container) return;
     cachedNewsHtml = container.innerHTML;
@@ -1093,8 +1097,47 @@ function restoreNewsContainer() {
         else { button.textContent = 'Save'; button.classList.remove('saved'); }
     });
     observeStockPlaceholders(container);
+    updateRefreshButton();
     return true;
 }
+
+// FP111 UNIFIED REFRESH: BEGIN
+// One refresh button in the title row, following the view. It used to
+// be three buttons that overlapped: the news button showed in every
+// view (even Chat), the market panel had its own "Refresh markets"
+// button, and the Markets view had a third "Refresh" button — so the
+// Markets view showed all three at once. Now the single button
+// refreshes the news in the news views, the markets in the Markets
+// view, and hides in Weather, the Hub and the container views
+// (Saved, Chat, Settings, Receipts, RAMS), where refreshing makes
+// no sense. Settings stays in the header — it is global.
+function updateRefreshButton() {
+    const button = document.getElementById('refresh-btn');
+    if (!button) return;
+    const markets = document.getElementById('markets-section');
+    const weather = document.getElementById('weather-section');
+    const hub = document.getElementById('morning-hub-section');
+    if (markets && markets.style.display === 'block') {
+        button.textContent = '↻ Refresh markets';
+        button.style.display = '';
+    } else if (newsViewReplaced
+        || (weather && weather.style.display === 'block')
+        || (hub && hub.style.display === 'block')) {
+        button.style.display = 'none';
+    } else {
+        button.textContent = '↻ Refresh news';
+        button.style.display = '';
+    }
+}
+function refreshCurrentView(button) {
+    const markets = document.getElementById('markets-section');
+    if (markets && markets.style.display === 'block') {
+        refreshMarketsFromView();
+    } else {
+        refreshNewsFromButton(button);
+    }
+}
+// FP111 UNIFIED REFRESH: END
 
 function initializeMobileNewsNavigation() {
     const topButton = document.getElementById('kaivor-scroll-top');
@@ -1634,7 +1677,7 @@ async function updateFinanceTicker() {
 async function refreshMarkets() {
     if (marketRefreshInFlight) return;
     marketRefreshInFlight = true;
-    const button = document.getElementById('market-refresh');
+    const button = document.getElementById('refresh-btn');
     if (button) { button.disabled = true; button.textContent = '↻ Refreshing…'; }
     setMarketStatus('Requesting latest market data…');
     try {
@@ -1667,7 +1710,9 @@ async function refreshMarkets() {
         console.error('Market refresh error:', error);
     } finally {
         marketRefreshInFlight = false;
-        if (button) { button.disabled = false; button.textContent = '↻ Refresh markets'; }
+        if (button) { button.disabled = false; }
+        // FP111: restore the label for the view the user is in now.
+        updateRefreshButton();
         updateFinanceTicker();
     }
 }
@@ -2577,6 +2622,7 @@ function showWeather(element) {
     const section = document.getElementById('weather-section');
     if (section) section.style.display = 'block';
     hideNewsLoadMore();
+    updateRefreshButton();
     loadWeatherWarnings();
 }
 
@@ -2609,6 +2655,7 @@ function showMarkets() {
     const section = document.getElementById('markets-section');
     if (section) section.style.display = 'block';
     hideNewsLoadMore();
+    updateRefreshButton();
     loadMarketsHistory();
 }
 function hideMarketsView() {
@@ -2971,6 +3018,7 @@ function showMorningHub(element) {
     const section = document.getElementById('morning-hub-section');
     if (section) section.style.display = 'block';
     hideNewsLoadMore();
+    updateRefreshButton();
     renderMorningHub();
 }
 function hideMorningHubView() {
