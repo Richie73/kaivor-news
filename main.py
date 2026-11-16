@@ -34,6 +34,7 @@ from news_store import (
     is_saved,
     load_custom_sources,
     load_rams_list,
+    load_readwise_highlights,
     load_receipts,
     load_saved_articles,
     load_secrets,
@@ -43,6 +44,7 @@ from news_store import (
     save_article,
     save_custom_sources,
     save_rams,
+    save_readwise_highlights,
     save_receipt,
     save_secret,
     update_rams,
@@ -51,6 +53,7 @@ from rams_drafter import RamsDraftError, draft_rams
 from rams_library import HAZARDS
 from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
+from readwise_client import ReadwiseError, sync_highlights
 from morning_brief import (
     LONDON,
     build_morning_brief,
@@ -90,6 +93,7 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_receipt_remove",
     "api_receipt_save",
     "api_receipt_scan",
+    "api_readwise_sync",
     "api_relevance_profile",  # PUT only; GET is skipped by the method check
     "api_remove_saved",
     "api_save",
@@ -1684,6 +1688,48 @@ def api_automation_brief_send():
     if not result.get("ok"):
         return jsonify({"success": False, "error": result.get("error", "Send failed.")}), 502
     return jsonify({"success": True, "delivered": True, "chars": len(text)})
+
+
+# FP105: Readwise highlights in the Reading tab. Highlights are
+# private, so the GET requires the unlocked session (same PIN as
+# Reading, like the calendar route) even though it is a read, and
+# the sync POST is in _GUARDED_MUTATION_ENDPOINTS. Read-only:
+# Kaivor never writes back to Readwise.
+@app.route("/api/reading/highlights", methods=["GET"])
+def api_readwise_highlights():
+    denied = check_mutation_access()
+    if denied is not None:
+        return denied
+    return jsonify({"success": True, **load_readwise_highlights()})
+
+
+@app.route("/api/reading/highlights/sync", methods=["POST"])
+def api_readwise_sync():
+    token = os.environ.get("KAIVOR_READWISE_TOKEN", "").strip()
+    if not token:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Readwise access token is not configured. Add KAIVOR_READWISE_TOKEN in the Render dashboard (get the token at readwise.io/access_token).",
+                }
+            ),
+            503,
+        )
+    try:
+        payload = sync_highlights(token)
+    except ReadwiseError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 502
+    stored = save_readwise_highlights(payload)
+    return jsonify(
+        {
+            "success": True,
+            "count": len(stored["highlights"]),
+            "total": stored["total"],
+            "complete": stored["complete"],
+            "last_sync": stored["last_sync"],
+        }
+    )
 
 
 @app.route("/api/relevance_profile", methods=["GET", "PUT"])

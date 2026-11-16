@@ -1,0 +1,15 @@
+FP105 bundle manifest — Readwise highlights in Reading
+========================================================
+
+readwise_client.py
+news_store.py
+main.py
+templates/reading.html
+render.yaml
+tests/test_readwise_highlights_fp105.py
+CHANGELOG_FP105.txt
+README_INSTALL_FP105.txt
+BUNDLE_MANIFEST_FP105.txt
+
+9 files. Tests: 13 new in tests/test_readwise_highlights_fp105.py.
+Phone suite expected: 804 passed, 0 failed, 2 skipped.

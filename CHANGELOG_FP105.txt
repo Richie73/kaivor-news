@@ -1,0 +1,45 @@
+FP105 — Readwise highlights in Reading
+====================================
+
+What it does
+------------
+Pulls Richie's highlights from Readwise into the Reading tab, in a
+new "Readwise highlights" sidebar panel with a Sync button and a
+last-synced line. Read-only: Kaivor never creates, edits or deletes
+highlights.
+
+- New module readwise_client.py talks to the Readwise export API
+  (GET https://readwise.io/api/v2/export/, Token auth, pageCursor
+  paging), which returns books with their highlights in one call.
+  Deleted and discarded highlights are skipped; the newest 500 are
+  kept (the export can return a whole library — the tab shows
+  recent highlights, not an archive).
+- news_store.py gains READWISE_FILE (data/readwise_highlights.json)
+  + load_readwise_highlights / save_readwise_highlights.
+- GET /api/reading/highlights returns the stored sync; it needs
+  the unlocked session (highlights are private, like the calendar).
+- POST /api/reading/highlights/sync pulls fresh highlights and
+  stores them. PIN-gated (in _GUARDED_MUTATION_ENDPOINTS). Returns
+  503 when KAIVOR_READWISE_TOKEN is not configured, 502 when
+  Readwise refuses or cannot be reached.
+- render.yaml gains KAIVOR_READWISE_TOKEN (dashboard secret).
+
+Files
+-----
+- readwise_client.py (new)
+- news_store.py
+- main.py (two routes + guard entry)
+- templates/reading.html (highlights panel + JS)
+- render.yaml (KAIVOR_READWISE_TOKEN, dashboard secret)
+- tests/test_readwise_highlights_fp105.py (new, 13 tests)
+
+Setup (Richie, after deploy)
+----------------------------
+1. On his phone or computer: open readwise.io/access_token and sign
+   in to Readwise. The page shows an access token — copy it.
+2. Render: kaivor-news -> Environment -> add KAIVOR_READWISE_TOKEN
+   with that token as the value. Never paste the token in chat.
+3. In Kaivor: open Reading, unlock, tap "Sync highlights" in the
+   Readwise panel. The newest 500 highlights appear, newest first.
+
+Tests: 13 new, all passing locally. Phone suite expected 804.

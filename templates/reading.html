@@ -118,6 +118,12 @@ textarea{min-height:76px;resize:vertical}.full{grid-column:1/-1}
         </div>
       </section>
       <section class="panel">
+        <h2>Readwise highlights</h2>
+        <p class="hint">Your latest highlights from Readwise. Sync pulls in the newest 500.</p>
+        <div class="row"><button type="button" id="sync-highlights-btn" onclick="syncReadwiseHighlights()">↻ Sync highlights</button><span id="highlights-status" class="hint" style="text-align:right"></span></div>
+        <div id="highlights-list" class="stack" style="margin-top:10px"><div class="empty">Loading highlights…</div></div>
+      </section>
+      <section class="panel">
         <h2>My reading lists</h2>
         <form id="add-list-form" class="stack">
           <input name="name" placeholder="New list name" maxlength="120" required>
@@ -389,6 +395,44 @@ $('add-list-form').addEventListener('submit', async event => {
 $('search-books').addEventListener('input',applyBookFilters);
 $('filter-status').addEventListener('change',applyBookFilters);
 loadDashboard().catch(error=>showMessage(error.message,true));
+
+// FP105: Readwise highlights in the sidebar. The list reads the
+// stored sync; the button pulls fresh highlights from Readwise.
+function highlightRowHtml(h) {
+  const source = [h.title, h.author].filter(Boolean).join(' — ');
+  const note = h.note ? '<div class="hint">Note: ' + escapeHtml(h.note) + '</div>' : '';
+  return '<div style="border-left:3px solid var(--brand); padding-left:var(--space-md);"><div>' + escapeHtml(h.text) + '</div>' + (source ? '<div class="hint">' + escapeHtml(source) + '</div>' : '') + note + '</div>';
+}
+async function loadReadwiseHighlights() {
+  const listEl = $('highlights-list');
+  const statusEl = $('highlights-status');
+  try {
+    const result = await api('/api/reading/highlights');
+    const highlights = result.highlights || [];
+    statusEl.textContent = result.last_sync ? 'Last synced ' + new Date(result.last_sync * 1000).toLocaleString('en-GB', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Never synced';
+    if (!highlights.length) {
+      listEl.innerHTML = '<div class="empty">No highlights yet — tap Sync highlights to pull them in from Readwise.</div>';
+      return;
+    }
+    listEl.innerHTML = highlights.map(highlightRowHtml).join('');
+  } catch (error) {
+    listEl.innerHTML = '<div class="empty">' + escapeHtml(error.message) + '</div>';
+  }
+}
+async function syncReadwiseHighlights() {
+  const button = $('sync-highlights-btn');
+  setBusy(button, true, 'Syncing…');
+  try {
+    const result = await api('/api/reading/highlights/sync', {method:'POST'});
+    await loadReadwiseHighlights();
+    showMessage('Synced ' + result.count + ' highlights from Readwise.');
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    setBusy(button, false);
+  }
+}
+loadReadwiseHighlights();
 </script>
 {% endif %}
 

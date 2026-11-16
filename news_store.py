@@ -26,6 +26,7 @@ SOURCES_FILE = CONFIG_DIR / "news_sources.json"
 SAVED_FILE = DATA_DIR / "news_saved.json"
 RECEIPTS_FILE = DATA_DIR / "receipts.json"
 RAMS_FILE = DATA_DIR / "rams.json"
+READWISE_FILE = DATA_DIR / "readwise_highlights.json"
 PRIVATE_SECRETS_FILE = Path.home() / ".config" / "kaivor" / "news_secrets.json"
 
 _LOCK = RLock()
@@ -273,6 +274,35 @@ def remove_receipt(receipt_id: str) -> bool:
         if changed:
             _write_json(RECEIPTS_FILE, filtered)
         return changed
+
+
+# FP105: Readwise highlights — one payload dict, replaced whole on sync.
+def load_readwise_highlights() -> dict[str, Any]:
+    with _LOCK:
+        value = _read_json(READWISE_FILE, {})
+        if not isinstance(value, dict):
+            return {"highlights": [], "last_sync": 0, "total": 0, "complete": True}
+        highlights = value.get("highlights")
+        return {
+            "highlights": [item for item in highlights if isinstance(item, dict)]
+            if isinstance(highlights, list)
+            else [],
+            "last_sync": value.get("last_sync") or 0,
+            "total": value.get("total") or 0,
+            "complete": value.get("complete", True) is not False,
+        }
+
+
+def save_readwise_highlights(payload: dict[str, Any]) -> dict[str, Any]:
+    stored = {
+        "highlights": [item for item in payload.get("highlights", []) if isinstance(item, dict)],
+        "last_sync": payload.get("last_sync") or 0,
+        "total": payload.get("total") or 0,
+        "complete": payload.get("complete", True) is not False,
+    }
+    with _LOCK:
+        _write_json(READWISE_FILE, stored)
+    return stored
 
 
 # FP100: RAMS drafts — same file-store pattern as saved articles.
