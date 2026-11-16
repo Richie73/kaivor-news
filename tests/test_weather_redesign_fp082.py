@@ -111,11 +111,14 @@ def test_other_views_hide_the_weather_view():
         "function showChat(element) {",
         "function showSettings(element){",
         "function showMarkets() {",
+        "function showMorningHub(element) {",
+        "function showReceipts() {",
+        "function showRams() {",
     ]:
         start = html.index(opener)
         window = html[start:start + len(opener) + 40]
         assert "hideWeatherView();" in window, opener
-    assert html.count("hideWeatherView();") == 5  # one call site per other view
+    assert html.count("hideWeatherView();") == 8  # one call site per other view
 
 
 def test_weather_is_not_a_swipe_destination():

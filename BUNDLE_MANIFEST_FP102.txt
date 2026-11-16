@@ -1,0 +1,24 @@
+Kaivor FP102 bundle manifest
+
+REPLACEMENT:
+- news_store.py
+- main.py
+- templates/index.html
+- tests/test_weather_redesign_fp082.py
+- tests/test_markets_view_fp086.py
+- tests/test_morning_hub_fp101.py
+
+NEW:
+- receipt_reader.py
+- tests/test_receipt_capture_fp102.py
+- README_INSTALL_FP102.txt
+- CHANGELOG_FP102.txt
+- BUNDLE_MANIFEST_FP102.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

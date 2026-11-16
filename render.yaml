@@ -26,6 +26,17 @@ services:
         sync: false
       - key: KAIVOR_SESSION_SECRET
         sync: false
+      # FP103: morning hub live data — all dashboard secrets (sync: false),
+      # set by the user in Render. The calendar feed URL is a private
+      # read-only iCal address; the three API keys are free-tier keys.
+      - key: KAIVOR_CALENDAR_ICS_URL
+        sync: false
+      - key: TRANSCAPI_API_KEY
+        sync: false
+      - key: NATIONAL_HIGHWAYS_API_KEY
+        sync: false
+      - key: TOMTOM_API_KEY
+        sync: false
       - key: KAIVOR_COOKIE_SECURE
         value: "true"
       - key: KAIVOR_READING_REQUIRE_POSTGRES

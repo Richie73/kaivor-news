@@ -1,0 +1,30 @@
+Kaivor FP099 — Voice input in chat
+================================
+
+WHAT CHANGED
+------------
+The chat form gains a 🎤 microphone button. It uses the browser's
+built-in speech recognition (Chrome on Android) — free, no key,
+no server round-trip, no new cost.
+
+- Tap 🎤 to start listening (the button turns red and shows ⏹);
+  tap again to stop. Words appear in the input as you speak
+  (interim results); the transcript lands in the input and you
+  tap Send as normal — nothing is ever sent automatically.
+- Language is en-GB. Anything already typed stays, with the
+  spoken words added after it.
+- If the browser has no speech recognition, the button hides
+  itself. If the mic is blocked, or nothing is heard, or the
+  connection drops, a short note appears in the chat.
+- The mic stops when you leave the chat view (both
+  cacheNewsContainer and restoreNewsContainer stop it), so it
+  can never keep listening on another screen.
+
+Template-only change — no Python, no routes, no keys.
+
+FILES
+-----
+- templates/index.html (replacement)
+- tests/test_voice_input_fp099.py (new — 6 tests)
+- CHANGELOG_FP099.txt, README_INSTALL_FP099.txt,
+  BUNDLE_MANIFEST_FP099.txt (new docs)

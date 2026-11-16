@@ -1,0 +1,22 @@
+Kaivor FP101 bundle manifest
+
+REPLACEMENT:
+- templates/index.html
+- templates/reading.html
+- tests/test_bottom_nav_fp084.py
+- tests/test_weather_redesign_fp082.py
+- tests/test_markets_view_fp086.py
+
+NEW:
+- tests/test_morning_hub_fp101.py
+- README_INSTALL_FP101.txt
+- CHANGELOG_FP101.txt
+- BUNDLE_MANIFEST_FP101.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

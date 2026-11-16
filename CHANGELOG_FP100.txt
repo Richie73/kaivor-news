@@ -1,0 +1,47 @@
+Kaivor FP100 — RAMS drafting
+============================
+
+WHAT CHANGED
+------------
+Draft a Risk Assessment and Method Statement on the standard
+template, from the "📋 Draft a RAMS" button in the Morning Hub.
+
+- The user describes the task, site and plant, ticks the
+  hazards that apply (14 groundworks/civils hazards in
+  rams_library.py, each with standard controls), and adds
+  notes. POST /api/rams/draft sends that to the AI, which
+  returns method steps, risk rows (initial and residual
+  severity/likelihood, 1–5) and a PPE list as JSON.
+- The draft opens in an editor: every field editable, risk
+  rows with severity/likelihood selects and live risk bands
+  (5×5 matrix: Low ≤4, Medium 5–9, High 10–16, Very high
+  17–25), add/remove hazard rows. Nothing saves until the
+  user taps Save — the draft is never used as-is, and the UI
+  and the printout both say so.
+- Saved RAMS live in data/rams.json (same file-store pattern
+  as saved articles, cap 200). List, open, edit, delete.
+  "🖨️ Print / save as PDF" builds a clean print document
+  (header, method statement, risk table, PPE, sign-off table
+  for prepared/checked/site manager) and prints only that.
+- Provider chain follows the chat hub: OpenRouter
+  (deepseek/deepseek-chat) first, OpenAI (gpt-4o-mini) as
+  fallback. Draft/save/update/delete are PIN-gated; the
+  hazard library and the list are open reads.
+
+FILES
+-----
+- rams_library.py (new — 14 hazards with controls)
+- rams_drafter.py (new — AI drafting + parsing)
+- news_store.py (replacement — RAMS file store)
+- main.py (replacement — seven routes + guard entries)
+- templates/index.html (replacement — hub button, RAMS view,
+  editor, print document + print CSS)
+- tests/test_rams_drafting_fp100.py (new — 17 tests)
+- tests/test_weather_redesign_fp082.py (replacement —
+  hideWeatherView call sites now eight, incl. showRams)
+- tests/test_markets_view_fp086.py (replacement —
+  hideMarketsView call sites now eight, incl. showRams)
+- tests/test_morning_hub_fp101.py (replacement —
+  hideMorningHubView call sites now eight, incl. showRams)
+- CHANGELOG_FP100.txt, README_INSTALL_FP100.txt,
+  BUNDLE_MANIFEST_FP100.txt (new docs)

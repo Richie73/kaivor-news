@@ -1,0 +1,45 @@
+Kaivor FP102 — Receipt capture
+==============================
+
+WHAT CHANGED
+------------
+Photograph a receipt and Kaivor reads it. Opened from the
+"🧾 Scan a receipt" button in the Morning Hub.
+
+- POST /api/receipts/scan takes a photo (JPEG/PNG/WebP data
+  URL, capped at ~4.5MB base64) and reads it with AI vision
+  through OpenRouter: google/gemini-2.5-flash by default
+  (verified on OpenRouter 15 Nov 2026, about $0.001 a scan),
+  overridable with the KAIVOR_RECEIPT_MODEL env var. Returns
+  merchant, date, total, VAT and currency — null for anything
+  unreadable, never a guessed total. The model reply is
+  parsed tolerantly (fenced or bare JSON, £ strings coerced
+  to numbers).
+- Nothing saves until the user checks the fields and taps
+  Save (POST /api/receipts). Receipts live in the same
+  file-store pattern as saved articles (data/receipts.json,
+  capped at 500, newest first). GET /api/receipts lists them
+  with a running total; DELETE removes one.
+- The view shows the saved expenses with a running total and
+  a Download CSV button (Date, Merchant, Total, VAT,
+  Currency) for the self-employed tracker.
+- Scan/save/delete are PIN-gated like the other mutations;
+  listing is an open read. The file input uses
+  capture="environment", so the rear camera opens on Android.
+
+FILES
+-----
+- receipt_reader.py (new)
+- news_store.py (replacement — receipts file store)
+- main.py (replacement — four routes + guard entries)
+- templates/index.html (replacement — hub button, receipts
+  view, scan/save/list/delete/CSV JS)
+- tests/test_receipt_capture_fp102.py (new — 12 tests)
+- tests/test_weather_redesign_fp082.py (replacement —
+  hideWeatherView call sites now seven, incl. showReceipts)
+- tests/test_markets_view_fp086.py (replacement —
+  hideMarketsView call sites now seven, incl. showReceipts)
+- tests/test_morning_hub_fp101.py (replacement —
+  hideMorningHubView call sites now seven, incl. showReceipts)
+- CHANGELOG_FP102.txt, README_INSTALL_FP102.txt,
+  BUNDLE_MANIFEST_FP102.txt (new docs)

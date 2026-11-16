@@ -23,6 +23,7 @@
             --btn-bg:#1f2f2a; --btn-border:#2a473b;
             --green-dark:#059669; --green-darker:#064e3b;
             --red:#f87171; --red-soft:#fca5a5; --amber:#fbbf24; --blue:#7dd3fc;
+            --orange:#fb923c;
             --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
             /* FP096: type scale (15 sizes -> 8 steps), line-heights
                (7 values -> 4) and spacing (4/8/12/16). Sizes that stay
@@ -128,6 +129,9 @@
         .chat-form { display:flex; gap:var(--space-sm); }
         .chat-form input { flex:1; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); font-size:var(--text-lg); }
         .chat-form button { padding:10px 16px; }
+        /* FP099: voice input button — red while listening. */
+        .chat-voice-btn { padding:10px 12px; }
+        .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
         .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:var(--text-md); color:var(--muted); cursor:pointer; white-space:nowrap; }
         .chat-web-toggle input { accent-color:#22c55e; }
         .chat-web-badge { font-size:var(--text-base); opacity:0.85; }
@@ -187,6 +191,38 @@
         .weather-day-row-rain { font-size:var(--text-base); color:var(--blue); min-width:56px; text-align:right; }
         .weather-day-row-temp { font-size:var(--text-md); font-weight:600; color:var(--text-bright); min-width:68px; text-align:right; }
         .weather-strip { display:flex; align-items:center; gap:var(--space-sm); width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:var(--space-lg); font:inherit; font-size:var(--text-md); color:var(--text-3); cursor:pointer; text-align:left; }
+        /* FP101: morning hub. */
+        .hub-greeting { font-size:var(--text-2xl); font-weight:700; margin-bottom:var(--space-xs); }
+        .hub-weather { margin-top:var(--space-sm); font-size:var(--text-md); line-height:var(--leading-snug); }
+        .hub-list { display:flex; flex-direction:column; gap:var(--space-sm); margin-top:var(--space-sm); }
+        .hub-story { color:var(--text-bright); text-decoration:none; font-size:var(--text-md); line-height:var(--leading-snug); }
+        .hub-story:hover { text-decoration:underline; }
+        .hub-market { display:flex; justify-content:space-between; font-size:var(--text-md); }
+        /* FP102: receipt capture. */
+        .receipt-row { display:flex; justify-content:space-between; gap:var(--space-sm); padding:6px 0; border-bottom:1px solid var(--border); font-size:var(--text-md); }
+        .receipt-delete { background:none; border:none; color:var(--muted); padding:0 4px; cursor:pointer; font-size:var(--text-md); }
+        /* FP100: RAMS drafting. */
+        .rams-hazards { display:flex; flex-direction:column; gap:6px; margin:6px 0 12px; }
+        .rams-hazard { display:flex; gap:var(--space-sm); align-items:center; font-size:var(--text-md); cursor:pointer; }
+        .rams-hazard input { accent-color:#22c55e; }
+        .rams-risk-row { border:1px solid var(--border); border-radius:var(--radius-sm); padding:var(--space-sm); margin-bottom:var(--space-sm); display:flex; flex-direction:column; gap:6px; }
+        .rams-ratings { display:flex; gap:6px; align-items:center; font-size:var(--text-md); }
+        .rams-rating { background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); padding:4px; }
+        .rams-band { font-weight:700; }
+        .risk-low { color:var(--brand); }
+        .risk-medium { color:var(--amber); }
+        .risk-high { color:var(--orange); }
+        .risk-very-high { color:var(--red); }
+        #rams-print-doc { display:none; }
+        @media print {
+            body * { visibility:hidden; }
+            #rams-print-doc { display:block; position:absolute; left:0; top:0; width:100%; color:#000; background:#fff; padding:var(--space-md); }
+            #rams-print-doc, #rams-print-doc * { visibility:visible; }
+            #rams-print-doc table { border-collapse:collapse; width:100%; font-size:var(--text-sm); margin-bottom:var(--space-md); }
+            #rams-print-doc th, #rams-print-doc td { border:1px solid #333; padding:4px; text-align:left; vertical-align:top; }
+            #rams-print-doc h1 { font-size:18px; }
+            #rams-print-doc h2 { font-size:var(--text-lg); margin-top:var(--space-lg); }
+        }
         .weather-strip-place { font-weight:700; color:var(--text-bright); white-space:nowrap; }
         .weather-strip-now { white-space:nowrap; }
         .weather-strip-summary { color:var(--green-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -473,6 +509,35 @@
         <p class="evidence-note">Prices from Yahoo Finance and Frankfurter. History covers the last five trading days.</p>
     </section>
 
+    <!-- FP101: the morning hub — greeting, weather now, top
+         stories and a market snapshot. Filled in by JS when the
+         hub opens; the section is hidden until then. -->
+    <section id="morning-hub-section" aria-label="Morning hub" style="display:none">
+        <div class="card">
+            <div id="hub-greeting" class="hub-greeting"></div>
+            <div id="hub-date" class="published"></div>
+            <div id="hub-weather" class="hub-weather"></div>
+            <button type="button" style="margin-top:var(--space-sm);" onclick="showReceipts()">🧾 Scan a receipt</button>
+            <button type="button" style="margin-top:var(--space-sm);" onclick="showRams()">📋 Draft a RAMS</button>
+        </div>
+        <div class="card">
+            <h3>Top stories</h3>
+            <div id="hub-stories" class="hub-list">Loading stories…</div>
+        </div>
+        <div class="card">
+            <h3>Markets</h3>
+            <div id="hub-markets" class="hub-list">Loading prices…</div>
+        </div>
+        <div class="card">
+            <h3>📅 Today</h3>
+            <div id="hub-calendar" class="hub-list">Loading calendar…</div>
+        </div>
+        <div class="card">
+            <h3>🚗 Travel</h3>
+            <div id="hub-travel" class="hub-list">Loading travel…</div>
+        </div>
+    </section>
+
     <!-- FP095: manual news refresh. The button starts the same
          background refresh the cron job runs; the page reloads
          once the new stories land (see refreshNewsFromButton). -->
@@ -560,6 +625,7 @@
      delegates to the Top Stories chip so the rail stays in step; the
      others open their views directly. -->
 <nav id="bottom-nav" aria-label="Main sections">
+    <button type="button" id="nav-hub" class="nav-item" data-nav="hub" onclick="showMorningHub(this)"><span class="nav-icon">🌅</span><span>Hub</span></button>
     <button type="button" id="nav-news" class="nav-item active" data-nav="news" onclick="filterCategory('All', document.querySelector('.chips .chip'))"><span class="nav-icon">📰</span><span>News</span></button>
     <button type="button" id="nav-weather" class="nav-item" data-nav="weather" onclick="showWeather(this)"><span class="nav-icon">🌤️</span><span>Weather</span></button>
     <button type="button" id="nav-chat" class="nav-item" data-nav="chat" onclick="showChat(this)"><span class="nav-icon">💬</span><span>Chat</span></button>
@@ -750,6 +816,7 @@ function animateCategoryTitle(title, direction) {
 function filterCategory(category, element) {
     hideWeatherView();
     hideMarketsView();
+    hideMorningHubView();
     restoreNewsContainer();
     // FP092: a new category starts back at the first page.
     newsCurrentCategory = category;
@@ -906,6 +973,7 @@ async function refreshNewsFromButton(button) {
 let cachedNewsHtml = null;
 let newsViewReplaced = false;
 function cacheNewsContainer() {
+    stopVoiceInput();
     if (newsViewReplaced) return;
     hideNewsLoadMore();
     const container = document.getElementById('articles-container');
@@ -991,6 +1059,7 @@ async function loadStockPhoto(placeholder) {
 }
 observeStockPlaceholders();
 function restoreNewsContainer() {
+    stopVoiceInput();
     if (!newsViewReplaced) return true;
     const container = document.getElementById('articles-container');
     if (!container || !cachedNewsHtml) return false;
@@ -1076,6 +1145,7 @@ function initializeMobileNewsNavigation() {
 async function showSaved(element) {
     hideWeatherView();
     hideMarketsView();
+    hideMorningHubView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -1177,6 +1247,7 @@ function renderChatLog() {
 function showChat(element) {
     hideWeatherView();
     hideMarketsView();
+    hideMorningHubView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -1189,6 +1260,7 @@ function showChat(element) {
             <div id="chat-log" class="chat-log"></div>
             <form id="chat-form" class="chat-form" onsubmit="sendChatMessage(event)">
                 <input id="chat-input" type="text" placeholder="Ask Kaivor anything…" autocomplete="off" maxlength="4000">
+                <button type="button" id="chat-voice-btn" class="chat-voice-btn" onclick="toggleVoiceInput(this)" title="Speak instead of typing">🎤</button>
                 <label class="chat-web-toggle"><input id="chat-web" type="checkbox" onchange="saveChatWebToggle()"> 🌐 Web</label>
                 <button type="submit">Send</button>
             </form>
@@ -1197,6 +1269,8 @@ function showChat(element) {
     renderChatLog();
     const webToggle = document.getElementById('chat-web');
     if (webToggle) { try { webToggle.checked = localStorage.getItem(CHAT_WEB_KEY) === '1'; } catch (error) { /* ignore */ } }
+    // FP099: no speech recognition in this browser — hide the mic.
+    if (!chatVoiceSupported()) { const voiceBtn = document.getElementById('chat-voice-btn'); if (voiceBtn) voiceBtn.style.display = 'none'; }
     document.getElementById('chat-input').focus();
 }
 
@@ -1204,6 +1278,56 @@ function saveChatWebToggle() {
     const toggle = document.getElementById('chat-web');
     if (!toggle) return;
     try { localStorage.setItem(CHAT_WEB_KEY, toggle.checked ? '1' : '0'); } catch (error) { /* ignore */ }
+}
+
+// FP099 VOICE: speech input for the chat box, via the browser's
+// built-in speech recognition (Chrome on Android). Free, no key,
+// no server round-trip: the transcript lands in the input and the
+// user taps Send as normal — nothing is ever sent automatically.
+let chatVoiceRecognition = null;
+
+function chatVoiceSupported() {
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function stopVoiceInput() {
+    if (chatVoiceRecognition) {
+        try { chatVoiceRecognition.stop(); } catch (error) { /* ignore */ }
+        chatVoiceRecognition = null;
+    }
+    const button = document.getElementById('chat-voice-btn');
+    if (button) { button.classList.remove('listening'); button.textContent = '🎤'; }
+}
+
+function toggleVoiceInput(button) {
+    if (chatVoiceRecognition) { stopVoiceInput(); return; }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-GB';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    const baseText = input.value;
+    recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            interim += event.results[i][0].transcript;
+        }
+        const target = document.getElementById('chat-input');
+        if (target) target.value = (baseText ? baseText + ' ' : '') + interim;
+    };
+    recognition.onerror = (event) => {
+        if (event.error === 'not-allowed') showChatWebNote('Microphone access was blocked — allow it in the browser to speak to Kaivor.');
+        else if (event.error === 'no-speech') showChatWebNote('No speech heard — try again.');
+        else if (event.error === 'network') showChatWebNote('Speech recognition needs a connection — try again.');
+    };
+    recognition.onend = () => { stopVoiceInput(); };
+    chatVoiceRecognition = recognition;
+    button.classList.add('listening');
+    button.textContent = '⏹';
+    try { recognition.start(); } catch (error) { stopVoiceInput(); }
 }
 
 function showChatWebNote(text) {
@@ -1277,6 +1401,7 @@ function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 function showSettings(element){
     hideWeatherView();
     hideMarketsView();
+    hideMorningHubView();
     cacheNewsContainer();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
@@ -2245,6 +2370,8 @@ async function loadAirQuality(place) {
 // FP091: the daily forecast is fetched as 16 days but shown as 7 by
 // default; the toggle reveals the rest without a second fetch.
 let weatherLastDaily = null;
+// FP101: the last current conditions, for the morning hub.
+let weatherLastNow = null;
 let weatherShowAllDays = false;
 
 function renderWeatherDays() {
@@ -2299,6 +2426,8 @@ function renderWeather(place, data) {
     const gusts = typeof current.wind_gusts_10m === 'number' ? Math.round(current.wind_gusts_10m) : null;
     const todayHigh = data.daily && Array.isArray(data.daily.temperature_2m_max) ? Math.round(Number(data.daily.temperature_2m_max[0])) : null;
     const todayLow = data.daily && Array.isArray(data.daily.temperature_2m_min) ? Math.round(Number(data.daily.temperature_2m_min[0])) : null;
+    // FP101: keep the current conditions for the morning hub.
+    weatherLastNow = {place: place.name, temp, feels, condition: info.text, icon, high: todayHigh, low: todayLow, summary: ''};
     nowEl.innerHTML =
         '<div class="weather-hero"><span class="weather-hero-icon">' + icon + '</span>' +
         '<span class="weather-hero-temp">' + temp + '°</span>' +
@@ -2324,6 +2453,7 @@ function renderWeather(place, data) {
     if (data.hourly && Array.isArray(data.hourly.time) && data.hourly.precipitation_probability) {
         const start = hourlyStartIndex(data.hourly.time, current.time);
         const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 24);
+        if (weatherLastNow) weatherLastNow.summary = summary;
         if (summaryEl) summaryEl.textContent = summary;
         if (stripSummaryEl) stripSummaryEl.textContent = summary;
         if (hourlyEl) {
@@ -2411,6 +2541,7 @@ function initializeWeatherSection() {
 function showWeather(element) {
     if (!element) return;
     hideMarketsView();
+    hideMorningHubView();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -2442,6 +2573,7 @@ function hideWeatherView() {
 // /api/finance/history — five trading days per asset.
 function showMarkets() {
     hideWeatherView();
+    hideMorningHubView();
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     scrollKaivorToTop();
@@ -2544,6 +2676,567 @@ function fillTickerFromHistory(history) {
 }
 // FP086 MARKETS VIEW: END
 
+// FP101 MORNING HUB: BEGIN
+// One place to start the day: a greeting, the weather now, the
+// top five stories and a market snapshot. Weather reuses the
+// last forecast already fetched (no second call); stories are
+// read from the news cards already on the page; markets come
+// from /api/ticker. Calendar and live travel are NOT in v1 —
+// they need the Google account connected to Kaivor.
+function morningGreeting(hour) {
+    if (hour >= 5 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 18) return 'Good afternoon';
+    if (hour >= 18 && hour < 23) return 'Good evening';
+    return 'Good night';
+}
+
+function morningTopStories() {
+    let cards = [];
+    if (!newsViewReplaced) {
+        const root = document.getElementById('articles-container');
+        if (root) cards = root.querySelectorAll('.card[data-article-id] h3 a');
+    }
+    if (cards.length === 0 && cachedNewsHtml) {
+        const temp = document.createElement('div');
+        temp.innerHTML = cachedNewsHtml;
+        cards = temp.querySelectorAll('.card[data-article-id] h3 a');
+    }
+    return Array.from(cards || []).slice(0, 5).map(link => ({title: link.textContent.trim(), href: link.href}));
+}
+
+function renderMorningHub() {
+    const now = new Date();
+    const greetingEl = document.getElementById('hub-greeting');
+    if (greetingEl) greetingEl.textContent = morningGreeting(now.getHours()) + ', Richie';
+    const dateEl = document.getElementById('hub-date');
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-GB', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+    const weatherEl = document.getElementById('hub-weather');
+    if (weatherEl) {
+        if (weatherLastNow) {
+            weatherEl.textContent = weatherLastNow.icon + ' ' + weatherLastNow.temp + '° ' + weatherLastNow.condition + ' in ' + weatherLastNow.place +
+                ' · Feels like ' + weatherLastNow.feels + '°' +
+                (weatherLastNow.high !== null ? ' · High ' + weatherLastNow.high + '° · Low ' + weatherLastNow.low + '°' : '') +
+                (weatherLastNow.summary ? ' — ' + weatherLastNow.summary : '');
+        } else {
+            weatherEl.textContent = 'Weather is still loading — open the Weather tab for the full forecast.';
+        }
+    }
+    const storiesEl = document.getElementById('hub-stories');
+    if (storiesEl) {
+        const stories = morningTopStories();
+        storiesEl.innerHTML = stories.length
+            ? stories.map(story => '<a class="hub-story" href="' + escapeAttr(story.href) + '" target="_blank" rel="noopener">' + escapeHtml(story.title) + '</a>').join('')
+            : 'Stories are still loading — check back in a moment.';
+    }
+    loadMorningHubMarkets();
+    loadMorningHubCalendar();
+    loadMorningHubTravel();
+}
+
+async function loadMorningHubCalendar() {
+    const calendarEl = document.getElementById('hub-calendar');
+    if (!calendarEl) return;
+    try {
+        const response = await fetch('/api/hub/calendar', {cache: 'no-store'});
+        const result = await response.json();
+        if (response.status === 401 || response.status === 503) { calendarEl.textContent = 'Unlock Reading to see today\'s calendar.'; return; }
+        if (result.status === 'not_configured') { calendarEl.textContent = 'Calendar isn\'t set up yet — add the feed address in Render to see today\'s events here.'; return; }
+        if (!result.success) { calendarEl.textContent = result.error || 'Calendar unavailable.'; return; }
+        const events = result.events || [];
+        calendarEl.innerHTML = events.length
+            ? events.map(ev => '<div class="hub-market"><span>' + (ev.all_day ? 'All day' : escapeHtml(ev.start + (ev.end ? '–' + ev.end : ''))) + '</span><strong>' + escapeHtml(ev.summary) + '</strong></div>').join('')
+            : 'Nothing on today.';
+    } catch (error) {
+        calendarEl.textContent = 'Calendar unavailable — check your connection and try again.';
+    }
+}
+
+async function loadMorningHubTravel() {
+    const travelEl = document.getElementById('hub-travel');
+    if (!travelEl) return;
+    try {
+        const response = await fetch('/api/hub/travel', {cache: 'no-store'});
+        const result = await response.json();
+        const lines = [];
+        const rail = result.rail || {};
+        if (rail.status === 'not_configured') {
+            lines.push('<div class="hub-market"><span>🚆 Trains</span><span>Not set up yet</span></div>');
+        } else if (rail.status === 'error') {
+            lines.push('<div class="hub-market"><span>🚆 Trains</span><span>' + escapeHtml(rail.error || 'Unavailable') + '</span></div>');
+        } else if ((rail.disruptions || []).length) {
+            rail.disruptions.slice(0, 3).forEach(d => lines.push('<div class="hub-story">🚆 ' + escapeHtml(d.summary) + (d.severity === 'severe' ? ' — severe' : '') + '</div>'));
+        } else {
+            lines.push('<div class="hub-market"><span>🚆 Wirral Line</span><strong>Good service</strong></div>');
+        }
+        const nh = result.national_highways || {};
+        const tomtom = result.tomtom || {};
+        const closures = (nh.status === 'ok' ? nh.closures : []) || [];
+        const incidents = (tomtom.status === 'ok' ? tomtom.incidents : []) || [];
+        if (nh.status === 'not_configured' && tomtom.status === 'not_configured') {
+            lines.push('<div class="hub-market"><span>🛣️ Roads</span><span>Not set up yet</span></div>');
+        } else if (nh.status === 'error' && tomtom.status !== 'ok') {
+            lines.push('<div class="hub-market"><span>🛣️ Roads</span><span>Unavailable</span></div>');
+        } else if (!closures.length && !incidents.length) {
+            lines.push('<div class="hub-market"><span>🛣️ M53 · M56 · A41</span><strong>No incidents</strong></div>');
+        } else {
+            closures.slice(0, 3).forEach(c => lines.push('<div class="hub-story">🛣️ ' + escapeHtml(c.road) + ': ' + escapeHtml(c.description) + '</div>'));
+            incidents.slice(0, 3).forEach(i => lines.push('<div class="hub-story">🛣️ ' + escapeHtml(i.road) + ': ' + escapeHtml(i.description) + (i.delay_minutes ? ' (delay ~' + i.delay_minutes + ' min)' : '') + '</div>'));
+        }
+        const tunnels = result.tunnels || {};
+        const tunnelIncidents = tunnels.incidents || [];
+        if (tunnelIncidents.length) {
+            tunnelIncidents.slice(0, 2).forEach(i => lines.push('<div class="hub-story">🚇 Tunnel: ' + escapeHtml(i.description) + '</div>'));
+        }
+        lines.push('<div class="hub-story"><a href="' + escapeAttr(tunnels.link || 'https://www.merseytravel.gov.uk/travel-updates/') + '" target="_blank" rel="noopener">Live tunnel journey times — Merseytravel ↗</a></div>');
+        travelEl.innerHTML = lines.join('');
+    } catch (error) {
+        travelEl.textContent = 'Travel unavailable — check your connection and try again.';
+    }
+}
+
+async function loadMorningHubMarkets() {
+    const marketsEl = document.getElementById('hub-markets');
+    if (!marketsEl) return;
+    try {
+        const response = await fetch('/api/ticker', {cache: 'no-store'});
+        const result = await response.json();
+        const ticker = (result && result.ticker) || {};
+        const picks = [['Gold', 'Gold'], ['Bitcoin', 'Bitcoin'], ['GBP_USD', '£ → $']];
+        const shown = picks.filter(([key]) => typeof ticker[key] === 'number');
+        marketsEl.innerHTML = shown.length
+            ? shown.map(([key, label]) => '<div class="hub-market"><span>' + label + '</span><strong>' + escapeHtml(formatMarketPrice(key, ticker[key])) + '</strong></div>').join('')
+            : 'Prices load from the Markets view — tap the Market Watch strip to refresh them.';
+    } catch (error) {
+        marketsEl.textContent = 'Prices unavailable — check your connection and try again.';
+    }
+}
+
+function showMorningHub(element) {
+    hideWeatherView();
+    hideMarketsView();
+    const wasDifferent = !element.classList.contains('active');
+    activateCategoryChip(element);
+    if (wasDifferent) scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Morning hub';
+    document.getElementById('status').textContent = 'Your day at a glance — weather, stories, markets, calendar and travel.';
+    document.getElementById('articles-container').querySelectorAll('.card').forEach(card => { card.style.display = 'none'; });
+    const strip = document.getElementById('weather-strip');
+    if (strip) strip.style.display = 'none';
+    const section = document.getElementById('morning-hub-section');
+    if (section) section.style.display = 'block';
+    hideNewsLoadMore();
+    renderMorningHub();
+}
+function hideMorningHubView() {
+    const section = document.getElementById('morning-hub-section');
+    if (section) section.style.display = 'none';
+}
+// FP101 MORNING HUB: END
+
+// FP102 RECEIPTS: BEGIN
+// Photograph a receipt, Kaivor reads the shop, date and total
+// with AI vision (OpenRouter, about a tenth of a penny a scan),
+// and the checked details save as an expense. Nothing saves
+// until the user checks the fields and taps Save. The list
+// downloads as a CSV for the self-employed tracker.
+function showReceipts() {
+    hideWeatherView();
+    hideMarketsView();
+    hideMorningHubView();
+    cacheNewsContainer();
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Receipts';
+    document.getElementById('status').textContent = 'Scan a receipt, check the details, save the expense.';
+    const container = document.getElementById('articles-container');
+    container.innerHTML = `
+        <div class="card" data-category="Receipts">
+            <h3>🧾 Scan a receipt</h3>
+            <p class="evidence-note">Photograph a receipt and Kaivor reads the shop, date and total. Check the details before saving — each scan costs about a tenth of a penny from your OpenRouter credit.</p>
+            <input type="file" id="receipt-file" accept="image/*" capture="environment">
+            <button onclick="scanReceipt()">Read this receipt</button>
+            <div id="receipt-scan-status" class="evidence-note"></div>
+            <div id="receipt-edit" style="display:none">
+                <div class="settings-label">Shop</div>
+                <input id="receipt-merchant" class="manager-input" type="text">
+                <div class="settings-label">Date</div>
+                <input id="receipt-date" class="manager-input" type="date">
+                <div class="settings-label">Total (£)</div>
+                <input id="receipt-total" class="manager-input" type="number" step="0.01" min="0">
+                <div class="settings-label">VAT (£, if shown)</div>
+                <input id="receipt-vat" class="manager-input" type="number" step="0.01" min="0">
+                <button onclick="saveReceipt()">Save expense</button>
+            </div>
+        </div>
+        <div class="card" data-category="Receipts">
+            <h3>Saved expenses</h3>
+            <div id="receipts-total" class="evidence-note"></div>
+            <div id="receipts-list" class="settings-list">Loading…</div>
+            <button onclick="downloadReceiptsCsv()">Download CSV</button>
+        </div>`;
+    loadReceipts();
+}
+
+async function scanReceipt() {
+    const fileInput = document.getElementById('receipt-file');
+    const status = document.getElementById('receipt-scan-status');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        if (status) status.textContent = 'Choose a receipt photo first.';
+        return;
+    }
+    if (status) status.textContent = 'Reading the receipt…';
+    const reader = new FileReader();
+    reader.onload = async () => {
+        try {
+            const res = await fetch('/api/receipts/scan', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({image: reader.result})});
+            const data = await res.json();
+            if (res.status === 401 || res.status === 503) { if (status) status.textContent = 'Unlock Reading to scan receipts.'; return; }
+            if (!data.success) { if (status) status.textContent = data.error || 'Could not read that receipt.'; return; }
+            const fields = data.fields || {};
+            document.getElementById('receipt-merchant').value = fields.merchant || '';
+            document.getElementById('receipt-date').value = fields.date || '';
+            document.getElementById('receipt-total').value = (fields.total === null || fields.total === undefined) ? '' : fields.total;
+            document.getElementById('receipt-vat').value = (fields.vat === null || fields.vat === undefined) ? '' : fields.vat;
+            document.getElementById('receipt-edit').style.display = 'block';
+            if (status) status.textContent = 'Check the details, then save.';
+        } catch (error) {
+            if (status) status.textContent = 'Could not reach Kaivor. Check your connection and try again.';
+        }
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+}
+
+async function saveReceipt() {
+    const status = document.getElementById('receipt-scan-status');
+    const total = parseFloat(document.getElementById('receipt-total').value);
+    if (isNaN(total) || total <= 0) { if (status) status.textContent = 'Enter the total before saving.'; return; }
+    const vatRaw = parseFloat(document.getElementById('receipt-vat').value);
+    const receipt = {
+        merchant: document.getElementById('receipt-merchant').value.trim() || null,
+        date: document.getElementById('receipt-date').value || null,
+        total: Math.round(total * 100) / 100,
+        vat: isNaN(vatRaw) ? null : Math.round(vatRaw * 100) / 100,
+        currency: 'GBP'
+    };
+    try {
+        const res = await fetch('/api/receipts', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({receipt})});
+        const data = await res.json();
+        if (res.status === 401 || res.status === 503) { if (status) status.textContent = 'Unlock Reading to save receipts.'; return; }
+        if (!data.success) { if (status) status.textContent = data.error || 'Could not save that receipt.'; return; }
+        document.getElementById('receipt-edit').style.display = 'none';
+        document.getElementById('receipt-file').value = '';
+        if (status) status.textContent = 'Saved.';
+        loadReceipts();
+    } catch (error) {
+        if (status) status.textContent = 'Could not reach Kaivor. Check your connection and try again.';
+    }
+}
+
+async function loadReceipts() {
+    const list = document.getElementById('receipts-list');
+    const totalEl = document.getElementById('receipts-total');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/receipts', {cache: 'no-store'});
+        const data = await res.json();
+        const receipts = data.receipts || [];
+        if (totalEl) totalEl.textContent = receipts.length ? receipts.length + ' receipt' + (receipts.length === 1 ? '' : 's') + ' · Total £' + Number(data.total || 0).toFixed(2) : 'No receipts saved yet.';
+        list.innerHTML = receipts.length ? receipts.map(r => '<div class="receipt-row"><span>' + escapeHtml(r.merchant || 'Unknown shop') + (r.date ? ' · ' + escapeHtml(r.date) : '') + '</span><span>£' + Number(r.total || 0).toFixed(2) + ' <button class="receipt-delete" onclick="deleteReceipt(\'' + escapeAttr(r.id) + '\')">✕</button></span></div>').join('') : '';
+    } catch (error) {
+        list.textContent = 'Could not load receipts.';
+    }
+}
+
+async function deleteReceipt(id) {
+    await fetch('/api/receipts/' + encodeURIComponent(id), {method: 'DELETE'});
+    loadReceipts();
+}
+
+function downloadReceiptsCsv() {
+    fetch('/api/receipts', {cache: 'no-store'})
+        .then(res => res.json())
+        .then(data => {
+            const rows = [['Date', 'Merchant', 'Total (£)', 'VAT (£)', 'Currency']];
+            (data.receipts || []).forEach(r => rows.push([r.date || '', r.merchant || '', r.total ?? '', r.vat ?? '', r.currency || 'GBP']));
+            const csv = rows.map(row => row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'kaivor-receipts.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
+}
+// FP102 RECEIPTS: END
+
+// FP100 RAMS: BEGIN
+// Draft a Risk Assessment and Method Statement on the standard
+// template: the user describes the task and ticks the hazards
+// that apply, the AI drafts the method steps, risk rows and PPE,
+// and the user reviews and edits every line before saving. The
+// saved RAMS prints cleanly (Print / save as PDF) for site use.
+// The draft is never used as-is — the author signs it off.
+let ramsCurrentDraft = null;
+
+function riskScore(severity, likelihood) {
+    return Number(severity) * Number(likelihood);
+}
+
+function riskBand(score) {
+    if (score <= 4) return {label: 'Low', cls: 'risk-low'};
+    if (score <= 9) return {label: 'Medium', cls: 'risk-medium'};
+    if (score <= 16) return {label: 'High', cls: 'risk-high'};
+    return {label: 'Very high', cls: 'risk-very-high'};
+}
+
+function showRams() {
+    hideWeatherView();
+    hideMarketsView();
+    hideMorningHubView();
+    cacheNewsContainer();
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'RAMS';
+    document.getElementById('status').textContent = 'Draft a risk assessment and method statement — review every line before use.';
+    const container = document.getElementById('articles-container');
+    container.innerHTML = `
+        <div class="card" data-category="RAMS">
+            <h3>📋 New RAMS</h3>
+            <p class="evidence-note">Describe the task, tick the hazards that apply, and Kaivor drafts the method statement and risk assessment. You review and edit every line — you sign it off, not Kaivor.</p>
+            <div class="settings-label">Task / activity</div>
+            <input id="rams-task" class="manager-input" type="text" placeholder="e.g. Excavate and lay 30m of 150mm drainage">
+            <div class="settings-label">Site / location</div>
+            <input id="rams-site" class="manager-input" type="text" placeholder="e.g. Plot 12, Meadow Lane">
+            <div class="settings-label">Plant and equipment</div>
+            <input id="rams-plant" class="manager-input" type="text" placeholder="e.g. 3t mini digger, forward tipping dumper">
+            <div class="settings-label">Hazards that apply</div>
+            <div id="rams-hazards" class="rams-hazards">Loading hazards…</div>
+            <div class="settings-label">Notes (anything the drafter should know)</div>
+            <textarea id="rams-notes" class="manager-input" rows="2" placeholder="e.g. Working next to a live footpath; existing services marked on site"></textarea>
+            <button onclick="generateRamsDraft()">Generate draft</button>
+            <div id="rams-generate-status" class="evidence-note"></div>
+        </div>
+        <div id="rams-editor"></div>
+        <div class="card" data-category="RAMS">
+            <h3>Saved RAMS</h3>
+            <div id="rams-list" class="settings-list">Loading…</div>
+        </div>`;
+    loadRamsHazards();
+    loadRamsList();
+}
+
+async function loadRamsHazards() {
+    const box = document.getElementById('rams-hazards');
+    if (!box) return;
+    try {
+        const res = await fetch('/api/rams/hazards', {cache: 'no-store'});
+        const data = await res.json();
+        box.innerHTML = (data.hazards || []).map(h => '<label class="rams-hazard"><input type="checkbox" value="' + escapeAttr(h.id) + '"> ' + escapeHtml(h.name) + '</label>').join('');
+    } catch (error) {
+        box.textContent = 'Could not load the hazard list.';
+    }
+}
+
+async function generateRamsDraft() {
+    const status = document.getElementById('rams-generate-status');
+    const task = document.getElementById('rams-task').value.trim();
+    if (!task) { if (status) status.textContent = 'Describe the task first.'; return; }
+    const hazardIds = Array.from(document.querySelectorAll('#rams-hazards input:checked')).map(input => input.value);
+    if (status) status.textContent = 'Drafting… this takes a few seconds.';
+    try {
+        const res = await fetch('/api/rams/draft', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({task, site: document.getElementById('rams-site').value.trim(), plant: document.getElementById('rams-plant').value.trim(), notes: document.getElementById('rams-notes').value.trim(), hazard_ids: hazardIds})});
+        const data = await res.json();
+        if (res.status === 401 || res.status === 503) { if (status) status.textContent = 'Unlock Reading to draft a RAMS.'; return; }
+        if (!data.success) { if (status) status.textContent = data.error || 'Could not draft that RAMS.'; return; }
+        ramsCurrentDraft = data.draft;
+        ramsCurrentDraft.id = null;
+        ramsCurrentDraft.date = new Date().toISOString().slice(0, 10);
+        ramsCurrentDraft.prepared_by = 'Richard Gallagher';
+        ramsCurrentDraft.company = 'Gallagher Construction Services';
+        renderRamsEditor();
+        if (status) status.textContent = 'Draft ready — review and edit it below.';
+        document.getElementById('rams-editor').scrollIntoView();
+    } catch (error) {
+        if (status) status.textContent = 'Could not reach Kaivor. Check your connection and try again.';
+    }
+}
+
+function ramsRatingSelect(name, value) {
+    let options = '';
+    for (let i = 1; i <= 5; i++) options += '<option value="' + i + '"' + (i === Number(value) ? ' selected' : '') + '>' + i + '</option>';
+    return '<select class="rams-rating" data-rating="' + name + '" onchange="updateRamsBands()">' + options + '</select>';
+}
+
+function ramsRiskRowHtml(row) {
+    row = row || {hazard: '', who: 'Operatives', severity: 3, likelihood: 3, residual_severity: 2, residual_likelihood: 2, controls: []};
+    return '<div class="rams-risk-row">' +
+        '<input class="manager-input rams-risk-hazard" type="text" placeholder="Hazard" value="' + escapeAttr(row.hazard) + '">' +
+        '<input class="manager-input rams-risk-who" type="text" placeholder="Who is at risk" value="' + escapeAttr(row.who) + '">' +
+        '<div class="rams-ratings">Initial ' + ramsRatingSelect('severity', row.severity) + ' × ' + ramsRatingSelect('likelihood', row.likelihood) + ' <span class="rams-band"></span></div>' +
+        '<div class="rams-ratings">Residual ' + ramsRatingSelect('residual_severity', row.residual_severity) + ' × ' + ramsRatingSelect('residual_likelihood', row.residual_likelihood) + ' <span class="rams-band"></span></div>' +
+        '<textarea class="manager-input rams-risk-controls" rows="2" placeholder="Control measures, one per line">' + escapeHtml((row.controls || []).join('\n')) + '</textarea>' +
+        '<button type="button" onclick="this.closest(\'.rams-risk-row\').remove()">Remove hazard</button>' +
+        '</div>';
+}
+
+function renderRamsEditor() {
+    const editor = document.getElementById('rams-editor');
+    if (!editor || !ramsCurrentDraft) return;
+    const draft = ramsCurrentDraft;
+    editor.innerHTML = `
+        <div class="card" data-category="RAMS">
+            <h3>Review the draft</h3>
+            <p class="evidence-note">Check every line and change anything that is wrong for the job. Nothing here is final until you save it and sign it off.</p>
+            <div class="settings-label">Task / activity</div>
+            <input id="rams-edit-task" class="manager-input" type="text" value="${escapeAttr(draft.task || '')}">
+            <div class="settings-label">Site / location</div>
+            <input id="rams-edit-site" class="manager-input" type="text" value="${escapeAttr(draft.site || '')}">
+            <div class="settings-label">Date</div>
+            <input id="rams-edit-date" class="manager-input" type="date" value="${escapeAttr(draft.date || '')}">
+            <div class="settings-label">Prepared by</div>
+            <input id="rams-edit-prepared" class="manager-input" type="text" value="${escapeAttr(draft.prepared_by || '')}">
+            <div class="settings-label">Plant and equipment</div>
+            <input id="rams-edit-plant" class="manager-input" type="text" value="${escapeAttr(draft.plant || '')}">
+            <div class="settings-label">Method statement — one step per line</div>
+            <textarea id="rams-edit-steps" class="manager-input" rows="8">${escapeHtml((draft.method_steps || []).join('\n'))}</textarea>
+            <div class="settings-label">Risk assessment</div>
+            <div id="rams-risk-rows">${(draft.risks || []).map(ramsRiskRowHtml).join('')}</div>
+            <button type="button" onclick="addRamsRiskRow()">Add hazard</button>
+            <div class="settings-label">PPE required — one item per line</div>
+            <textarea id="rams-edit-ppe" class="manager-input" rows="4">${escapeHtml((draft.ppe || []).join('\n'))}</textarea>
+            <button onclick="saveRams()">Save RAMS</button>
+            <button onclick="printRams()">🖨️ Print / save as PDF</button>
+            <div id="rams-edit-status" class="evidence-note"></div>
+        </div>`;
+    updateRamsBands();
+}
+
+function addRamsRiskRow() {
+    const rows = document.getElementById('rams-risk-rows');
+    if (!rows) return;
+    const temp = document.createElement('div');
+    temp.innerHTML = ramsRiskRowHtml(null);
+    rows.appendChild(temp.firstElementChild);
+    updateRamsBands();
+}
+
+function updateRamsBands() {
+    document.querySelectorAll('.rams-risk-row').forEach(row => {
+        const bands = row.querySelectorAll('.rams-band');
+        const initial = riskBand(riskScore(row.querySelector('[data-rating="severity"]').value, row.querySelector('[data-rating="likelihood"]').value));
+        const residual = riskBand(riskScore(row.querySelector('[data-rating="residual_severity"]').value, row.querySelector('[data-rating="residual_likelihood"]').value));
+        if (bands[0]) { bands[0].textContent = initial.label; bands[0].className = 'rams-band ' + initial.cls; }
+        if (bands[1]) { bands[1].textContent = residual.label; bands[1].className = 'rams-band ' + residual.cls; }
+    });
+}
+
+function collectRamsEditor() {
+    const risks = Array.from(document.querySelectorAll('.rams-risk-row')).map(row => ({
+        hazard: row.querySelector('.rams-risk-hazard').value.trim(),
+        who: row.querySelector('.rams-risk-who').value.trim() || 'Operatives',
+        severity: Number(row.querySelector('[data-rating="severity"]').value),
+        likelihood: Number(row.querySelector('[data-rating="likelihood"]').value),
+        residual_severity: Number(row.querySelector('[data-rating="residual_severity"]').value),
+        residual_likelihood: Number(row.querySelector('[data-rating="residual_likelihood"]').value),
+        controls: row.querySelector('.rams-risk-controls').value.split('\n').map(s => s.trim()).filter(Boolean)
+    })).filter(r => r.hazard);
+    return {
+        id: ramsCurrentDraft ? ramsCurrentDraft.id : null,
+        task: document.getElementById('rams-edit-task').value.trim(),
+        site: document.getElementById('rams-edit-site').value.trim(),
+        date: document.getElementById('rams-edit-date').value,
+        prepared_by: document.getElementById('rams-edit-prepared').value.trim(),
+        company: 'Gallagher Construction Services',
+        plant: document.getElementById('rams-edit-plant').value.trim(),
+        method_steps: document.getElementById('rams-edit-steps').value.split('\n').map(s => s.trim()).filter(Boolean),
+        risks,
+        ppe: document.getElementById('rams-edit-ppe').value.split('\n').map(s => s.trim()).filter(Boolean)
+    };
+}
+
+async function saveRams() {
+    const status = document.getElementById('rams-edit-status');
+    const rams = collectRamsEditor();
+    if (!rams.task) { if (status) status.textContent = 'A task description is required.'; return; }
+    const url = rams.id ? '/api/rams/' + encodeURIComponent(rams.id) : '/api/rams';
+    const method = rams.id ? 'PUT' : 'POST';
+    try {
+        const res = await fetch(url, {method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({rams})});
+        const data = await res.json();
+        if (res.status === 401 || res.status === 503) { if (status) status.textContent = 'Unlock Reading to save a RAMS.'; return; }
+        if (!data.success) { if (status) status.textContent = data.error || 'Could not save that RAMS.'; return; }
+        ramsCurrentDraft = data.rams;
+        if (status) status.textContent = 'Saved.';
+        loadRamsList();
+    } catch (error) {
+        if (status) status.textContent = 'Could not reach Kaivor. Check your connection and try again.';
+    }
+}
+
+async function loadRamsList() {
+    const list = document.getElementById('rams-list');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/rams', {cache: 'no-store'});
+        const data = await res.json();
+        const items = data.rams || [];
+        list.innerHTML = items.length ? items.map(r => '<div class="receipt-row"><span>' + escapeHtml(r.task) + (r.site ? ' · ' + escapeHtml(r.site) : '') + (r.date ? ' · ' + escapeHtml(r.date) : '') + '</span><span><button onclick="openRams(\'' + escapeAttr(r.id) + '\')">Open</button> <button class="receipt-delete" onclick="deleteRams(\'' + escapeAttr(r.id) + '\')">✕</button></span></div>').join('') : 'No RAMS saved yet.';
+    } catch (error) {
+        list.textContent = 'Could not load saved RAMS.';
+    }
+}
+
+async function openRams(id) {
+    const res = await fetch('/api/rams/' + encodeURIComponent(id), {cache: 'no-store'});
+    const data = await res.json();
+    if (!data.success) return;
+    ramsCurrentDraft = data.rams;
+    renderRamsEditor();
+    document.getElementById('rams-editor').scrollIntoView();
+}
+
+async function deleteRams(id) {
+    await fetch('/api/rams/' + encodeURIComponent(id), {method: 'DELETE'});
+    if (ramsCurrentDraft && ramsCurrentDraft.id === id) { ramsCurrentDraft = null; const editor = document.getElementById('rams-editor'); if (editor) editor.innerHTML = ''; }
+    loadRamsList();
+}
+
+function ramsPrintHtml(draft) {
+    const rows = (draft.risks || []).map(row => {
+        const initial = riskBand(riskScore(row.severity, row.likelihood));
+        const residual = riskBand(riskScore(row.residual_severity, row.residual_likelihood));
+        return '<tr><td>' + escapeHtml(row.hazard) + '</td><td>' + escapeHtml(row.who) + '</td><td>' + row.severity + ' × ' + row.likelihood + '<br>' + initial.label + '</td><td>' + (row.controls || []).map(c => escapeHtml(c)).join('<br>') + '</td><td>' + row.residual_severity + ' × ' + row.residual_likelihood + '<br>' + residual.label + '</td></tr>';
+    }).join('');
+    const steps = (draft.method_steps || []).map(step => '<li>' + escapeHtml(step) + '</li>').join('');
+    const ppe = (draft.ppe || []).map(item => '<li>' + escapeHtml(item) + '</li>').join('');
+    return '<h1>Risk Assessment &amp; Method Statement</h1>' +
+        '<p><strong>' + escapeHtml(draft.company || 'Gallagher Construction Services') + '</strong></p>' +
+        '<table><tr><th>Task / activity</th><td>' + escapeHtml(draft.task || '') + '</td></tr>' +
+        '<tr><th>Site / location</th><td>' + escapeHtml(draft.site || '') + '</td></tr>' +
+        '<tr><th>Date</th><td>' + escapeHtml(draft.date || '') + '</td></tr>' +
+        '<tr><th>Prepared by</th><td>' + escapeHtml(draft.prepared_by || '') + '</td></tr>' +
+        '<tr><th>Plant and equipment</th><td>' + escapeHtml(draft.plant || '') + '</td></tr></table>' +
+        '<h2>Method statement</h2><ol>' + steps + '</ol>' +
+        '<h2>Risk assessment</h2><table><tr><th>Hazard</th><th>Who is at risk</th><th>Initial risk</th><th>Control measures</th><th>Residual risk</th></tr>' + rows + '</table>' +
+        (ppe ? '<h2>PPE required</h2><ul>' + ppe + '</ul>' : '') +
+        '<h2>Sign-off</h2><table><tr><th>Prepared by</th><td>' + escapeHtml(draft.prepared_by || '') + '</td><th>Signature</th><td></td><th>Date</th><td></td></tr>' +
+        '<tr><th>Checked by</th><td></td><th>Signature</th><td></td><th>Date</th><td></td></tr>' +
+        '<tr><th>Accepted by (site manager)</th><td></td><th>Signature</th><td></td><th>Date</th><td></td></tr></table>' +
+        '<p><em>Draft — review and sign off before use. Review this document if the task, site or conditions change.</em></p>';
+}
+
+function printRams() {
+    const draft = collectRamsEditor();
+    if (!draft.task) return;
+    const doc = document.getElementById('rams-print-doc');
+    if (!doc) return;
+    doc.innerHTML = ramsPrintHtml(draft);
+    window.print();
+}
+// FP100 RAMS: END
+
 // FP083 SPLASH: BEGIN
 // The splash covers the first paint so the app opens on the logo, not a
 // half-rendered page. It hides once the page is usable, but never before
@@ -2595,11 +3288,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     // FP086: #markets opens the Markets view the same way.
     const initialHash = window.location.hash;
     if (initialHash === '#weather') { showWeather(document.getElementById('nav-weather')); }
+    else if (initialHash === '#hub') { showMorningHub(document.getElementById('nav-hub')); }
     else if (initialHash === '#chat') { showChat(document.getElementById('nav-chat')); }
     else if (initialHash === '#saved') { showSaved(document.getElementById('nav-saved')); }
     else if (initialHash === '#settings') { showSettings(document.getElementById('settings-btn')); }
     else if (initialHash === '#markets') { showMarkets(); }
 });
 </script>
+<!-- FP100: the printable RAMS document is built here at print time. -->
+<div id="rams-print-doc"></div>
 </body>
 </html>

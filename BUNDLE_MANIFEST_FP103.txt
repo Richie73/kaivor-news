@@ -1,0 +1,22 @@
+Kaivor FP103 bundle manifest
+
+REPLACEMENT:
+- main.py
+- templates/index.html
+- requirements.txt
+- render.yaml
+
+NEW:
+- hub_services.py
+- tests/test_morning_hub_v2_fp103.py
+- README_INSTALL_FP103.txt
+- CHANGELOG_FP103.txt
+- BUNDLE_MANIFEST_FP103.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

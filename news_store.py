@@ -12,6 +12,8 @@ import json
 import os
 import re
 import tempfile
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -22,6 +24,8 @@ CONFIG_DIR = BASE_DIR / "config"
 DATA_DIR = BASE_DIR / "data"
 SOURCES_FILE = CONFIG_DIR / "news_sources.json"
 SAVED_FILE = DATA_DIR / "news_saved.json"
+RECEIPTS_FILE = DATA_DIR / "receipts.json"
+RAMS_FILE = DATA_DIR / "rams.json"
 PRIVATE_SECRETS_FILE = Path.home() / ".config" / "kaivor" / "news_secrets.json"
 
 _LOCK = RLock()
@@ -227,6 +231,148 @@ def remove_saved_article(article_id_value: str) -> bool:
 
 def is_saved(article_id_value: str) -> bool:
     return any(item["id"] == article_id_value for item in load_saved_articles())
+
+
+# FP102: scanned receipts — same file-store pattern as saved articles.
+def load_receipts() -> list[dict[str, Any]]:
+    with _LOCK:
+        value = _read_json(RECEIPTS_FILE, [])
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, dict)]
+
+
+def _receipt_number(value: Any) -> float | None:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return round(float(value), 2)
+    return None
+
+
+def save_receipt(receipt: dict[str, Any]) -> dict[str, Any]:
+    item = {
+        "id": "rcpt-" + uuid.uuid4().hex[:12],
+        "merchant": receipt.get("merchant") if isinstance(receipt.get("merchant"), str) else None,
+        "date": receipt.get("date") if isinstance(receipt.get("date"), str) else None,
+        "total": _receipt_number(receipt.get("total")),
+        "vat": _receipt_number(receipt.get("vat")),
+        "currency": receipt.get("currency") if isinstance(receipt.get("currency"), str) else "GBP",
+        "added": datetime.now(timezone.utc).isoformat(),
+    }
+    with _LOCK:
+        current = load_receipts()
+        current.insert(0, item)
+        _write_json(RECEIPTS_FILE, current[:500])
+    return item
+
+
+def remove_receipt(receipt_id: str) -> bool:
+    with _LOCK:
+        current = load_receipts()
+        filtered = [item for item in current if item.get("id") != receipt_id]
+        changed = len(filtered) != len(current)
+        if changed:
+            _write_json(RECEIPTS_FILE, filtered)
+        return changed
+
+
+# FP100: RAMS drafts — same file-store pattern as saved articles.
+def load_rams_list() -> list[dict[str, Any]]:
+    with _LOCK:
+        value = _read_json(RAMS_FILE, [])
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, dict)]
+
+
+def _rams_text(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _rams_lines(value: Any, cap: int) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()][:cap]
+
+
+def _rams_rating(value: Any) -> int:
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return 3
+    return max(1, min(5, number))
+
+
+def _normalise_rams(rams: dict[str, Any]) -> dict[str, Any]:
+    risks = []
+    for row in rams.get("risks") or []:
+        if not isinstance(row, dict) or not _rams_text(row.get("hazard")):
+            continue
+        risks.append({
+            "hazard": _rams_text(row.get("hazard")),
+            "who": _rams_text(row.get("who")) or "Operatives",
+            "severity": _rams_rating(row.get("severity")),
+            "likelihood": _rams_rating(row.get("likelihood")),
+            "residual_severity": _rams_rating(row.get("residual_severity")),
+            "residual_likelihood": _rams_rating(row.get("residual_likelihood")),
+            "controls": _rams_lines(row.get("controls"), 8),
+        })
+    return {
+        "task": _rams_text(rams.get("task")),
+        "site": _rams_text(rams.get("site")),
+        "date": _rams_text(rams.get("date")),
+        "prepared_by": _rams_text(rams.get("prepared_by")) or "Richard Gallagher",
+        "company": _rams_text(rams.get("company")) or "Gallagher Construction Services",
+        "plant": _rams_text(rams.get("plant")),
+        "method_steps": _rams_lines(rams.get("method_steps"), 30),
+        "risks": risks[:20],
+        "ppe": _rams_lines(rams.get("ppe"), 12),
+    }
+
+
+def save_rams(rams: dict[str, Any]) -> dict[str, Any]:
+    item = _normalise_rams(rams)
+    item["id"] = "rams-" + uuid.uuid4().hex[:12]
+    now = datetime.now(timezone.utc).isoformat()
+    item["created"] = now
+    item["updated"] = now
+    with _LOCK:
+        current = load_rams_list()
+        current.insert(0, item)
+        _write_json(RAMS_FILE, current[:200])
+    return item
+
+
+def get_rams(rams_id: str) -> dict[str, Any] | None:
+    for item in load_rams_list():
+        if item.get("id") == rams_id:
+            return item
+    return None
+
+
+def update_rams(rams_id: str, rams: dict[str, Any]) -> dict[str, Any] | None:
+    item = _normalise_rams(rams)
+    with _LOCK:
+        current = load_rams_list()
+        for index, existing in enumerate(current):
+            if existing.get("id") != rams_id:
+                continue
+            item["id"] = rams_id
+            item["created"] = existing.get("created") or existing.get("updated") or datetime.now(timezone.utc).isoformat()
+            item["updated"] = datetime.now(timezone.utc).isoformat()
+            current[index] = item
+            _write_json(RAMS_FILE, current)
+            return item
+    return None
+
+
+def remove_rams(rams_id: str) -> bool:
+    with _LOCK:
+        current = load_rams_list()
+        filtered = [item for item in current if item.get("id") != rams_id]
+        changed = len(filtered) != len(current)
+        if changed:
+            _write_json(RAMS_FILE, filtered)
+        return changed
 
 
 def _secret_aliases() -> dict[str, str]:

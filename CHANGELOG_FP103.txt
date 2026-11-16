@@ -1,0 +1,52 @@
+Kaivor FP103 — Morning hub v2: calendar + live travel
+====================================================
+
+WHAT CHANGED
+------------
+The Morning Hub now shows today's calendar and live Wirral
+travel, alongside weather, top stories and markets.
+
+- 📅 Today: the user's Google Calendar secret iCal feed
+  (KAIVOR_CALENDAR_ICS_URL), fetched server-side and cached
+  30 minutes. Recurring events are expanded. The route is
+  PIN-gated — calendar data is private, so it requires the
+  unlocked session even though it is a GET.
+- 🚗 Travel (open route, public data, cached 15 minutes):
+  Merseyrail disruption via TransCAPI (TRANSCAPI_API_KEY),
+  M53/M56 closures via National Highways DATEX II v2.0
+  (NATIONAL_HIGHWAYS_API_KEY, planned + unplanned, trusting
+  overallEndTime not status), A41 + tunnel approaches via
+  TomTom Traffic Incidents (TOMTOM_API_KEY). No public API
+  exists for the Mersey tunnels themselves, so the hub links
+  to Merseytravel's live travel-updates page.
+- Every source is independently optional: a missing key
+  reports "not_configured" for that section instead of
+  failing the whole hub.
+
+SETUP (Richie, in Render — never in chat)
+-----------------------------------------
+1. Calendar: Google Calendar web → Settings → his calendar →
+   Integrate calendar → copy "Secret address in iCal format"
+   → new Render env var KAIVOR_CALENDAR_ICS_URL on
+   kaivor-news. (Treat the URL like a password: anyone with
+   it can read the calendar, including private events.)
+2. Rail: free signup at transcapi.com (no card) → API key →
+   TRANSCAPI_API_KEY. Free tier 100 requests/day.
+3. Motorways: free account at
+   developer.data.nationalhighways.co.uk → subscribe to Road
+   and Lane Closures → key → NATIONAL_HIGHWAYS_API_KEY.
+4. A41/tunnels: free account at developer.tomtom.com → API
+   key → TOMTOM_API_KEY. Free tier 2,500 requests/month.
+
+FILES
+-----
+- hub_services.py (new — calendar + travel fetchers/parsers)
+- main.py (replacement — two routes)
+- templates/index.html (replacement — hub calendar + travel
+  cards, loaders)
+- requirements.txt (replacement — icalendar,
+  recurring-ical-events)
+- render.yaml (replacement — four new dashboard env vars)
+- tests/test_morning_hub_v2_fp103.py (new — 11 tests)
+- CHANGELOG_FP103.txt, README_INSTALL_FP103.txt,
+  BUNDLE_MANIFEST_FP103.txt (new docs)

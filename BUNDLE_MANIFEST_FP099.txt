@@ -1,0 +1,18 @@
+Kaivor FP099 bundle manifest
+
+REPLACEMENT:
+- templates/index.html
+
+NEW:
+- tests/test_voice_input_fp099.py
+- README_INSTALL_FP099.txt
+- CHANGELOG_FP099.txt
+- BUNDLE_MANIFEST_FP099.txt
+
+DELETED:
+- (none)
+
+No credentials are included.
+config/secrets.py is not in the bundle and is not modified.
+No migration is applied.
+No deployment is performed.

@@ -30,15 +30,27 @@ from personal_relevance import load_profile, save_profile, calculate_personal_re
 
 from news_store import (
     deduplicate_articles,
+    get_rams,
     is_saved,
     load_custom_sources,
+    load_rams_list,
+    load_receipts,
     load_saved_articles,
     load_secrets,
+    remove_rams,
+    remove_receipt,
     remove_saved_article,
     save_article,
     save_custom_sources,
+    save_rams,
+    save_receipt,
     save_secret,
+    update_rams,
 )
+from rams_drafter import RamsDraftError, draft_rams
+from rams_library import HAZARDS
+from receipt_reader import ReceiptReadError, read_receipt
+from hub_services import get_calendar, get_travel
 
 APP_VERSION = "FP030.0"
 
@@ -64,6 +76,13 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_chat",
     "api_finance_refresh",
     "api_refresh",
+    "api_rams_draft",
+    "api_rams_remove",
+    "api_rams_save",
+    "api_rams_update",
+    "api_receipt_remove",
+    "api_receipt_save",
+    "api_receipt_scan",
     "api_relevance_profile",  # PUT only; GET is skipped by the method check
     "api_remove_saved",
     "api_save",
@@ -1473,6 +1492,139 @@ def api_save():
 def api_remove_saved(article_id_value):
     removed = remove_saved_article(article_id_value)
     return jsonify({"success": removed, "saved": False})
+
+
+# FP102: receipt capture — scan a photo with AI vision, then save
+# the checked details as an expense. Scan/save/delete are PIN-gated
+# (in _GUARDED_MUTATION_ENDPOINTS); listing is an open read.
+@app.route("/api/receipts", methods=["GET"])
+def api_receipts():
+    receipts = load_receipts()
+    total = round(sum(item.get("total") or 0 for item in receipts), 2)
+    return jsonify({"success": True, "receipts": receipts, "count": len(receipts), "total": total})
+
+
+@app.route("/api/receipts/scan", methods=["POST"])
+def api_receipt_scan():
+    data = request.json or {}
+    image = data.get("image")
+    if not isinstance(image, str) or not image:
+        return jsonify({"success": False, "error": "A receipt photo is required."}), 400
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    try:
+        fields = read_receipt(image, api_key)
+    except ReceiptReadError as error:
+        return jsonify({"success": False, "error": str(error)}), 502
+    return jsonify({"success": True, "fields": fields})
+
+
+@app.route("/api/receipts", methods=["POST"])
+def api_receipt_save():
+    data = request.json or {}
+    receipt = data.get("receipt")
+    if not isinstance(receipt, dict):
+        return jsonify({"success": False, "error": "Receipt details are required."}), 400
+    if not isinstance(receipt.get("total"), (int, float)):
+        return jsonify({"success": False, "error": "A total amount is required."}), 400
+    saved = save_receipt(receipt)
+    return jsonify({"success": True, "receipt": saved})
+
+
+@app.route("/api/receipts/<receipt_id>", methods=["DELETE"])
+def api_receipt_remove(receipt_id):
+    removed = remove_receipt(receipt_id)
+    return jsonify({"success": removed})
+
+
+# FP100: RAMS drafting — the AI drafts from the task and the ticked
+# hazards; the user reviews and edits every line before saving.
+# Draft/save/update/delete are PIN-gated; listing and the hazard
+# library are open reads.
+@app.route("/api/rams/hazards", methods=["GET"])
+def api_rams_hazards():
+    return jsonify({"success": True, "hazards": HAZARDS})
+
+
+@app.route("/api/rams", methods=["GET"])
+def api_rams_list():
+    items = load_rams_list()
+    return jsonify({"success": True, "rams": items, "count": len(items)})
+
+
+@app.route("/api/rams/draft", methods=["POST"])
+def api_rams_draft():
+    data = request.json or {}
+    task = data.get("task")
+    if not isinstance(task, str) or not task.strip():
+        return jsonify({"success": False, "error": "Describe the task first."}), 400
+    hazard_ids = data.get("hazard_ids") if isinstance(data.get("hazard_ids"), list) else []
+    try:
+        draft = draft_rams(task.strip(), data.get("site"), hazard_ids, data.get("plant"), data.get("notes"))
+    except RamsDraftError as error:
+        return jsonify({"success": False, "error": str(error)}), 502
+    draft["task"] = task.strip()
+    draft["site"] = data.get("site") if isinstance(data.get("site"), str) else ""
+    draft["plant"] = data.get("plant") if isinstance(data.get("plant"), str) else ""
+    return jsonify({"success": True, "draft": draft})
+
+
+@app.route("/api/rams", methods=["POST"])
+def api_rams_save():
+    data = request.json or {}
+    rams = data.get("rams")
+    if not isinstance(rams, dict) or not isinstance(rams.get("task"), str) or not rams["task"].strip():
+        return jsonify({"success": False, "error": "A task description is required."}), 400
+    saved = save_rams(rams)
+    return jsonify({"success": True, "rams": saved})
+
+
+@app.route("/api/rams/<rams_id>", methods=["GET"])
+def api_rams_get(rams_id):
+    item = get_rams(rams_id)
+    if item is None:
+        return jsonify({"success": False, "error": "RAMS not found."}), 404
+    return jsonify({"success": True, "rams": item})
+
+
+@app.route("/api/rams/<rams_id>", methods=["PUT"])
+def api_rams_update(rams_id):
+    data = request.json or {}
+    rams = data.get("rams")
+    if not isinstance(rams, dict) or not isinstance(rams.get("task"), str) or not rams["task"].strip():
+        return jsonify({"success": False, "error": "A task description is required."}), 400
+    updated = update_rams(rams_id, rams)
+    if updated is None:
+        return jsonify({"success": False, "error": "RAMS not found."}), 404
+    return jsonify({"success": True, "rams": updated})
+
+
+@app.route("/api/rams/<rams_id>", methods=["DELETE"])
+def api_rams_remove(rams_id):
+    removed = remove_rams(rams_id)
+    return jsonify({"success": removed})
+
+
+# FP103: morning hub live data. The calendar is private, so its
+# route requires the unlocked session (same PIN as Reading) even
+# though it is a GET — the before-request hook only covers
+# mutations. Travel is public data, so its route is an open read.
+@app.route("/api/hub/calendar", methods=["GET"])
+def api_hub_calendar():
+    denied = check_mutation_access()
+    if denied is not None:
+        return denied
+    result = get_calendar(os.environ.get("KAIVOR_CALENDAR_ICS_URL"))
+    return jsonify({"success": result.get("status") == "ok", **result})
+
+
+@app.route("/api/hub/travel", methods=["GET"])
+def api_hub_travel():
+    result = get_travel(
+        os.environ.get("TRANSCAPI_API_KEY"),
+        os.environ.get("NATIONAL_HIGHWAYS_API_KEY"),
+        os.environ.get("TOMTOM_API_KEY"),
+    )
+    return jsonify({"success": True, **result})
 
 
 @app.route("/api/relevance_profile", methods=["GET", "PUT"])

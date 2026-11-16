@@ -1,0 +1,48 @@
+Kaivor FP101 — Morning hub
+=========================
+
+WHAT CHANGED
+------------
+A sixth bottom-nav destination, 🌅 Hub (first in the bar, and on
+the Reading page too, linking to /#hub): one place to start the
+day.
+
+- A time-aware greeting ("Good morning, Richie" etc.) and the
+  date in full.
+- The weather now — reusing the last forecast already fetched
+  (renderWeather stores it in weatherLastNow), so no second
+  call: conditions, temperature, feels-like, today's high/low
+  and the rain summary. Before the first forecast loads, the
+  hub says the weather is still loading.
+- The top five stories, read from the news cards already on
+  the page (or the cached news HTML when another view has
+  replaced the container) — no second fetch.
+- A market snapshot — Gold, Bitcoin and £ → $ — from
+  /api/ticker, reusing the markets price formatter. If the
+  price store is empty (after a restart), the hub points at
+  the Markets view instead of showing blanks.
+
+Calendar and live travel are NOT in v1 — they need the Google
+account connected to Kaivor, which is a bigger job.
+
+The hub hides the news cards without destroying them, like the
+weather and markets views, so every other view hides it
+(filterCategory, Saved, Chat, Settings, Weather, Markets), and
+opening the hub hides Weather and Markets. Deep link #hub works
+on load.
+
+Template-only change — no Python, no routes, no keys.
+
+FILES
+-----
+- templates/index.html (replacement)
+- templates/reading.html (replacement)
+- tests/test_morning_hub_fp101.py (new — 7 tests)
+- tests/test_bottom_nav_fp084.py (replacement — nav is now six
+  destinations; Hub first)
+- tests/test_weather_redesign_fp082.py (replacement —
+  hideWeatherView call sites now six, incl. showMorningHub)
+- tests/test_markets_view_fp086.py (replacement —
+  hideMarketsView call sites now six, incl. showMorningHub)
+- CHANGELOG_FP101.txt, README_INSTALL_FP101.txt,
+  BUNDLE_MANIFEST_FP101.txt (new docs)

@@ -1,12 +1,12 @@
 """FP084: bottom navigation bar + news-only category rail.
 
 The fifteen-destination top rail is split: a fixed bottom bar holds
-the five main destinations (News, Weather, Chat, Saved, Reading),
+the six main destinations (Hub, News, Weather, Chat, Saved, Reading),
 always visible and thumb-friendly, and the top rail keeps only the
 ten news categories. Relevance moves to a button in the header.
 Swiping moves between news categories only. The Reading page gets
 the same bottom bar, linking back to the news page (with a hash
-for the Weather, Chat and Saved views).
+for the Hub, Weather, Chat and Saved views).
 """
 import re
 from pathlib import Path
@@ -33,6 +33,9 @@ def nav_block(html):
 
 def test_bottom_nav_has_five_destinations():
     nav = nav_block(template_text())
+    assert 'id="nav-hub"' in nav
+    assert 'onclick="showMorningHub(this)"' in nav
+    assert nav.index('id="nav-hub"') < nav.index('id="nav-news"')
     assert 'id="nav-news"' in nav
     assert 'onclick="filterCategory(\'All\', document.querySelector(\'.chips .chip\'))"' in nav
     assert 'id="nav-weather"' in nav
@@ -43,7 +46,8 @@ def test_bottom_nav_has_five_destinations():
     assert 'onclick="showSaved(this)"' in nav
     assert 'id="nav-reading"' in nav
     assert 'href="/reading"' in nav
-    assert nav.count('class="nav-item') == 5
+    assert nav.count('class="nav-item') == 6
+    assert 'data-nav="hub"' in nav
     assert 'data-nav="news"' in nav
     assert 'data-nav="weather"' in nav
     assert 'data-nav="chat"' in nav
@@ -122,6 +126,7 @@ def test_reading_page_has_the_bottom_bar():
     reading = READING_TEMPLATE.read_text(encoding="utf-8")
     nav = nav_block(reading)
     assert 'href="/"' in nav
+    assert 'href="/#hub"' in nav
     assert 'href="/#weather"' in nav
     assert 'href="/#chat"' in nav
     assert 'href="/#saved"' in nav
