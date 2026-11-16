@@ -2788,6 +2788,11 @@ async function loadMorningHubTravel() {
             tunnelIncidents.slice(0, 2).forEach(i => lines.push('<div class="hub-story">🚇 Tunnel: ' + escapeHtml(i.description) + '</div>'));
         }
         lines.push('<div class="hub-story"><a href="' + escapeAttr(tunnels.link || 'https://www.merseytravel.gov.uk/travel-updates/') + '" target="_blank" rel="noopener">Live tunnel journey times — Merseytravel ↗</a></div>');
+        // FP104: the National Highways licence asks for this attribution
+        // wherever their closures data is shown.
+        if (nh.status !== 'not_configured') {
+            lines.push('<div class="hub-story" style="font-size:var(--text-xs); color:var(--muted);">Road closures data: Powered by National Highways\' Transport Data Feeds</div>');
+        }
         travelEl.innerHTML = lines.join('');
     } catch (error) {
         travelEl.textContent = 'Travel unavailable — check your connection and try again.';

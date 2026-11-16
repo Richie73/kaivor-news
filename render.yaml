@@ -37,6 +37,11 @@ services:
         sync: false
       - key: TOMTOM_API_KEY
         sync: false
+      # FP104: morning brief push — the MacroDroid webhook trigger URL,
+      # a dashboard secret (sync: false). Anyone holding it can trigger
+      # the macro, so it is never pasted in chat.
+      - key: KAIVOR_MACRODROID_WEBHOOK_URL
+        sync: false
       - key: KAIVOR_COOKIE_SECURE
         value: "true"
       - key: KAIVOR_READING_REQUIRE_POSTGRES

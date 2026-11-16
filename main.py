@@ -51,6 +51,13 @@ from rams_drafter import RamsDraftError, draft_rams
 from rams_library import HAZARDS
 from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
+from morning_brief import (
+    LONDON,
+    build_morning_brief,
+    fetch_brief_weather,
+    format_brief_text,
+    send_brief_to_webhook,
+)
 
 APP_VERSION = "FP030.0"
 
@@ -1625,6 +1632,58 @@ def api_hub_travel():
         os.environ.get("TOMTOM_API_KEY"),
     )
     return jsonify({"success": True, **result})
+
+
+# FP104: morning brief automation. Both routes use the cron token
+# (_cron_authorized), not the Reading PIN — Tasker, MacroDroid and
+# cron-job.org cannot hold a session cookie, and the cron token is the
+# existing shared secret for machine callers. The brief includes
+# calendar data, so it is never an open read.
+def _build_live_brief():
+    with _news_lock:
+        articles = list(_news_cache.get("articles", []))
+    finance_data, _finance_last = _finance_snapshot()
+    calendar_result = get_calendar(os.environ.get("KAIVOR_CALENDAR_ICS_URL"))
+    travel_result = get_travel(
+        os.environ.get("TRANSCAPI_API_KEY"),
+        os.environ.get("NATIONAL_HIGHWAYS_API_KEY"),
+        os.environ.get("TOMTOM_API_KEY"),
+    )
+    weather = fetch_brief_weather()
+    return build_morning_brief(
+        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather
+    )
+
+
+@app.route("/api/automation/brief", methods=["GET"])
+def api_automation_brief():
+    if not _cron_authorized():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    brief = _build_live_brief()
+    return jsonify({"success": True, "brief": brief, "text": format_brief_text(brief)})
+
+
+@app.route("/api/automation/brief/send", methods=["POST"])
+def api_automation_brief_send():
+    if not _cron_authorized():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    webhook_url = os.environ.get("KAIVOR_MACRODROID_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "MacroDroid webhook URL is not configured. Add KAIVOR_MACRODROID_WEBHOOK_URL in the Render dashboard.",
+                }
+            ),
+            503,
+        )
+    brief = _build_live_brief()
+    text = format_brief_text(brief)
+    result = send_brief_to_webhook(webhook_url, text)
+    if not result.get("ok"):
+        return jsonify({"success": False, "error": result.get("error", "Send failed.")}), 502
+    return jsonify({"success": True, "delivered": True, "chars": len(text)})
 
 
 @app.route("/api/relevance_profile", methods=["GET", "PUT"])

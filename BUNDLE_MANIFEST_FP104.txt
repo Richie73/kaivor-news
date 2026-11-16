@@ -1,0 +1,14 @@
+FP104 bundle manifest — morning brief for phone automation
+=============================================================
+
+morning_brief.py
+main.py
+templates/index.html
+render.yaml
+tests/test_morning_brief_fp104.py
+CHANGELOG_FP104.txt
+README_INSTALL_FP104.txt
+BUNDLE_MANIFEST_FP104.txt
+
+8 files. Tests: 15 new in tests/test_morning_brief_fp104.py.
+Phone suite expected: 791 passed, 0 failed, 2 skipped.

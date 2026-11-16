@@ -1,0 +1,65 @@
+FP104 — Morning brief for phone automation (MacroDroid / Tasker)
+============================================================
+
+What it does
+------------
+Builds the same "day at a glance" the Morning Hub shows — greeting,
+weather, top stories, markets, today's calendar and travel — as JSON
+and as short plain text, for delivery to Richie's phone.
+
+Two delivery paths share one builder (new module morning_brief.py):
+- Pull: GET /api/automation/brief returns the brief as JSON. A Tasker
+  HTTP Request action can fetch it (token in the Authorization header
+  or as ?token=).
+- Push: POST /api/automation/brief/send POSTs the plain-text brief to
+  the MacroDroid webhook URL in KAIVOR_MACRODROID_WEBHOOK_URL.
+  Trigger it from cron-job.org on a morning schedule.
+
+Both routes use the cron token (KAIVOR_CRON_TOKEN), not the Reading
+PIN — automation clients cannot hold a session cookie. The brief
+includes calendar data, so it is never an open read.
+
+Weather is fetched server-side from Open-Meteo for Puddington (the
+hub fetches it client-side, so there was no server weather until
+now). One call per brief is far inside the free tier. Calendar and
+travel reuse the FP103 fetchers and their caches.
+
+The plain text is capped at 3500 chars — MacroDroid's webhook POST
+body cap is 3800. The send route returns 503 when the webhook URL
+is not configured and 502 when MacroDroid refuses the POST.
+
+Also in this milestone: the National Highways attribution line in
+the hub travel card ("Road closures data: Powered by National
+Highways' Transport Data Feeds"), which their licence asks for
+wherever closures data is shown. It appears only when the National
+Highways source is configured.
+
+Files
+-----
+- morning_brief.py (new)
+- main.py (two routes + _build_live_brief helper)
+- templates/index.html (attribution line in loadMorningHubTravel)
+- render.yaml (KAIVOR_MACRODROID_WEBHOOK_URL, dashboard secret)
+- tests/test_morning_brief_fp104.py (new, 15 tests)
+
+Setup (Richie, after deploy)
+----------------------------
+1. MacroDroid: create a macro with a Webhook (URL) trigger, named
+   e.g. "Kaivor morning brief". The trigger shows a URL like
+   https://trigger.macrodroid.com/<device-id>/<identifier> — copy it.
+   Add an action: Display Notification (or Show Dialog) with the
+   text from the webhook variable.
+2. Render: kaivor-news -> Environment -> add
+   KAIVOR_MACRODROID_WEBHOOK_URL with that URL as the value.
+   Never paste the URL in chat — anyone holding it can trigger
+   the macro.
+3. cron-job.org: add a job for weekdays ~06:30 calling
+   POST https://kaivor-news.onrender.com/api/automation/brief/send
+   with header Authorization: Bearer <cron token> (same token as
+   the news refresh job).
+   Tasker instead: an HTTP Request GET to
+   https://kaivor-news.onrender.com/api/automation/brief
+   with the same Authorization header, at 06:30, then display
+   the returned text in a notification.
+
+Tests: 15 new, all passing locally. Phone suite expected 791.
