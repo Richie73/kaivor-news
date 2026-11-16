@@ -1,0 +1,49 @@
+FP109: Exclude American-football and baseball stories from the news feed
+======================================================================
+Date: 16 Nov 2026. Requested by Richie: no news stories relating to
+American football or baseball.
+
+What it does
+------------
+Every refreshed article (RSS, Guardian, NewsData) passes through
+news_store.deduplicate_articles(), so the filter lives there: one hook
+covers all sources. Articles matching the filter are dropped at refresh
+time, before they reach the news cache — so the homepage, the Sport view,
+the Morning Hub top stories and the morning brief are all clean.
+
+Matching (news_store.is_us_sport_story)
+---------------------------------------
+Whole-word/phrase match on title + description (case-insensitive):
+  nfl, super bowl, american football, college football,
+  quarterback(s), gridiron, mlb, world series, baseball(s)
+Plus league URL paths (ESPN/BBC/Guardian/Sky carry them even when the
+headline does not name the league):
+  /nfl/, /mlb/, /american-football/, /baseball/
+
+Deliberately NOT matched
+------------------------
+- "touchdown": also used for spacecraft landings.
+- "home run", "pitcher": common outside baseball.
+- Basketball/NBA: Richie did not ask to exclude it; it stays.
+
+Known trade-off
+---------------
+"world series" also drops the occasional World Series of Darts/Poker
+story. The MLB World Series is baseball's biggest event, so the term
+stays; the darts cost is a handful of stories a year.
+
+Saved articles are NOT filtered: load_saved_articles does not go through
+deduplicate_articles, so anything Richie already saved stays saved.
+
+Measured before the build (16 Nov): the live homepage carried 142
+mentions of "NFL" and 5 of "MLB", almost all from the general ESPN feed
+(espn.com/nfl/... and espn.com/mlb/... links). The ESPN feed itself is
+kept — its football (soccer) stories still come through.
+
+Tests: 25 in tests/test_us_sport_filter_fp109.py (each term, description-
+only matches, URL-only matches, plurals, the World Series of Darts
+trade-off, unrelated stories kept, dedupe integration, saved articles
+untouched). Local: 853 passed / 11 known failures / 2 skipped.
+Phone expected: 856 passed / 0 failed / 2 skipped.
+
+Files: news_store.py, tests/test_us_sport_filter_fp109.py.

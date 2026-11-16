@@ -1,0 +1,7 @@
+FP109 BUNDLE MANIFEST — Exclude American-football and baseball stories
+=========================================================================
+news_store.py
+tests/test_us_sport_filter_fp109.py
+CHANGELOG_FP109.txt
+README_INSTALL_FP109.txt
+BUNDLE_MANIFEST_FP109.txt

@@ -163,12 +163,55 @@ def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
     return item
 
 
+# FP109: Richie does not want American-football or baseball stories in the
+# feed (16 Nov 2026). Matching is whole-word/phrase on the title +
+# description, plus the league URL paths (ESPN/BBC/Guardian/Sky all carry
+# them even when the headline does not name the league). Deliberately NOT
+# matched: "touchdown" (also used for spacecraft landings), "home run" and
+# "pitcher" (common outside baseball). Basketball/NBA is NOT excluded.
+# Known trade-off: "world series" also drops the occasional World Series of
+# Darts/Poker story; the MLB World Series is baseball's biggest event, so
+# the term stays.
+_US_SPORT_PATTERNS = (
+    re.compile(r"\bnfl\b", re.IGNORECASE),
+    re.compile(r"\bsuper bowl\b", re.IGNORECASE),
+    re.compile(r"\bamerican football\b", re.IGNORECASE),
+    re.compile(r"\bcollege football\b", re.IGNORECASE),
+    re.compile(r"\bquarterbacks?\b", re.IGNORECASE),
+    re.compile(r"\bgridiron\b", re.IGNORECASE),
+    re.compile(r"\bmlb\b", re.IGNORECASE),
+    re.compile(r"\bworld series\b", re.IGNORECASE),
+    re.compile(r"\bbaseballs?\b", re.IGNORECASE),
+)
+_US_SPORT_URL_PATHS = ("/nfl/", "/mlb/", "/american-football/", "/baseball/")
+
+
+def is_us_sport_story(article: dict[str, Any]) -> bool:
+    """Return True for American-football or baseball stories (FP109)."""
+    text = f"{article.get('title') or ''} {article.get('description') or ''}"
+    if any(pattern.search(text) for pattern in _US_SPORT_PATTERNS):
+        return True
+    try:
+        path = urlparse(str(article.get("link") or "")).path.lower()
+    except ValueError:
+        return False
+    return any(segment in path for segment in _US_SPORT_URL_PATHS)
+
+
 def deduplicate_articles(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Remove exact duplicate stories while preserving first-seen order."""
+    """Remove exact duplicate stories while preserving first-seen order.
+
+    FP109: American-football and baseball stories are dropped here too —
+    every refreshed article (RSS, Guardian, NewsData) passes through this
+    function, so one filter covers all sources. Saved articles are not
+    affected (they load through load_saved_articles, not this function).
+    """
     seen: set[str] = set()
     result: list[dict[str, Any]] = []
     for raw in articles:
         item = normalise_article(raw)
+        if is_us_sport_story(item):
+            continue
         key = item["id"]
         if key in seen:
             continue
