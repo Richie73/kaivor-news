@@ -54,6 +54,7 @@ from rams_library import HAZARDS
 from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
 from weather_warnings import get_warnings
+from football_scores import get_scores
 from core.ai.request import AIRequest
 from core.providers.base import ProviderError
 from core.providers.manager import ProviderManager
@@ -1749,6 +1750,15 @@ def api_weather_warnings():
         os.environ.get("KAIVOR_WARNINGS_FEED_URL"),
         os.environ.get("KAIVOR_WARNINGS_API_KEY"),
     )
+    return jsonify({"success": result.get("status") == "ok", **result})
+
+
+# FP110: live football scores (Premier League + England) from ESPN's free
+# scoreboard feed. Public data, so the route is an open read like travel
+# and warnings. No key is needed; the module caches for 30 seconds.
+@app.route("/api/football/scores", methods=["GET"])
+def api_football_scores():
+    result = get_scores()
     return jsonify({"success": result.get("status") == "ok", **result})
 
 

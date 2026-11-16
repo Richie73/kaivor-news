@@ -1,0 +1,54 @@
+FP110: Live football scores (Premier League + England) in the Sport view
+======================================================================
+Date: 16 Nov 2026. Requested by Richie: live scores, as close to
+instant as possible, for the English Premier League and the England
+national team, plus the UK TV channel for each game.
+
+What was verified first (16 Nov, live probes)
+--------------------------------------------
+- ESPN's free scoreboard feed works with no key:
+  https://site.api.espn.com/apis/site/v2/sports/soccer/{league}/scoreboard
+  (200, CORS *, Premier League gameweek + Nations League fixtures
+  returned with scores, clocks and states). It updates roughly every
+  30-60 seconds during play — near-live, not truly instant. No free
+  source is instant; genuinely instant feeds are paid data products.
+- England appear across fifa.friendly, uefa.nations, fifa.worldq.uefa,
+  uefa.euroq, fifa.world and uefa.euro; no England games were scheduled
+  in the probe week, so the team-name filter is verified against other
+  nations' fixtures, not a live England game.
+- UK TV channels: NO free feed carries them. ESPN's broadcasts fields
+  are empty; TheSportsDB's free key is blocked for fixtures. So the
+  scores strip carries a "Where to watch on UK TV" link to
+  live-footballontv.com instead of a channel name that might be wrong.
+
+Design
+------
+- New module football_scores.py: fetches the 7 scoreboards in parallel
+  (ThreadPoolExecutor, 10s timeout each), keeps the Premier League in
+  full and England matches only from the other six, sorts live first
+  then scheduled then finished, caches for 30 seconds (errors cached
+  too, like travel/warnings). One league failing does not break the
+  others; all failing returns status "error".
+- Route GET /api/football/scores in main.py — open read (public data),
+  returns {success, status, updated, premier_league, england,
+  live_count}.
+- Template: a #football-scores card between the status line and the
+  news cards, shown only when the Sport category is active
+  (updateFootballScores, called at the end of filterCategory).
+  Hidden by hideFootballScores from cacheNewsContainer (covers Saved/
+  Chat/Settings/Receipts/RAMS) and from showWeather/showMarkets/
+  showMorningHub. While visible the page re-polls every 30s
+  (FOOTBALL_SCORES_POLL_MS); the timer stops when the strip hides.
+  Rows: live "● LIVE 67' 2–1", finished "FT 3–0", scheduled kickoff
+  time (HH:MM, en-GB). The England section hides itself when there
+  are no England fixtures. An "Updated HH:MM:SS" line proves it is
+  live. No pulse animation (deliberate — avoids reduced-motion churn).
+
+Tests: 17 in tests/test_live_scores_fp110.py (parse scheduled/live/
+finished, England filter, sort, partial/total failure, cache TTL,
+open route, template hooks, node test of the row HTML incl. the
+en-dash scoreline). Local: 870 passed / 11 known failures / 2 skipped.
+Phone expected: 873 passed / 0 failed / 2 skipped.
+
+Files: football_scores.py (new), main.py, templates/index.html,
+tests/test_live_scores_fp110.py.

@@ -198,6 +198,16 @@
         .hub-story { color:var(--text-bright); text-decoration:none; font-size:var(--text-md); line-height:var(--leading-snug); }
         .hub-story:hover { text-decoration:underline; }
         .hub-market { display:flex; justify-content:space-between; font-size:var(--text-md); }
+        /* FP110: live football scores strip (Sport view). */
+        .scores-section { margin-bottom:var(--space-md); }
+        .scores-section h4 { font-size:var(--text-md); margin:0 0 var(--space-sm); }
+        .score-row { display:flex; justify-content:space-between; gap:var(--space-sm); font-size:var(--text-md); line-height:var(--leading-snug); padding:var(--space-xs) 0; border-bottom:1px solid var(--border); }
+        .score-row:last-child { border-bottom:none; }
+        .score-teams { color:var(--text-bright); }
+        .score-result { font-weight:600; color:var(--text-bright); white-space:nowrap; }
+        .score-live { color:var(--red); font-weight:700; }
+        .scores-updated { font-size:var(--text-sm); color:var(--faint); margin:var(--space-sm) 0 0; }
+        .scores-watch { font-size:var(--text-md); margin:var(--space-sm) 0 0; }
         /* FP102: receipt capture. */
         .receipt-row { display:flex; justify-content:space-between; gap:var(--space-sm); padding:6px 0; border-bottom:1px solid var(--border); font-size:var(--text-md); }
         .receipt-delete { background:none; border:none; color:var(--muted); padding:0 4px; cursor:pointer; font-size:var(--text-md); }
@@ -552,6 +562,10 @@
     </div>
     <div id="status" class="status">Stories are deduplicated and saved locally on this device.</div>
 
+    <!-- FP110: live football scores. Shown only in the Sport view; see
+         updateFootballScores below. -->
+    <div id="football-scores" class="card" style="display:none"></div>
+
     <div id="articles-container">
     {% for article in articles %}
         <div class="card" data-category="{{ article.category }}" data-subscription-publisher="{{ article_subscription_access(article).publisher }}" data-article-id="{{ article.id }}" data-cluster-id="{{ article.cluster_id }}" data-source-count="{{ article.source_count }}" data-report-count="{{ article.report_count }}" data-repeat-count="{{ article.repeated_same_source_reports }}" data-story-sources="{{ article.story_sources | join('|') }}" data-importance-score="{{ article.importance_score|default(0) }}" data-importance-label="{{ article.importance_label|default('Medium') }}" data-confidence-score="{{ article.confidence_score|default(0) }}" data-confidence-label="{{ article.confidence_label|default('Low') }}" data-relevance-score="{{ article.relevance_score|default(0) }}" data-relevance-label="{{ article.relevance_label|default('Low') }}" data-sport-focus="{{ article.sport_focus|default('other') }}" data-published-ts="{{ article.published_ts|default(0) }}">
@@ -853,6 +867,7 @@ function filterCategory(category, element) {
         : 'Stories are deduplicated and saved locally on this device.';
     if (wasDifferent) scrollKaivorToTop();
     applyNewsPagination();
+    updateFootballScores(category);
 }
 
 // FP092 NEWS PAGINATION: BEGIN
@@ -980,6 +995,7 @@ let newsViewReplaced = false;
 function cacheNewsContainer() {
     stopVoiceInput();
     if (newsViewReplaced) return;
+    hideFootballScores();
     hideNewsLoadMore();
     const container = document.getElementById('articles-container');
     if (!container) return;
@@ -2547,6 +2563,7 @@ function showWeather(element) {
     if (!element) return;
     hideMarketsView();
     hideMorningHubView();
+    hideFootballScores();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
@@ -2580,6 +2597,7 @@ function hideWeatherView() {
 function showMarkets() {
     hideWeatherView();
     hideMorningHubView();
+    hideFootballScores();
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     scrollKaivorToTop();
@@ -2861,6 +2879,66 @@ async function loadMorningHubWarnings() {
     }
 }
 
+// FP110 LIVE FOOTBALL SCORES: BEGIN
+// Premier League + England, from ESPN's free scoreboard feed via
+// /api/football/scores (server-cached 30s). The strip shows only in the
+// Sport view; while it is visible the page re-polls every 30 seconds.
+// Scores are near-live (ESPN's data moves every 30-60s), not instant.
+const FOOTBALL_SCORES_POLL_MS = 30000;
+const FOOTBALL_WATCH_URL = 'https://www.live-footballontv.com/';
+let footballScoresTimer = null;
+function footballKickoffTime(isoDate) {
+    const date = new Date(isoDate);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+}
+function footballScoreRowHtml(match) {
+    const teams = escapeHtml(match.home_short) + ' v ' + escapeHtml(match.away_short);
+    if (match.state === 'in') {
+        const clock = match.clock ? ' ' + escapeHtml(match.clock) : '';
+        return '<div class="score-row"><span class="score-teams">' + teams + '</span><span class="score-result"><span class="score-live">● LIVE' + clock + '</span> ' + escapeHtml(String(match.home_score)) + '–' + escapeHtml(String(match.away_score)) + '</span></div>';
+    }
+    if (match.state === 'post') {
+        return '<div class="score-row"><span class="score-teams">' + teams + '</span><span class="score-result">FT ' + escapeHtml(String(match.home_score)) + '–' + escapeHtml(String(match.away_score)) + '</span></div>';
+    }
+    return '<div class="score-row"><span class="score-teams">' + teams + '</span><span class="score-result">' + escapeHtml(footballKickoffTime(match.date)) + '</span></div>';
+}
+function footballScoresSectionHtml(title, matches) {
+    if (!matches.length) return '';
+    return '<div class="scores-section"><h4>' + title + '</h4>' + matches.map(footballScoreRowHtml).join('') + '</div>';
+}
+async function loadFootballScores() {
+    const strip = document.getElementById('football-scores');
+    if (!strip) return;
+    try {
+        const response = await fetch('/api/football/scores', {cache: 'no-store'});
+        const result = await response.json();
+        if (!result.success) { strip.innerHTML = '<p class="scores-updated">Scores unavailable — check your connection and try again.</p>'; return; }
+        const updated = result.updated ? new Date(result.updated * 1000).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : '';
+        strip.innerHTML = footballScoresSectionHtml('⚽ Premier League', result.premier_league || '')
+            + footballScoresSectionHtml('🦁 England', result.england || '')
+            + '<p class="scores-watch">📺 <a href="' + FOOTBALL_WATCH_URL + '" target="_blank" rel="noopener">Where to watch on UK TV</a></p>'
+            + (updated ? '<p class="scores-updated">Updated ' + escapeHtml(updated) + '</p>' : '');
+    } catch (error) {
+        strip.innerHTML = '<p class="scores-updated">Scores unavailable — check your connection and try again.</p>';
+    }
+}
+function hideFootballScores() {
+    if (footballScoresTimer) { clearInterval(footballScoresTimer); footballScoresTimer = null; }
+    const strip = document.getElementById('football-scores');
+    if (strip) strip.style.display = 'none';
+}
+function updateFootballScores(category) {
+    const strip = document.getElementById('football-scores');
+    if (!strip) return;
+    if (category.toLowerCase() !== 'sport') { hideFootballScores(); return; }
+    strip.style.display = 'block';
+    loadFootballScores();
+    if (footballScoresTimer) clearInterval(footballScoresTimer);
+    footballScoresTimer = setInterval(loadFootballScores, FOOTBALL_SCORES_POLL_MS);
+}
+// FP110 LIVE FOOTBALL SCORES: END
+
 async function loadMorningHubMarkets() {
     const marketsEl = document.getElementById('hub-markets');
     if (!marketsEl) return;
@@ -2881,6 +2959,7 @@ async function loadMorningHubMarkets() {
 function showMorningHub(element) {
     hideWeatherView();
     hideMarketsView();
+    hideFootballScores();
     const wasDifferent = !element.classList.contains('active');
     activateCategoryChip(element);
     if (wasDifferent) scrollKaivorToTop();
