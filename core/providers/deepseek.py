@@ -1,61 +1,53 @@
 """
-DeepSeek Provider
+DeepSeek Provider — FP107: on the shared interface.
+
+Calls the DeepSeek API directly (not via OpenRouter). The live
+app reaches DeepSeek through OpenRouter today, so this provider
+is unconfigured in practice (no DEEPSEEK_API_KEY set) and the
+manager skips it — it is here for the day a direct key exists.
 """
 
-import json
-import urllib.request
-import urllib.error
+import requests
 
-from config import secrets
-from core.providers.base import BaseProvider
 from core.ai.request import AIRequest
+from core.providers.base import BaseProvider, ProviderError
 
 
 class DeepSeekProvider(BaseProvider):
     """DeepSeek provider."""
 
     name = "DeepSeek"
-    enabled = True
+
+    default_model = "deepseek-chat"
+
+    env_var = "DEEPSEEK_API_KEY"
 
     API_URL = "https://api.deepseek.com/chat/completions"
 
-    def configured(self):
-        return bool(secrets.DEEPSEEK_API_KEY.strip())
-
-    def generate(self, request: AIRequest):
-
-        if not self.configured():
-            raise RuntimeError("DeepSeek API key not configured.")
+    def generate(self, request: AIRequest, model=None):
+        api_key = self.api_key()
+        if not api_key:
+            raise ProviderError("DeepSeek API key not configured.")
 
         payload = {
-            "model": "deepseek-chat",
+            "model": model or self.default_model,
             "messages": request.messages,
             "temperature": request.temperature,
             "max_tokens": request.max_tokens,
         }
-
-        http_request = urllib.request.Request(
-            self.API_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {secrets.DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-
         try:
-            with urllib.request.urlopen(http_request, timeout=120) as response:
-                data = json.loads(response.read().decode("utf-8"))
-
-            return data["choices"][0]["message"]["content"]
-
-        except urllib.error.HTTPError as e:
-            raise RuntimeError(
-                f"DeepSeek HTTP {e.code}: {e.read().decode()}"
+            response = requests.post(
+                self.API_URL,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=120,
             )
-
-        except urllib.error.URLError as e:
-            raise RuntimeError(
-                f"DeepSeek connection error: {e.reason}"
-            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except requests.RequestException as exc:
+            raise ProviderError(f"DeepSeek request failed: {exc}") from exc
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise ProviderError(f"DeepSeek returned an unexpected response: {exc}") from exc

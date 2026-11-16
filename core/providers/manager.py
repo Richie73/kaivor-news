@@ -1,9 +1,16 @@
 """
-Kaivor Provider Manager
+Kaivor Provider Manager — FP107: one working provider layer.
+
+Registers the providers, orders them by the priority in
+config/providers.json, and runs a request down the fallback
+chain until one succeeds. This is the single entry point the
+live app's AI callers use (FP108 wires them to it).
 """
 
 from config.config import ConfigManager
 
+from core.ai.request import AIRequest
+from core.providers.base import ProviderError
 from core.providers.openrouter import OpenRouterProvider
 from core.providers.openai import OpenAIProvider
 from core.providers.anthropic import AnthropicProvider
@@ -89,6 +96,32 @@ class ProviderManager:
             return None
 
         return chain[index + 1]
+
+    def generate_with_fallback(self, request: AIRequest, model=None, chain=None):
+        """Run a request down the fallback chain; return (name, text).
+
+        Unconfigured providers are skipped, failed providers are
+        tried next, and ProviderError is raised only when every
+        provider in the chain has failed (with each failure named).
+        The model, when given, applies to every provider tried.
+        """
+        names = list(chain) if chain is not None else self.fallback_chain()
+        failures = []
+        for name in names:
+            provider = self.get(name)
+            if provider is None:
+                failures.append(f"{name}: not registered")
+                continue
+            try:
+                if not provider.configured():
+                    failures.append(f"{name}: not configured")
+                    continue
+                return name, provider.generate(request, model=model)
+            except Exception as exc:  # noqa: BLE001 — one provider's failure must not stop the chain
+                failures.append(f"{name}: {exc}")
+        raise ProviderError(
+            "All providers failed: " + "; ".join(failures) if failures else "No providers in chain."
+        )
 
     def health(self):
         """Return provider configuration status."""

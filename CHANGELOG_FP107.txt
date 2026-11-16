@@ -1,0 +1,55 @@
+FP107 — One working provider layer (the engine, stage 1)
+=========================================================
+
+What it does
+------------
+The engine had three overlapping provider sketches and none of
+them was wired to the live app: ai/providers.py (a requests-based
+OpenRouter client), core/ai/* (router, registry, request types)
+and core/providers/* (manager + providers, half stubs). The live
+app's AI callers (chat hub, intelligence drawer, RAMS, receipts)
+each ran their own duplicated provider chain.
+
+FP107 makes core/providers THE provider layer. No live behaviour
+changes in this milestone — FP108 wires the callers to it.
+
+- core/providers/base.py: the single interface. BaseProvider has
+  a name, a default_model, an env_var holding the key, an
+  api_key() read from the environment at call time, a
+  configured() check, and generate(request, model=None) returning
+  the reply text. ProviderError is the single failure type.
+  Keys come from environment variables, the same way the live
+  app reads them — never from config/secrets.py (legacy).
+- core/providers/openrouter.py: real generate() via requests
+  (default model deepseek/deepseek-chat). The old urllib
+  request() helper is gone — nothing called it. generate()
+  previously raised NotImplementedError ("FP009").
+- core/providers/openai.py: real generate() (gpt-4o-mini).
+  Previously a stub raising NotImplementedError.
+- core/providers/deepseek.py: real generate() via requests
+  (deepseek-chat), key from DEEPSEEK_API_KEY env var instead of
+  config.secrets. Unconfigured in practice (no direct key set),
+  so the manager skips it.
+- core/providers/manager.py: new generate_with_fallback(request,
+  model=None, chain=None) — runs the request down the priority
+  chain from config/providers.json (DeepSeek 1, OpenRouter 2),
+  skipping unconfigured providers, falling back on failure, and
+  raising ProviderError naming every failure only when the whole
+  chain has failed. Returns (provider_name, text).
+- ai/providers.py and core/ai/base.py (AIProvider) are left
+  untouched as legacy sketches; a later milestone can remove
+  them. Anthropic/Google/Ollama providers stay as disabled
+  stubs (providers.json has them off).
+
+Files
+-----
+- core/providers/base.py
+- core/providers/openrouter.py
+- core/providers/openai.py
+- core/providers/deepseek.py
+- core/providers/manager.py
+- tests/test_provider_layer_fp107.py (new, 12 tests)
+
+Tests: 12 new, all passing locally. Phone suite expected 831.
+Next: FP108 routes the chat hub, intelligence drawer, RAMS
+drafter and receipt reader through generate_with_fallback.

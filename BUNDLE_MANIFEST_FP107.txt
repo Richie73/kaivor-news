@@ -1,0 +1,15 @@
+FP107 bundle manifest — one working provider layer
+====================================================
+
+core/providers/base.py
+core/providers/openrouter.py
+core/providers/openai.py
+core/providers/deepseek.py
+core/providers/manager.py
+tests/test_provider_layer_fp107.py
+CHANGELOG_FP107.txt
+README_INSTALL_FP107.txt
+BUNDLE_MANIFEST_FP107.txt
+
+9 files. Tests: 12 new in tests/test_provider_layer_fp107.py.
+Phone suite expected: 831 passed, 0 failed, 2 skipped.
