@@ -1,0 +1,9 @@
+FP117 BUNDLE MANIFEST — One green across the whole app
+=======================================================
+templates/index.html
+templates/reading.html
+tests/test_one_green_fp117.py
+tests/test_design_system_fp090.py
+CHANGELOG_FP117.txt
+README_INSTALL_FP117.txt
+BUNDLE_MANIFEST_FP117.txt

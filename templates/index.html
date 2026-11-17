@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b0b0b">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/kaivor-news-192-v3.png" type="image/png">
-    <title>Kaivor News</title>
+    <title>Kaivor</title>
     <style>
         /* FP090: design tokens — one palette, one set of radii,
            shared by every tab (and by the Reading page). New styles
@@ -17,11 +17,11 @@
             --border:#26262a; --border-strong:#2f2f36; --border-input:#383842; --line:#222;
             --text:#f3f4f6; --text-bright:#fff; --text-2:#e5e7eb; --text-3:#d1d5db;
             --muted:#9ca3af; --faint:#6b7280;
-            --brand:#35FA33; --green:#10b981; --green-bright:#34d399;
-            --green-soft:#a7f3d0; --green-pale:#d1fae5;
-            --green-panel:#101512; --green-border:#214537;
-            --btn-bg:#1f2f2a; --btn-border:#2a473b;
-            --green-dark:#059669; --green-darker:#064e3b;
+            --brand:#35FA33; --green:#35FA33; --green-bright:#35FA33;
+            --green-soft:#35FA33; --green-pale:#35FA33;
+            --green-panel:#0f1a0f; --green-border:#1f3d1f;
+            --btn-bg:#1c2b1c; --btn-border:#264026;
+            --green-dark:#35FA33; --green-darker:#0f2a0f; --on-brand:#071207;
             --red:#f87171; --red-soft:#fca5a5; --amber:#fbbf24; --blue:#7dd3fc;
             --orange:#fb923c;
             --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
@@ -64,11 +64,11 @@
         .market-status.error { color:var(--red-soft); }
         .market-bar { margin-bottom:0; }
         .market-value { display:inline-block; border-radius:4px; padding:1px 3px; transition:background .25s,color .25s; }
-        .market-value.price-up { color:#6ee7b7; background:#123126; }
+        .market-value.price-up { color:var(--brand); background:var(--green-panel); }
         .market-value.price-down { color:#fca5a5; background:#3a1e21; }
         .market-value.price-neutral { color:var(--text); }
         .market-value.price-flash { animation:marketFlash 1.2s ease-out; }
-        @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #10b98166; } 100% { box-shadow:0 0 0 0 transparent; } }
+        @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #35FA3366; } 100% { box-shadow:0 0 0 0 transparent; } }
         @media (prefers-reduced-motion: reduce) { .market-track { animation:none; } .market-value { transition:none; } .market-value.price-flash { animation:none; } }
         .manager-card,.card { background:var(--surface); border-radius:var(--radius-md); padding:var(--space-lg); margin-bottom:var(--space-lg); border:1px solid var(--border); }
         /* FP092: skip rendering off-screen cards — the browser only
@@ -129,7 +129,7 @@
         .stock-credit { font-size:var(--text-xs); color:var(--faint); margin:-4px 0 8px; }
         .chat-log { max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:var(--space-md); }
         .chat-msg { padding:10px 12px; border-radius:var(--radius-md); font-size:var(--text-lg); line-height:var(--leading-normal); max-width:88%; }
-        .chat-msg.user { align-self:flex-end; background:#14532d; color:var(--text); }
+        .chat-msg.user { align-self:flex-end; background:#1a4d1a; color:var(--text); }
         .chat-msg.assistant { align-self:flex-start; background:var(--surface-2); color:var(--text-2); }
         .chat-msg.system { align-self:center; background:none; color:var(--faint); font-size:var(--text-base); text-align:center; max-width:100%; }
         .chat-form { display:flex; gap:var(--space-sm); }
@@ -145,11 +145,11 @@
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
         .chat-web-toggle { display:flex; align-items:center; gap:6px; font-size:var(--text-md); color:var(--muted); cursor:pointer; white-space:nowrap; }
-        .chat-web-toggle input { accent-color:#22c55e; }
+        .chat-web-toggle input { accent-color:var(--brand); }
         .chat-web-badge { font-size:var(--text-base); opacity:0.85; }
         .chat-sources { margin-top:var(--space-sm); font-size:var(--text-base); color:var(--muted); }
         .chat-sources ol { margin:4px 0 0; padding-left:18px; }
-        .chat-sources a { color:#86efac; }
+        .chat-sources a { color:var(--brand); }
         .chips {
             position: sticky;
             top: calc(var(--kaivor-header-height, 82px) - 2px);
@@ -226,7 +226,7 @@
         /* FP100: RAMS drafting. */
         .rams-hazards { display:flex; flex-direction:column; gap:6px; margin:6px 0 12px; }
         .rams-hazard { display:flex; gap:var(--space-sm); align-items:center; font-size:var(--text-md); cursor:pointer; }
-        .rams-hazard input { accent-color:#22c55e; }
+        .rams-hazard input { accent-color:var(--brand); }
         .rams-risk-row { border:1px solid var(--border); border-radius:var(--radius-sm); padding:var(--space-sm); margin-bottom:var(--space-sm); display:flex; flex-direction:column; gap:6px; }
         .rams-ratings { display:flex; gap:6px; align-items:center; font-size:var(--text-md); }
         .rams-rating { background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text-bright); border-radius:var(--radius-sm); padding:4px; }
@@ -274,24 +274,24 @@
         .btn-group { display:flex; gap:var(--space-sm); margin-top:var(--space-md); flex-wrap:wrap; }
         button,.btn-link { background:var(--btn-bg); color:var(--green); border:1px solid var(--btn-border); padding:8px 14px; border-radius:var(--radius-sm); font-size:var(--text-md); cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
         button:hover,.btn-link:hover { background:var(--btn-border); }
-        .btn-save { background:var(--green-dark); color:var(--text-bright); border:none; }
+        .btn-save { background:var(--green-dark); color:var(--on-brand); border:none; }
         .btn-save.saved { background:var(--green-darker); border:1px solid var(--green); }
-        .ai-drawer { margin-top:14px; background:linear-gradient(180deg,#111816 0%,#0f1513 100%); border:1px solid var(--green-border); padding:15px; border-radius:var(--radius-md); font-size:var(--text-md); color:#d7eee5; display:none; line-height:var(--leading-relaxed); box-shadow:inset 0 1px 0 rgba(255,255,255,.02); }
-         .ai-card-head { display:flex; align-items:center; gap:9px; margin-bottom:var(--space-md); padding-bottom:10px; border-bottom:1px solid #20362e; }
-         .ai-card-icon { width:28px; height:28px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; background:#123126; color:var(--green-bright); font-size:var(--text-lg); }
+        .ai-drawer { margin-top:14px; background:linear-gradient(180deg,#111a11 0%,#0f150f 100%); border:1px solid var(--green-border); padding:15px; border-radius:var(--radius-md); font-size:var(--text-md); color:#d6e8d6; display:none; line-height:var(--leading-relaxed); box-shadow:inset 0 1px 0 rgba(255,255,255,.02); }
+         .ai-card-head { display:flex; align-items:center; gap:9px; margin-bottom:var(--space-md); padding-bottom:10px; border-bottom:1px solid var(--green-border); }
+         .ai-card-icon { width:28px; height:28px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; background:var(--green-panel); color:var(--green-bright); font-size:var(--text-lg); }
          .ai-card-title { color:var(--green-pale); font-weight:700; font-size:var(--text-lg); }
-         .ai-card-subtitle { color:#71847c; font-size:var(--text-xs); margin-top:1px; }
-         .ai-content { color:#c9d8d2; }
+         .ai-card-subtitle { color:#8a9a8a; font-size:var(--text-xs); margin-top:1px; }
+         .ai-content { color:#c2d2c2; }
          .ai-content p { margin:0 0 10px; }
          .ai-content p:last-child { margin-bottom:0; }
-         .ai-content strong { color:#e4fff3; font-weight:700; }
-         .ai-content em { color:#a9beb6; }
+         .ai-content strong { color:#eaf6ea; font-weight:700; }
+         .ai-content em { color:#a8bfa8; }
          .ai-content .ai-number { display:flex; gap:9px; margin:8px 0; }
          .ai-content .ai-number span { color:var(--green-bright); font-weight:700; min-width:18px; }
          .ai-content .ai-bullet { margin:7px 0 7px 2px; padding-left:14px; position:relative; }
          .ai-content .ai-bullet::before { content:'•'; position:absolute; left:0; color:var(--green-bright); }
-         .ai-source-note { margin-top:var(--space-md); padding-top:9px; border-top:1px solid #1e3029; color:#70827b; font-size:var(--text-xs); }
-         .ai-loading { color:#9ab5aa; }
+         .ai-source-note { margin-top:var(--space-md); padding-top:9px; border-top:1px solid var(--green-border); color:#8a9a8a; font-size:var(--text-xs); }
+         .ai-loading { color:#9db29d; }
          .ai-error { color:#f0b6b6; background:#251718; border:1px solid #4a282b; padding:9px 10px; border-radius:8px; }
         .status { color:var(--muted); font-size:var(--text-base); margin:-6px 0 14px; }
         /* FP090: the section title (Top Stories / Weather / Chat / Saved /
@@ -302,9 +302,9 @@
         #section-title-row { display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-sm); }
         #section-title-row #refresh-btn { flex-shrink:0; }
         .intel-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 10px; }
-        .intel-badge { font-size:var(--text-xs); color:var(--green-soft); background:#10231c; border:1px solid #1f4d3b; border-radius:var(--radius-pill); padding:4px 7px; }
+        .intel-badge { font-size:var(--text-xs); color:var(--green-soft); background:var(--green-panel); border:1px solid var(--green-border); border-radius:var(--radius-pill); padding:4px 7px; }
         .importance-badge,.confidence-badge { font-weight:600; }
-        .intel-hint { font-size:var(--text-base); color:#b7c8c0; line-height:var(--leading-normal); margin:0 0 10px; }
+        .intel-hint { font-size:var(--text-base); color:#b3c6b3; line-height:var(--leading-normal); margin:0 0 10px; }
         .evidence-note { font-size:var(--text-base); color:var(--muted); line-height:var(--leading-normal); margin:0 0 10px; }
 
         /* FP018.4 mobile story-card refinement */
@@ -338,15 +338,15 @@
          .ask-modal textarea { width:100%; min-height:92px; box-sizing:border-box; resize:vertical; background:var(--surface-2); color:var(--text-bright); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:var(--space-md); font:inherit; }
          .ask-modal-actions { display:flex; gap:var(--space-sm); justify-content:flex-end; margin-top:var(--space-md); }
          .btn-secondary { background:var(--surface-2); color:var(--text-3); border-color:var(--border-input); }
-        .timeline-event { padding:10px 0; border-top:1px solid #20342c; }
+        .timeline-event { padding:10px 0; border-top:1px solid var(--green-border); }
         .timeline-event:first-child { border-top:none; padding-top:0; }
-        .timeline-meta { font-size:var(--text-sm); color:#7f918a; margin-bottom:var(--space-xs); }
+        .timeline-meta { font-size:var(--text-sm); color:#8a9a8a; margin-bottom:var(--space-xs); }
         .timeline-title { font-size:var(--text-md); color:var(--green-pale); line-height:var(--leading-snug); }
         .timeline-type { font-size:var(--text-xs); color:var(--green-soft); margin-top:var(--space-xs); text-transform:uppercase; letter-spacing:.5px; }
         .timeline-note { font-size:var(--text-sm); color:var(--muted); margin-top:10px; line-height:var(--leading-normal); }
 
 .ai-section-heading {
-    color: #a7f3d0;
+    color: var(--brand);
     font-size: var(--text-xl);
     line-height:var(--leading-snug);
     font-weight: 750;
@@ -384,7 +384,7 @@
             align-items: center;
             justify-content: center;
             background: var(--green);
-            color: #06130e;
+            color: var(--on-brand);
             border: 1px solid var(--green-bright);
             box-shadow: 0 5px 18px rgba(0,0,0,.4);
             font-size: 22px;
@@ -433,12 +433,12 @@
 <div id="splash" aria-hidden="true">
     <div class="splash-inner">
         <div class="splash-logo-wrap"><svg class="splash-logo" viewBox="0 0 512 512" width="120" height="120" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#35FA33"/><path d="M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" fill="#000000"/><path d="M404 152 L416 180 L444 192 L416 204 L404 232 L392 204 L364 192 L392 180 Z" fill="#000000"/></svg><span class="splash-shine" aria-hidden="true"></span></div>
-        <div class="splash-word">KAIVOR NEWS</div>
-        <div class="splash-tag">Global Intelligence &amp; Puzzles</div>
+        <div class="splash-word">KAIVOR</div>
+        <div class="splash-tag">Your personal AI</div>
         <div class="splash-bar"><span></span></div>
     </div>
 </div>
-<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR NEWS</div><div class="sub-header">Global Intelligence &amp; Puzzles</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
+<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR</div><div class="sub-header">Your personal AI</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
 <div class="container">
     <!-- FP093: shown when the phone is offline (see updateOfflineBanner
          below). The stories on screen are the last ones the service
@@ -1808,7 +1808,7 @@ async function loadSettingsAbout(){
         const data=await res.json();
         if(!data.success){throw new Error('Health check failed');}
         const updated=data.news_last_updated?new Date(data.news_last_updated*1000).toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'}):'not loaded yet';
-        slot.innerHTML='<p class="evidence-note">Kaivor News'+(data.version?' — version '+escapeHtml(String(data.version)):'')+'</p><p class="evidence-note">'+Number(data.news_count||0)+' stories loaded · last refresh '+escapeHtml(updated)+'</p>';
+        slot.innerHTML='<p class="evidence-note">Kaivor'+(data.version?' — version '+escapeHtml(String(data.version)):'')+'</p><p class="evidence-note">'+Number(data.news_count||0)+' stories loaded · last refresh '+escapeHtml(updated)+'</p>';
     }catch(e){slot.innerHTML='<p class="evidence-note">Could not load app status.</p>';}
 }
 
@@ -2117,7 +2117,7 @@ function showTimeline(target, timeline, evidenceNote){
                 <div class="timeline-meta">${escapeHtml(formatDisplayDate(event.published))} · ${escapeHtml(event.source)}</div>
                 <div class="timeline-title">${escapeHtml(event.title)}</div>
                 <div class="timeline-type">${escapeHtml(event.coverage_type)}</div>
-                <div style="margin-top:6px;"><a href="${escapeAttr(event.link)}" target="_blank" rel="noopener" style="color:#10b981;text-decoration:none;font-size:var(--text-sm);">Open report</a></div>
+                <div style="margin-top:6px;"><a href="${escapeAttr(event.link)}" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none;font-size:var(--text-sm);">Open report</a></div>
             </div>`).join('');
     }
     html += '<div class="timeline-note">' + escapeHtml(evidenceNote || 'Timeline is based only on reports currently held by Kaivor for this story.') + '</div>';

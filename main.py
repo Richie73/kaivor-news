@@ -2352,7 +2352,7 @@ def api_ask_ai():
     try:
         provider, content = manager.generate_with_fallback(
             AIRequest(
-                system="You are Kaivor News. Answer the user's question about the supplied article concisely and professionally. Use only the supplied article context. Clearly distinguish facts from uncertainty. Do not invent facts.",
+                system="You are Kaivor. Answer the user's question about the supplied article concisely and professionally. Use only the supplied article context. Clearly distinguish facts from uncertainty. Do not invent facts.",
                 user=f"Article title: {article_title}\nArticle summary: {article_desc}\n\nQuestion: {question}",
                 temperature=0.2,
             )

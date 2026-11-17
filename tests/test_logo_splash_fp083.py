@@ -77,8 +77,8 @@ def test_splash_overlay_exists():
     assert '<div id="splash" aria-hidden="true">' in html
     assert 'class="splash-logo"' in html
     assert "M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" in html
-    assert '<div class="splash-word">KAIVOR NEWS</div>' in html
-    assert '<div class="splash-tag">Global Intelligence &amp; Puzzles</div>' in html
+    assert '<div class="splash-word">KAIVOR</div>' in html
+    assert '<div class="splash-tag">Your personal AI</div>' in html
     assert '<div class="splash-bar"><span></span></div>' in html
     assert "@keyframes splash-slide" in html
     assert "#splash.splash-hidden" in html

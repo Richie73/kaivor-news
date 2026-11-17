@@ -1,0 +1,40 @@
+FP117 — One green across the whole app
+=====================================
+
+The app had grown a dozen different greens: emerald #10b981,
+#34d399, #22c55e, mint #a7f3d0, pale #d1fae5, dark #059669 /
+#064e3b, plus a scatter of hardcoded teal-greens in the AI
+drawer, timeline, chat bubbles and market flashes. They all
+clashed with the Spark K brand green.
+
+Now there is one green: the brand green #35FA33.
+
+- Every accent green is exactly #35FA33: the tokens --green,
+  --green-bright, --green-soft, --green-pale, --green-dark
+  (index) and --accent (Reading) all point at it, and the
+  hardcoded accents (chat toggles, RAMS checkboxes, chat
+  source links, the AI section heading, the timeline "Open
+  report" link, the market price-up text and flash glow) now
+  use var(--brand) or the brand hex.
+- Dark surfaces and muted text are tints of that same hue
+  (120 degrees: red == blue, green dominant), so nothing
+  clashes and nothing is unreadable — pure neon on every
+  background would have been. New token values: --green-panel
+  #0f1a0f, --green-border #1f3d1f, --btn-bg #1c2b1c,
+  --btn-border #264026, --green-darker #0f2a0f; the AI drawer,
+  chat bubble, badges, timeline and muted text use the same
+  family (#1a4d1a, #111a11, #0f150f, #d6e8d6, #c2d2c2,
+  #eaf6ea, #a8bfa8, #9db29d, #b3c6b3, #8a9a8a).
+- New token --on-brand #071207 (both templates): the dark text
+  on bright green buttons — the Save button, the scroll-to-top
+  button and Reading's primary button. The Save button is now
+  a bright brand-green button with dark text; its saved state
+  is the dark tint with a brand border.
+
+Tests: 7 in tests/test_one_green_fp117.py (accent tokens are
+the brand green, dark tints are the brand hue, Reading accent,
+no old green anywhere, a whitelist scan proving every greenish
+hex in either template is one of the allowed values, bright
+buttons use dark text, price-up uses the brand + panel tokens).
+tests/test_design_system_fp090.py token assertions updated to
+the new values.

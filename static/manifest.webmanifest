@@ -1,7 +1,7 @@
 {
-  "name": "Kaivor News",
-  "short_name": "Kaivor News",
-  "description": "Global intelligence, fresh news and story analysis.",
+  "name": "Kaivor",
+  "short_name": "Kaivor",
+  "description": "Your personal AI — news, chat, memory, tasks and more.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

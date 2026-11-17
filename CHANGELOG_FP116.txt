@@ -1,0 +1,32 @@
+FP116 — The app is called Kaivor now
+====================================
+
+News is one of six things on the bottom bar — chat, memory,
+tasks, RAMS and receipts sit next to it — so "Kaivor News"
+undersold what the app is. The app is now just Kaivor, with
+the tagline "Your personal AI".
+
+- templates/index.html: <title> Kaivor; header brand KAIVOR
+  with sub-header "Your personal AI"; splash word KAIVOR with
+  tag "Your personal AI"; Settings About line says Kaivor.
+- templates/reading.html: brand KAIVOR (the page keeps its own
+  title "Kaivor Reading" and sub "Reading Intelligence"); the
+  PIN setup hint says "the Kaivor environment settings".
+- static/manifest.webmanifest: name and short_name "Kaivor",
+  description "Your personal AI — news, chat, memory, tasks
+  and more." The home-screen app name updates from this — the
+  app may need removing and re-adding from the home screen
+  for the new name to show (same as the icon change in FP083).
+- main.py: the AI brief system prompt says "You are Kaivor."
+- confidence_aware_ai.py: the analyst prompt says "You are
+  Kaivor's cautious evidence-grounded news analyst."
+- tests/test_logo_splash_fp083.py: splash assertions updated.
+
+Deliberately unchanged: the icon filenames (kaivor-news-*.png),
+the web address (kaivor-news.onrender.com), the service worker
+cache name, and module docstrings (historical FP references,
+not user-visible).
+
+Tests: 8 in tests/test_rename_fp116.py (title, header, splash,
+About line, manifest JSON, Reading brand, no old branding left
+in the user-facing files, AI prompts).
