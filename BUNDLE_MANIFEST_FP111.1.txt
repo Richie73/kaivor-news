@@ -1,0 +1,8 @@
+FP111.1 BUNDLE MANIFEST — The header no longer hides the top of the page
+==========================================================================
+templates/index.html
+tests/test_sticky_header_fp111.py
+tests/test_design_system_fp090.py
+CHANGELOG_FP111.1.txt
+README_INSTALL_FP111.1.txt
+BUNDLE_MANIFEST_FP111.1.txt

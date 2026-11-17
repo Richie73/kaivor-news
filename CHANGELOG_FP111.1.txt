@@ -1,0 +1,32 @@
+FP111.1: The header no longer hides the top of the page
+=====================================================
+Date: 16 Nov 2026. Richie reported "The market box looks odd"
+with a screenshot: the "MARKET WATCH" heading was sliced in half
+at the top of the screen.
+
+Root cause (pre-existing, exposed by FP111): the header was
+position:fixed and ~107px tall (logo + tagline + Settings
+button + padding), but the body only cleared 70px — so the top
+~37px of the page sat permanently under the header. The market
+panel is the first element, so its heading took the hit. Before
+FP111 the panel's head row was taller (it held the refresh
+button), so the heading poked below the hidden zone; removing
+the button shrank the row and the heading slid fully into it.
+
+Fix: the header is now position:sticky (top:0, same z-index and
+background, so scrolled content still slides under it) and the
+body's top padding is 0. Sticky keeps the header pinned while
+scrolling but takes its own space in the layout, so no magic
+padding number is needed and the fix holds under any font
+scaling. Safe here: no ancestor of the header sets overflow
+(verified by test). The bottom nav is still fixed, so the
+body's 64px bottom padding stays.
+
+Tests: 3 in tests/test_sticky_header_fp111.py (sticky + top +
+z-index/background; body padding; no overflow ancestor). The
+FP090 design-system test's exact header-rule assertion updated
+(fixed -> sticky). Local: 883 passed / 11 known failures /
+2 skipped. Phone expected: 894 passed / 0 failed / 2 skipped.
+
+Files: templates/index.html, tests/test_sticky_header_fp111.py,
+tests/test_design_system_fp090.py.

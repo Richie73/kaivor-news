@@ -52,7 +52,7 @@ def test_main_surfaces_use_tokens():
     css = _css(TEMPLATE.read_text())
     for rule in (
         "body { background:var(--bg); color:var(--text);",
-        "header { position:fixed; top:0; left:0; right:0; background:var(--bg);",
+        "header { position:sticky; top:0; left:0; right:0; background:var(--bg);",  # FP111.1: sticky, not fixed
         ".manager-card,.card { background:var(--surface); border-radius:var(--radius-md);",
         ".market-bar { display:block; overflow:hidden; padding:var(--space-md) 0; margin-bottom:var(--space-lg); font-size:var(--text-md); background:var(--surface);",
         ".weather-card { background:var(--surface); border:1px solid var(--border);",

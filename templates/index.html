@@ -34,8 +34,16 @@
             --leading-none:1; --leading-snug:1.4; --leading-normal:1.5; --leading-relaxed:1.6;
             --space-xs:4px; --space-sm:8px; --space-md:12px; --space-lg:16px;
         }
-        body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:70px; padding-bottom:64px; }
-        header { position:fixed; top:0; left:0; right:0; background:var(--bg); z-index:1000; padding:var(--space-lg); font-size:var(--text-2xl); font-weight:bold; border-bottom:1px solid var(--line); text-align:center; letter-spacing:1px; color:var(--text-bright); }
+        body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding-top:0; padding-bottom:64px; }
+        /* FP111.1: the header used to be position:fixed with the body
+           clearing only 70px — but the header is ~107px tall (logo +
+           tagline + Settings button), so the top ~37px of the page was
+           permanently hidden under it. The market panel sits first, so
+           its heading took the hit; FP111 exposed it by shrinking the
+           panel's head row. Sticky keeps the header pinned on scroll
+           while taking its own space in the layout, so no magic
+           padding number is needed. */
+        header { position:sticky; top:0; left:0; right:0; background:var(--bg); z-index:1000; padding:var(--space-lg); font-size:var(--text-2xl); font-weight:bold; border-bottom:1px solid var(--line); text-align:center; letter-spacing:1px; color:var(--text-bright); }
         .install-app { margin-top:7px; padding:5px 10px; font-size:var(--text-sm); border-radius:var(--radius-pill); }
         .sub-header { font-size:var(--text-sm); color:var(--green); text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
         .brand-mark { width:26px; height:26px; border-radius:var(--radius-sm); vertical-align:-6px; margin-right:var(--space-sm); }
