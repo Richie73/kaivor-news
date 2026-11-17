@@ -1,0 +1,14 @@
+FP114 BUNDLE MANIFEST — In-app tasks
+====================================
+tasks_store.py
+main.py
+templates/index.html
+tests/test_tasks_fp114.py
+tests/test_weather_redesign_fp082.py
+tests/test_markets_view_fp086.py
+tests/test_morning_hub_fp101.py
+tests/test_unified_refresh_fp111.py
+tests/test_type_scale_fp096.py
+CHANGELOG_FP114.txt
+README_INSTALL_FP114.txt
+BUNDLE_MANIFEST_FP114.txt

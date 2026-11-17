@@ -2,17 +2,28 @@
 Kaivor Memory API
 """
 
+import os
+
 from core.memory.manager import MemoryManager
 
 # FP112: the manager is built on first use, not at import time, so
 # importing this module never creates the database as a side effect.
+# FP113: the backend is chosen the same way — Postgres when
+# KAIVOR_READING_DATABASE_URL is set (Render), SQLite otherwise
+# (local runs and Termux, where psycopg has no wheel).
 _manager = None
 
 
 def _get_manager():
     global _manager
     if _manager is None:
-        _manager = MemoryManager()
+        database_url = os.environ.get("KAIVOR_READING_DATABASE_URL", "").strip()
+        if database_url:
+            from core.memory.postgres_store import PostgresMemoryStore
+
+            _manager = PostgresMemoryStore(database_url)
+        else:
+            _manager = MemoryManager()
     return _manager
 
 

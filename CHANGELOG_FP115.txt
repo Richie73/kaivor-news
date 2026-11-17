@@ -1,0 +1,39 @@
+FP115 — Auto-remembering
+========================
+
+After a chat reply, a background thread asks the provider what
+(if anything) in the exchange is worth remembering long-term,
+skips duplicates, and saves the rest with source "auto". The
+reply is never delayed by it, and any failure in it returns
+(0, 0) — auto-remembering never breaks chat.
+
+- New auto_remember.py: AUTO_REMEMBER_PROMPT (JSON-only
+  extraction: durable facts only — no prices, news, small talk
+  or secrets); parse_extracted_memories (fence-stripping, shape
+  validation, max 3, title 200 / content 4000 caps);
+  memory_already_saved (same title, or 3+ shared distinctive
+  words); extract_and_save_memories (skips user messages under
+  20 chars; temperature 0.1, max_tokens 500; dedupes within the
+  batch too). distinctive_words() + the stopword list moved here
+  from main.py so FP112 recall and FP115 dedup match on the same
+  words.
+- main.py: memory_context_for_chat now uses distinctive_words()
+  (behaviour unchanged). api_chat starts the thread after a
+  successful AI reply when the request opts in with
+  "auto_remember": true — opt-in only, so unknown clients and
+  tests never trigger a background provider call. Pure price
+  asks (FP080.1) skip it even when opted in. The thread logs
+  "[auto-remember] saved=N skipped=M" when it does anything.
+- templates/index.html: a "🧠 Remember things from our chats"
+  checkbox under the chat form (localStorage
+  kaivor-auto-remember, on by default), sent as auto_remember
+  in the chat POST. saveChatAutoRememberToggle() mirrors the
+  web toggle.
+
+Cost note: one extra provider call per opted-in chat turn
+(DeepSeek via OpenRouter, temperature 0.1, max 500 tokens).
+
+Tests: 20 in tests/test_auto_remember_fp115.py (keyword
+extraction, parsing, dedup, extraction orchestration with a
+fake provider, chat wiring with an inline thread fake incl.
+opt-out + direct-answer cases, toggle markup).

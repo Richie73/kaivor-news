@@ -55,6 +55,8 @@ from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
 from weather_warnings import get_warnings
 from football_scores import get_scores
+from tasks_store import task_store_or_none
+from auto_remember import distinctive_words
 from core.ai.request import AIRequest
 from core.providers.base import ProviderError
 from core.providers.manager import ProviderManager
@@ -107,6 +109,9 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_set_key",
     "api_story_intelligence",
     "api_story_timeline",
+    "api_tasks_add",
+    "api_tasks_remove",
+    "api_tasks_update",
     "api_why_matters",
 })
 
@@ -587,20 +592,9 @@ def finance_context_for_chat(question):
     return "\n".join(lines), [key for key, _ in matched]
 
 
-# FP112: words too common to match a memory on. Anything shorter
-# than four letters is skipped as well, so "the", "what", "when"
-# and "does" never trigger a recall.
-_MEMORY_CHAT_STOPWORDS = frozenset({
-    "about", "after", "again", "before", "could", "does", "doing",
-    "dont", "from", "have", "here", "how", "just", "know", "like",
-    "much", "many", "more", "most", "need", "only", "other", "over",
-    "please", "really", "right", "should", "some", "tell", "than",
-    "that", "them", "then", "there", "these", "thing", "think",
-    "this", "those", "very", "want", "was", "were", "what", "when",
-    "where", "which", "while", "who", "will", "with", "would", "you",
-    "your",
-})
-
+# FP112: recall caps. The stopword list lives in auto_remember.py
+# (distinctive_words), shared with FP115's dedup so both features
+# match memories on the same words.
 _MEMORY_CHAT_MAX_KEYWORDS = 8
 _MEMORY_CHAT_MAX_MEMORIES = 5
 _MEMORY_CHAT_MAX_CONTENT_CHARS = 300
@@ -619,14 +613,7 @@ def memory_context_for_chat(question):
     text = (question or "").lower()
     if not text:
         return "", 0
-    keywords = []
-    for raw in text.split():
-        word = "".join(ch for ch in raw if ch.isalnum()).lower()
-        if len(word) < 4 or word in _MEMORY_CHAT_STOPWORDS or word in keywords:
-            continue
-        keywords.append(word)
-        if len(keywords) >= _MEMORY_CHAT_MAX_KEYWORDS:
-            break
+    keywords = distinctive_words(text, _MEMORY_CHAT_MAX_KEYWORDS)
     if not keywords:
         return "", 0
     try:
@@ -1816,10 +1803,10 @@ def api_readwise_sync():
 # FP112: chat memory. Memories are private, so the GET requires the
 # unlocked session (same PIN as Reading, like the calendar route)
 # even though it is a read, and the POST/DELETE are in
-# _GUARDED_MUTATION_ENDPOINTS. The store is the engine's SQLite
-# memory database (core/memory) — it lives in the app's data/ dir,
-# so a redeploy wipes it, like receipts and RAMS. Moving it to
-# Postgres is a later step.
+# _GUARDED_MUTATION_ENDPOINTS. FP113 moved the store to Postgres
+# (public.memories, same database as Reading) when
+# KAIVOR_READING_DATABASE_URL is set; SQLite in data/ stays the
+# fallback for local runs and Termux.
 @app.route("/api/memories", methods=["GET"])
 def api_memories():
     denied = check_mutation_access()
@@ -1862,6 +1849,95 @@ def api_memories_remove(memory_id):
     removed = forget(memory_id)
     if not removed:
         return jsonify({"success": False, "error": "No memory with that id."}), 404
+    return jsonify({"success": True})
+
+
+def _valid_due_date(value):
+    """Return a YYYY-MM-DD string, None when blank, or False when malformed."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return text
+
+
+# FP114: in-app tasks. Backed by the public.tasks table in the same
+# Supabase database as memories (KAIVOR_READING_DATABASE_URL).
+# Postgres-only — without a database URL the routes report not
+# configured (503). The GET is PIN-gated like memories; POST/PUT/
+# DELETE are in _GUARDED_MUTATION_ENDPOINTS.
+@app.route("/api/tasks", methods=["GET"])
+def api_tasks():
+    denied = check_mutation_access()
+    if denied is not None:
+        return denied
+    store = task_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Tasks are not configured on this server."}), 503
+    return jsonify({"success": True, "tasks": store.list_tasks()})
+
+
+@app.route("/api/tasks", methods=["POST"])
+def api_tasks_add():
+    store = task_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Tasks are not configured on this server."}), 503
+    data = request.json or {}
+    title = str(data.get("title") or "").strip()
+    if not title:
+        return jsonify({"success": False, "error": "A title is required."}), 400
+    if len(title) > 200:
+        return jsonify({"success": False, "error": "A title is limited to 200 characters."}), 400
+    notes = str(data.get("notes") or "").strip()[:2000]
+    due_date = _valid_due_date(data.get("due_date"))
+    if due_date is False:
+        return jsonify({"success": False, "error": "A due date must be YYYY-MM-DD."}), 400
+    task_id = store.add_task(title, notes, due_date)
+    return jsonify({"success": True, "id": task_id})
+
+
+@app.route("/api/tasks/<int:task_id>", methods=["PUT"])
+def api_tasks_update(task_id):
+    store = task_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Tasks are not configured on this server."}), 503
+    data = request.json or {}
+    fields = {}
+    if "title" in data:
+        title = str(data.get("title") or "").strip()
+        if not title:
+            return jsonify({"success": False, "error": "A title is required."}), 400
+        if len(title) > 200:
+            return jsonify({"success": False, "error": "A title is limited to 200 characters."}), 400
+        fields["title"] = title
+    if "notes" in data:
+        fields["notes"] = str(data.get("notes") or "").strip()[:2000]
+    if "due_date" in data:
+        due_date = _valid_due_date(data.get("due_date"))
+        if due_date is False:
+            return jsonify({"success": False, "error": "A due date must be YYYY-MM-DD."}), 400
+        fields["due_date"] = due_date
+    if "done" in data:
+        fields["done"] = bool(data.get("done"))
+    updated = store.update_task(task_id, **fields)
+    if updated is None:
+        return jsonify({"success": False, "error": "No task with that id."}), 404
+    return jsonify({"success": True, "task": updated})
+
+
+@app.route("/api/tasks/<int:task_id>", methods=["DELETE"])
+def api_tasks_remove(task_id):
+    store = task_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Tasks are not configured on this server."}), 503
+    removed = store.delete_task(task_id)
+    if not removed:
+        return jsonify({"success": False, "error": "No task with that id."}), 404
     return jsonify({"success": True})
 
 
@@ -2320,9 +2396,15 @@ def api_chat():
 
     FP112: saved memories matching the question are recalled from
     the engine's memory store and added to the system prompt, so
-    the chat remembers across sessions. Nothing is remembered
-    automatically — memories are saved only when the user taps
-    "Remember this" (or adds one from the Memories view).
+    the chat remembers across sessions.
+
+    FP115: after an AI reply, a background thread asks the provider
+    what (if anything) in the exchange is worth remembering and
+    saves it (source "auto"), skipping duplicates. The reply is
+    never delayed by it. The client opts in per request with
+    "auto_remember": true — the chat UI sends its toggle state
+    (on by default); requests without the flag never trigger it.
+    Pure price asks (FP080.1) skip it even when opted in.
     """
     data = request.json or {}
     raw_messages = data.get("messages")
@@ -2403,7 +2485,27 @@ def api_chat():
             "details": str(exc),
         }), 503
     sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
+    # FP115: auto-remembering — fire and forget, after the reply is
+    # ready. Opt-in only: the client sends "auto_remember": true.
+    if data.get("auto_remember") is True:
+        _start_auto_remember(last_user, content)
     return jsonify({"success": True, "reply": content, "provider": provider, "web_used": web_used, "sources": sources})
+
+
+def _start_auto_remember(user_text, assistant_text):
+    """FP115: extract-and-save in a daemon thread, never blocking the reply."""
+
+    def _run():
+        try:
+            from auto_remember import extract_and_save_memories
+
+            saved, skipped = extract_and_save_memories(user_text, assistant_text)
+            if saved or skipped:
+                print(f"[auto-remember] saved={saved} skipped={skipped}", flush=True)
+        except Exception as exc:  # never break chat from this thread
+            print(f"[auto-remember] failed: {exc}", flush=True)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 _startup()

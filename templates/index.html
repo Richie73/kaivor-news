@@ -137,6 +137,10 @@
         .chat-form button { padding:10px 16px; }
         .chat-remember-btn { background:none; border:none; color:var(--faint); font-size:var(--text-base); padding:4px 0 0; cursor:pointer; }
         .chat-remember-btn:disabled { color:var(--muted); cursor:default; }
+        /* FP114: task rows — checkbox beside the title, done tasks struck through. */
+        .task-row { display:flex; align-items:flex-start; gap:var(--space-sm); }
+        .task-row input[type="checkbox"] { margin-top:3px; }
+        .task-done h3 { text-decoration:line-through; color:var(--muted); }
         /* FP099: voice input button — red while listening. */
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
@@ -536,6 +540,7 @@
             <div id="hub-weather" class="hub-weather"></div>
             <button type="button" style="margin-top:var(--space-sm);" onclick="showReceipts()">🧾 Scan a receipt</button>
             <button type="button" style="margin-top:var(--space-sm);" onclick="showRams()">📋 Draft a RAMS</button>
+            <button type="button" style="margin-top:var(--space-sm);" onclick="showTasks()">✅ Tasks</button>
         </div>
         <div class="card" id="hub-warnings-card" style="display:none">
             <h3>⚠️ Met Office Weather Warnings</h3>
@@ -1119,7 +1124,7 @@ function restoreNewsContainer() {
 // Markets view showed all three at once. Now the single button
 // refreshes the news in the news views, the markets in the Markets
 // view, and hides in Weather, the Hub and the container views
-// (Saved, Chat, Settings, Receipts, RAMS, Memories), where refreshing makes
+// (Saved, Chat, Settings, Receipts, RAMS, Memories, Tasks), where refreshing makes
 // no sense. Settings stays in the header — it is global.
 function updateRefreshButton() {
     const button = document.getElementById('refresh-btn');
@@ -1283,6 +1288,7 @@ async function showSaved(element) {
 // FP079 WEB: toggle (kaivor-chat-web), sources on assistant messages.
 const CHAT_HISTORY_KEY = 'kaivor-chat-history';
 const CHAT_WEB_KEY = 'kaivor-chat-web';
+const CHAT_AUTO_REMEMBER_KEY = 'kaivor-auto-remember';
 const CHAT_HISTORY_LIMIT = 30;
 
 function loadChatHistory() {
@@ -1340,12 +1346,16 @@ function showChat(element) {
                 <label class="chat-web-toggle"><input id="chat-web" type="checkbox" onchange="saveChatWebToggle()"> 🌐 Web</label>
                 <button type="submit">Send</button>
             </form>
+            <label class="chat-web-toggle" style="margin-top:10px;"><input id="chat-auto-remember" type="checkbox" checked onchange="saveChatAutoRememberToggle()"> 🧠 Remember things from our chats</label>
             <button onclick="showMemories()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:var(--text-base);padding:4px 0;cursor:pointer;">🧠 Memories</button>
             <button onclick="clearChatHistory()" style="margin-top:10px;background:none;border:none;color:#6b7280;font-size:var(--text-base);padding:4px 0;cursor:pointer;">Clear chat</button>
         </div>`;
     renderChatLog();
     const webToggle = document.getElementById('chat-web');
     if (webToggle) { try { webToggle.checked = localStorage.getItem(CHAT_WEB_KEY) === '1'; } catch (error) { /* ignore */ } }
+    // FP115: auto-remembering is on unless the user switched it off.
+    const autoRememberToggle = document.getElementById('chat-auto-remember');
+    if (autoRememberToggle) { try { autoRememberToggle.checked = localStorage.getItem(CHAT_AUTO_REMEMBER_KEY) !== '0'; } catch (error) { /* ignore */ } }
     // FP099: no speech recognition in this browser — hide the mic.
     if (!chatVoiceSupported()) { const voiceBtn = document.getElementById('chat-voice-btn'); if (voiceBtn) voiceBtn.style.display = 'none'; }
     document.getElementById('chat-input').focus();
@@ -1355,6 +1365,12 @@ function saveChatWebToggle() {
     const toggle = document.getElementById('chat-web');
     if (!toggle) return;
     try { localStorage.setItem(CHAT_WEB_KEY, toggle.checked ? '1' : '0'); } catch (error) { /* ignore */ }
+}
+
+function saveChatAutoRememberToggle() {
+    const toggle = document.getElementById('chat-auto-remember');
+    if (!toggle) return;
+    try { localStorage.setItem(CHAT_AUTO_REMEMBER_KEY, toggle.checked ? '1' : '0'); } catch (error) { /* ignore */ }
 }
 
 // FP099 VOICE: speech input for the chat box, via the browser's
@@ -1556,12 +1572,140 @@ async function deleteMemory(id, button) {
 }
 // FP112 CHAT MEMORY: END
 
+// FP114 IN-APP TASKS: START — a container view like Memories, backed
+// by the public.tasks table (Postgres only).
+async function showTasks() {
+    hideWeatherView();
+    hideMarketsView();
+    hideMorningHubView();
+    cacheNewsContainer();
+    document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    scrollKaivorToTop();
+    document.getElementById('section-title').textContent = 'Tasks';
+    document.getElementById('status').textContent = 'Things to do, saved in Kaivor.';
+    const container = document.getElementById('articles-container');
+    container.innerHTML = `
+        <div class="card" data-category="Tasks">
+            <h3>✅ Tasks</h3>
+            <div class="settings-label">Task</div>
+            <input id="task-title" class="manager-input" type="text" maxlength="200">
+            <div class="settings-label">Due date (optional)</div>
+            <input id="task-due" class="manager-input" type="date">
+            <div class="settings-label">Notes (optional)</div>
+            <textarea id="task-notes" class="manager-input" rows="2" maxlength="2000"></textarea>
+            <button onclick="addTask()">Add task</button>
+            <div id="task-add-status" class="evidence-note"></div>
+        </div>
+        <div id="tasks-list"></div>`;
+    loadTasks();
+}
+
+function taskRowHtml(task) {
+    const due = task.due_date ? `Due ${escapeHtml(task.due_date)}` : '';
+    const doneClass = task.done ? ' task-done' : '';
+    return `
+        <div class="card${doneClass}" data-category="Tasks">
+            <div class="task-row">
+                <input type="checkbox" ${task.done ? 'checked' : ''} onclick="toggleTask(${Number(task.id)}, this.checked, this)">
+                <div>
+                    <h3>${escapeHtml(task.title)}</h3>
+                    ${due ? `<div class="published">${due}</div>` : ''}
+                    ${task.notes ? `<p class="article-description">${escapeHtml(task.notes)}</p>` : ''}
+                </div>
+            </div>
+            <div class="btn-group">
+                <button onclick="deleteTask(${Number(task.id)}, this)">Delete</button>
+            </div>
+        </div>`;
+}
+
+async function loadTasks() {
+    const list = document.getElementById('tasks-list');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/tasks', {cache:'no-store'});
+        const data = await res.json();
+        if (res.status === 401 || res.status === 503) {
+            list.innerHTML = '<div class="card"><p style="color:#9ca3af">Unlock Reading to see your tasks.</p></div>';
+            return;
+        }
+        if (!data.success || !data.tasks.length) {
+            list.innerHTML = '<div class="card"><p style="color:#9ca3af">No tasks yet. Add one above.</p></div>';
+            return;
+        }
+        list.innerHTML = data.tasks.map(taskRowHtml).join('');
+    } catch (error) {
+        list.innerHTML = '<div class="card"><p style="color:#9ca3af">Could not load tasks.</p></div>';
+    }
+}
+
+async function addTask() {
+    const titleInput = document.getElementById('task-title');
+    const dueInput = document.getElementById('task-due');
+    const notesInput = document.getElementById('task-notes');
+    const status = document.getElementById('task-add-status');
+    const title = titleInput.value.trim();
+    if (!title) {
+        if (status) status.textContent = 'Give the task a title first.';
+        return;
+    }
+    try {
+        const res = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, due_date: dueInput.value || null, notes: notesInput.value.trim()}),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Could not save.');
+        titleInput.value = '';
+        dueInput.value = '';
+        notesInput.value = '';
+        if (status) status.textContent = 'Task added.';
+        loadTasks();
+    } catch (error) {
+        if (status) status.textContent = 'Could not save — unlock Reading and try again.';
+    }
+}
+
+async function toggleTask(id, done, checkbox) {
+    const status = document.getElementById('task-add-status');
+    try {
+        const res = await fetch('/api/tasks/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({done}),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Could not update.');
+        loadTasks();
+    } catch (error) {
+        if (checkbox) checkbox.checked = !done;
+        if (status) status.textContent = 'Could not update that task.';
+    }
+}
+
+async function deleteTask(id, button) {
+    if (button) button.disabled = true;
+    try {
+        const res = await fetch('/api/tasks/' + id, {method: 'DELETE'});
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Could not delete.');
+        loadTasks();
+    } catch (error) {
+        if (button) button.disabled = false;
+        document.getElementById('status').textContent = 'Could not delete that task.';
+    }
+}
+// FP114 IN-APP TASKS: END
+
 async function sendChatMessage(event) {
     event.preventDefault();
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
     const webOn = document.getElementById('chat-web')?.checked || false;
+    const autoRemember = document.getElementById('chat-auto-remember')?.checked !== false;
     const history = loadChatHistory();
     const userMessage = {role: 'user', content: text};
     if (webOn) userMessage.web = true;
@@ -1577,7 +1721,7 @@ async function sendChatMessage(event) {
     log.scrollTop = log.scrollHeight;
     let webStatusNote = '';
     try {
-        const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20).map(m => ({role: m.role, content: m.content})), web: webOn})});
+        const res = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({messages: history.slice(-20).map(m => ({role: m.role, content: m.content})), web: webOn, auto_remember: autoRemember})});
         const data = await res.json();
         thinking.remove();
         if (data.success && data.reply) {

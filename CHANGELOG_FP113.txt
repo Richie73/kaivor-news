@@ -1,0 +1,33 @@
+FP113 — Memories on Postgres
+============================
+
+Memories now survive redeploys. When KAIVOR_READING_DATABASE_URL
+is set (Render), the memory store is the public.memories table in
+the same Supabase database Reading already uses. SQLite in data/
+stays the fallback for local runs and Termux, where psycopg has
+no wheel.
+
+- New core/memory/postgres_store.py: PostgresMemoryStore with the
+  same interface as MemoryManager (add/delete/get/by-category/
+  search). Same connection pattern as the Reading Postgres repo:
+  lazy psycopg import, sslmode=require, PgBouncer-safe
+  prepare_threshold=None, 10s connect timeout. Search uses ILIKE
+  (Postgres LIKE is case-sensitive); created_at datetimes are
+  formatted exactly like the SQLite store's CURRENT_TIMESTAMP
+  strings so both backends produce identical Memory objects.
+- core/memory/api.py: _get_manager() picks Postgres when a
+  database URL is configured, SQLite otherwise. The choice is
+  made once (lazy singleton); a redeploy picks up env changes.
+- main.py: comment above the memory routes updated (the Postgres
+  move is no longer "a later step").
+- migrations/reading/002_memories_tasks_fp113_fp114.sql: creates
+  public.memories (and public.tasks for FP114). Run once in
+  Supabase Dashboard > SQL Editor on KaivorDatabase — Richie
+  ran it 17 Nov 2026 ("Run without RLS", matching the Reading
+  tables). Safe to rerun.
+- No behaviour change when no database URL is set: the MCP
+  service (no Reading URL) and Termux keep using SQLite.
+
+Tests: 12 in tests/test_postgres_memory_fp113.py (URL validation,
+pooler-safe connect options, statement shapes, ILIKE search,
+datetime formatting, missing-psycopg error, backend selection).

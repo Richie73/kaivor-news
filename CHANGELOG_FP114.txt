@@ -1,0 +1,35 @@
+FP114 — In-app tasks
+====================
+
+A Tasks view in the Hub, backed by the public.tasks table in the
+same Supabase database as memories (migration
+002_memories_tasks_fp113_fp114.sql, run 17 Nov 2026).
+
+- New tasks_store.py: PostgresTaskStore (Postgres-only — unlike
+  memories, tasks have no SQLite/JSON fallback; without a
+  database URL the routes report not configured, 503).
+  list_tasks orders open tasks first by due date (undated last),
+  then done tasks. update_task sets only the fields given and
+  refreshes updated_at. task_store_or_none() is the route entry
+  point. Same lazy-psycopg + PgBouncer-safe connection pattern
+  as the memory store.
+- main.py: GET /api/tasks (PIN-gated read, like memories),
+  POST /api/tasks, PUT /api/tasks/<id>, DELETE /api/tasks/<id>
+  (the three mutating routes are in _GUARDED_MUTATION_ENDPOINTS).
+  Title required, max 200 chars; notes max 2000; due_date must
+  be YYYY-MM-DD (blank clears it on PUT). 404 for unknown ids.
+- templates/index.html: "✅ Tasks" button in the Hub; showTasks()
+  container view (hide calls in weather -> markets -> hub order,
+  like showMemories) with an add form (title, date picker,
+  notes) and a task list. taskRowHtml: checkbox to toggle done
+  (done tasks struck through), due date, notes, Delete.
+  loadTasks/addTask/toggleTask/deleteTask follow the memories
+  pattern. The FP111 comment now lists Tasks as a container view.
+- Existing tests updated: hide-call counts 9 -> 10 in the FP082/
+  FP086/FP101 tests (showTasks joined each opener list); FP111
+  docstring; FP096 .article-description count 3 -> 4 (task notes
+  reuse the class).
+
+Tests: 26 in tests/test_tasks_fp114.py (store statements +
+ordering + date normalisation, route validation + 404/503,
+template markup, taskRowHtml node test).
