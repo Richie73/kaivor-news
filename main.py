@@ -1758,6 +1758,51 @@ def api_automation_brief_send():
     return jsonify({"success": True, "delivered": True, "chars": len(text)})
 
 
+# FP118: task due alerts. cron-job.org POSTs here every 15 minutes;
+# the route finds tasks due within the next 15 minutes (plus a
+# one-hour grace for tasks that went due while the checker was
+# briefly down) and pushes one notification per task through a
+# second MacroDroid webhook macro (KAIVOR_MACRODROID_TASK_WEBHOOK_URL,
+# its own identifier and notification title — not the morning-brief
+# one). Each task is marked alerted only after its notification
+# sends, so a failed send retries on the next run. Cron-token gated
+# like the brief routes; at most 5 alerts per run, the rest wait
+# for the next check.
+_TASK_ALERT_MAX_PER_RUN = 5
+
+
+@app.route("/api/automation/tasks/due", methods=["POST"])
+def api_automation_tasks_due():
+    if not _cron_authorized():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    store = task_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Tasks are not configured on this server."}), 503
+    webhook_url = os.environ.get("KAIVOR_MACRODROID_TASK_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Task webhook URL is not configured. Add KAIVOR_MACRODROID_TASK_WEBHOOK_URL in the Render dashboard.",
+                }
+            ),
+            503,
+        )
+    alerted = []
+    for task in store.due_tasks()[:_TASK_ALERT_MAX_PER_RUN]:
+        text = f"⏰ Task due: {task['title']} — due {task['due_date']} {task.get('due_time') or ''}".strip()
+        result = send_brief_to_webhook(webhook_url, text)
+        if not result.get("ok"):
+            return (
+                jsonify({"success": False, "error": result.get("error", "Send failed."), "alerted": alerted}),
+                502,
+            )
+        store.mark_alerted(task["id"])
+        alerted.append(task["title"])
+    return jsonify({"success": True, "alerted": alerted, "count": len(alerted)})
+
+
 # FP105: Readwise highlights in the Reading tab. Highlights are
 # private, so the GET requires the unlocked session (same PIN as
 # Reading, like the calendar route) even though it is a read, and
@@ -1866,6 +1911,20 @@ def _valid_due_date(value):
     return text
 
 
+def _valid_due_time(value):
+    """Return a zero-padded HH:MM string, None when blank, or False when malformed."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.strptime(text, "%H:%M")
+    except ValueError:
+        return False
+    return parsed.strftime("%H:%M")
+
+
 # FP114: in-app tasks. Backed by the public.tasks table in the same
 # Supabase database as memories (KAIVOR_READING_DATABASE_URL).
 # Postgres-only — without a database URL the routes report not
@@ -1897,7 +1956,10 @@ def api_tasks_add():
     due_date = _valid_due_date(data.get("due_date"))
     if due_date is False:
         return jsonify({"success": False, "error": "A due date must be YYYY-MM-DD."}), 400
-    task_id = store.add_task(title, notes, due_date)
+    due_time = _valid_due_time(data.get("due_time"))
+    if due_time is False:
+        return jsonify({"success": False, "error": "A due time must be HH:MM."}), 400
+    task_id = store.add_task(title, notes, due_date, due_time)
     return jsonify({"success": True, "id": task_id})
 
 
@@ -1922,6 +1984,15 @@ def api_tasks_update(task_id):
         if due_date is False:
             return jsonify({"success": False, "error": "A due date must be YYYY-MM-DD."}), 400
         fields["due_date"] = due_date
+    if "due_time" in data:
+        due_time = _valid_due_time(data.get("due_time"))
+        if due_time is False:
+            return jsonify({"success": False, "error": "A due time must be HH:MM."}), 400
+        fields["due_time"] = due_time
+    if "due_date" in fields or "due_time" in fields:
+        # Rescheduling re-arms the alert: a task moved to a new due
+        # moment must alert again when that moment comes.
+        fields["alerted_at"] = None
     if "done" in data:
         fields["done"] = bool(data.get("done"))
     updated = store.update_task(task_id, **fields)

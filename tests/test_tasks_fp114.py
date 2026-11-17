@@ -10,7 +10,7 @@ import sys
 import tempfile
 import types
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -75,14 +75,15 @@ class _FakeStore:
     def list_tasks(self):
         return list(self.tasks.values())
 
-    def add_task(self, title, notes="", due_date=None):
+    def add_task(self, title, notes="", due_date=None, due_time=None):
         task_id = self.next_id
         self.next_id += 1
         task = {
             "id": task_id, "title": title, "notes": notes,
-            "due_date": due_date, "done": False,
+            "due_date": due_date, "due_time": due_time, "done": False,
             "created_at": "2026-11-17 13:45:00",
             "updated_at": "2026-11-17 13:45:00",
+            "alerted_at": None,
         }
         self.tasks[task_id] = task
         return task_id
@@ -133,10 +134,12 @@ def _template_text():
     return TEMPLATE.read_text(encoding="utf-8")
 
 
-def _row(task_id=1, due=None, done=False):
+def _row(task_id=1, due=None, due_time=None, done=False):
     return (
-        task_id, "Title", "Notes", due or date(2026, 11, 20), done,
+        task_id, "Title", "Notes", due or date(2026, 11, 20),
+        due_time if due_time is not None else time(9, 0), done,
         datetime(2026, 11, 17, 13, 45, 30), datetime(2026, 11, 17, 13, 45, 30),
+        None,
     )
 
 
@@ -197,11 +200,11 @@ def test_add_task_inserts_and_returns_id(fake_psycopg):
         return conn
 
     fake_psycopg.connect = connect
-    assert store.add_task("Buy milk", "2 pints", "2026-11-18") == 9
+    assert store.add_task("Buy milk", "2 pints", "2026-11-18", "09:30") == 9
     sql, params = conn_holder["conn"].executed[0]
     assert "INSERT INTO public.tasks" in sql
     assert "RETURNING id" in sql
-    assert params == ("Buy milk", "2 pints", "2026-11-18")
+    assert params == ("Buy milk", "2 pints", "2026-11-18", "09:30")
 
 
 def test_update_task_sets_only_given_fields(fake_psycopg):
@@ -418,21 +421,30 @@ def test_task_row_html_node():
         pytest.skip("node is not available")
     html = _template_text()
     row_match = re.search(r"function taskRowHtml\(task\) \{(.*?)\n\}", html, re.S)
+    due_text_match = re.search(r"function taskDueText\(task\) \{(.*?)\n\}", html, re.S)
+    overdue_match = re.search(r"function taskIsOverdue\(task\) \{(.*?)\n\}", html, re.S)
     esc_match = re.search(r"function escapeHtml\(value\) \{(.*?)\n\}", html, re.S)
     assert row_match is not None
+    assert due_text_match is not None
+    assert overdue_match is not None
     assert esc_match is not None
     script = (
         "import assert from 'node:assert/strict';\n"
         + NODE_PREAMBLE
         + esc_match.group(0)
         + "\n"
+        + due_text_match.group(0)
+        + "\n"
+        + overdue_match.group(0)
+        + "\n"
         + row_match.group(0)
-        + "\nconst open = taskRowHtml({id: 1, title: 'Buy <milk>', due_date: '2026-11-18', notes: '2 pints', done: false});\n"
+        + "\nconst open = taskRowHtml({id: 1, title: 'Buy <milk>', due_date: '2099-11-18', due_time: '09:30', notes: '2 pints', done: false});\n"
         + "assert.ok(open.includes('Buy &lt;milk&gt;'));\n"
-        + "assert.ok(open.includes('Due 2026-11-18'));\n"
+        + "assert.ok(open.includes('Due 2099-11-18 09:30'));\n"
         + "assert.ok(open.includes('2 pints'));\n"
         + "assert.ok(!open.includes(' checked '));\n"
         + "assert.ok(!open.includes('task-done'));\n"
+        + "assert.ok(!open.includes('task-due-overdue'));\n"
         + "const done = taskRowHtml({id: 2, title: 'Done thing', due_date: null, notes: '', done: true});\n"
         + "assert.ok(done.includes(' checked '));\n"
         + "assert.ok(done.includes('task-done'));\n"

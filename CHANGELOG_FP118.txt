@@ -1,0 +1,59 @@
+FP118 — Task due time + alerts
+==============================
+
+A task can now carry a due time as well as a due date, and
+tasks with both alert: cron-job.org POSTs the new endpoint
+every 15 minutes and the server pushes one notification per
+due task through a second MacroDroid webhook macro.
+
+- tasks_store.py: _COLUMNS gains due_time + alerted_at; _task
+  normalises both; list_tasks sorts by due_time after due_date;
+  add_task takes due_time; update_task allows due_time and
+  alerted_at. New due_tasks(now, window, grace, limit): only
+  undone tasks with BOTH a date and a time and alerted_at NULL
+  qualify, and only when their due moment (Europe/London) falls
+  between (now - 60 min grace) and (now + 15 min window) — the
+  grace catches tasks that went due while the checker was
+  briefly down. New mark_alerted(task_id) stamps alerted_at.
+- main.py: _valid_due_time (HH:MM, zero-padded, None when blank,
+  False when malformed); POST /api/tasks accepts due_time;
+  PUT accepts due_time and RE-ARMS the alert (alerted_at NULL)
+  when the due date or time changes, so a rescheduled task
+  alerts again — ticking done does not re-arm. New POST
+  /api/automation/tasks/due (cron-token gated): 503 without a
+  store or without KAIVOR_MACRODROID_TASK_WEBHOOK_URL; finds due
+  tasks, POSTs "⏰ Task due: <title> — due <date> <time>" per
+  task via the shared send_brief_to_webhook helper, marks each
+  alerted only after its send succeeds (a failed send retries
+  next run, 502 with the tasks alerted so far); at most 5 alerts
+  per run.
+- templates/index.html: the add-task form gains a Due time input
+  (label notes it is needed for an alert); addTask sends it;
+  taskRowHtml shows "Due <date> <time>" via the pure helper
+  taskDueText, and overdue open tasks get the red
+  .task-due-overdue class via taskIsOverdue (a date-only task
+  counts as overdue after 23:59:59 local on its due date; done
+  tasks never show overdue).
+- render.yaml: KAIVOR_MACRODROID_TASK_WEBHOOK_URL (sync: false).
+- migrations/reading/003_task_due_time_alerts_fp118.sql: adds
+  due_time TIME + alerted_at TIMESTAMPTZ + a partial index.
+  Already run in Supabase on 17 Nov (see the install note).
+
+Setup still needed from Richie after deploy (same pattern as
+FP104): (1) a MacroDroid macro "Kaivor task alert" — Webhook
+trigger, identifier kaivor-task, save body to a String variable,
+Display Notification titled "Kaivor task due"; (2) its webhook
+URL into Render as KAIVOR_MACRODROID_TASK_WEBHOOK_URL;
+(3) a cron-job.org job POSTing
+https://kaivor-news.onrender.com/api/automation/tasks/due?token=<KAIVOR_CRON_TOKEN>
+every 15 minutes.
+
+Tests: 21 in tests/test_task_alerts_fp118.py (store window +
+SQL filters + naive-now + limit + mark_alerted + update fields;
+routes: due-time validation + normalisation, reschedule re-arm,
+done-toggle does not re-arm, endpoint 401/503/quiet/alert/mark/
+502-no-mark/five-cap; template time input + overdue node test +
+render.yaml var). tests/test_tasks_fp114.py updated for the new
+9-column row shape, the 4-param INSERT, the fake store's
+due_time, and the taskRowHtml helper extraction (open task now
+dated 2099 so it can never go overdue in the test).

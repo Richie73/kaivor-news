@@ -141,6 +141,7 @@
         .task-row { display:flex; align-items:flex-start; gap:var(--space-sm); }
         .task-row input[type="checkbox"] { margin-top:3px; }
         .task-done h3 { text-decoration:line-through; color:var(--muted); }
+        .task-due-overdue { color:var(--red); }
         /* FP099: voice input button — red while listening. */
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
@@ -1592,6 +1593,8 @@ async function showTasks() {
             <input id="task-title" class="manager-input" type="text" maxlength="200">
             <div class="settings-label">Due date (optional)</div>
             <input id="task-due" class="manager-input" type="date">
+            <div class="settings-label">Due time (optional — needed for an alert)</div>
+            <input id="task-time" class="manager-input" type="time">
             <div class="settings-label">Notes (optional)</div>
             <textarea id="task-notes" class="manager-input" rows="2" maxlength="2000"></textarea>
             <button onclick="addTask()">Add task</button>
@@ -1601,16 +1604,28 @@ async function showTasks() {
     loadTasks();
 }
 
+function taskDueText(task) {
+    if (!task.due_date) return '';
+    return 'Due ' + task.due_date + (task.due_time ? ' ' + task.due_time : '');
+}
+
+function taskIsOverdue(task) {
+    if (!task.due_date) return false;
+    const when = new Date(task.due_date + 'T' + (task.due_time || '23:59:59'));
+    return when.getTime() < Date.now();
+}
+
 function taskRowHtml(task) {
-    const due = task.due_date ? `Due ${escapeHtml(task.due_date)}` : '';
+    const due = taskDueText(task);
     const doneClass = task.done ? ' task-done' : '';
+    const overdueClass = (!task.done && taskIsOverdue(task)) ? ' task-due-overdue' : '';
     return `
         <div class="card${doneClass}" data-category="Tasks">
             <div class="task-row">
                 <input type="checkbox" ${task.done ? 'checked' : ''} onclick="toggleTask(${Number(task.id)}, this.checked, this)">
                 <div>
                     <h3>${escapeHtml(task.title)}</h3>
-                    ${due ? `<div class="published">${due}</div>` : ''}
+                    ${due ? `<div class="published${overdueClass}">${due}</div>` : ''}
                     ${task.notes ? `<p class="article-description">${escapeHtml(task.notes)}</p>` : ''}
                 </div>
             </div>
@@ -1643,6 +1658,7 @@ async function loadTasks() {
 async function addTask() {
     const titleInput = document.getElementById('task-title');
     const dueInput = document.getElementById('task-due');
+    const timeInput = document.getElementById('task-time');
     const notesInput = document.getElementById('task-notes');
     const status = document.getElementById('task-add-status');
     const title = titleInput.value.trim();
@@ -1654,12 +1670,13 @@ async function addTask() {
         const res = await fetch('/api/tasks', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, due_date: dueInput.value || null, notes: notesInput.value.trim()}),
+            body: JSON.stringify({title, due_date: dueInput.value || null, due_time: timeInput.value || null, notes: notesInput.value.trim()}),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Could not save.');
         titleInput.value = '';
         dueInput.value = '';
+        timeInput.value = '';
         notesInput.value = '';
         if (status) status.textContent = 'Task added.';
         loadTasks();

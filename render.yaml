@@ -42,6 +42,11 @@ services:
       # the macro, so it is never pasted in chat.
       - key: KAIVOR_MACRODROID_WEBHOOK_URL
         sync: false
+      # FP118: task due alerts — the second MacroDroid webhook
+      # trigger URL (its own macro, "Kaivor task alert"), a
+      # dashboard secret (sync: false). Never pasted in chat.
+      - key: KAIVOR_MACRODROID_TASK_WEBHOOK_URL
+        sync: false
       # FP105: Readwise highlights — the access token from
       # readwise.io/access_token, a dashboard secret (sync: false).
       - key: KAIVOR_READWISE_TOKEN
