@@ -22,10 +22,15 @@ class Memory:
 
     @classmethod
     def from_row(cls, row):
+        # FP112: rows carry eight columns now (importance, source,
+        # tags added); tolerate the old five-column shape too.
         return cls(
             id=row[0],
             category=row[1],
             title=row[2],
             content=row[3],
             created_at=row[4],
+            importance=row[5] if len(row) > 5 else 3,
+            source=row[6] if len(row) > 6 else "manual",
+            tags=row[7] if len(row) > 7 else "",
         )

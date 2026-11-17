@@ -90,6 +90,8 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_ask_ai",
     "api_chat",
     "api_finance_refresh",
+    "api_memories_add",
+    "api_memories_remove",
     "api_refresh",
     "api_rams_draft",
     "api_rams_remove",
@@ -583,6 +585,76 @@ def finance_context_for_chat(question):
         lines.append(f"- {label}: {_format_finance_value(key, value)}")
     lines.append("Give the figure with its fetch time. Do not invent a newer price.")
     return "\n".join(lines), [key for key, _ in matched]
+
+
+# FP112: words too common to match a memory on. Anything shorter
+# than four letters is skipped as well, so "the", "what", "when"
+# and "does" never trigger a recall.
+_MEMORY_CHAT_STOPWORDS = frozenset({
+    "about", "after", "again", "before", "could", "does", "doing",
+    "dont", "from", "have", "here", "how", "just", "know", "like",
+    "much", "many", "more", "most", "need", "only", "other", "over",
+    "please", "really", "right", "should", "some", "tell", "than",
+    "that", "them", "then", "there", "these", "thing", "think",
+    "this", "those", "very", "want", "was", "were", "what", "when",
+    "where", "which", "while", "who", "will", "with", "would", "you",
+    "your",
+})
+
+_MEMORY_CHAT_MAX_KEYWORDS = 8
+_MEMORY_CHAT_MAX_MEMORIES = 5
+_MEMORY_CHAT_MAX_CONTENT_CHARS = 300
+
+
+def memory_context_for_chat(question):
+    """FP112: saved-memory context for the chat hub.
+
+    Returns (block, count): block is text to append to the chat
+    system prompt ("" when nothing matches), count the memories
+    used. Distinctive words from the question (4+ letters, not a
+    stopword) are searched against memory titles and content; at
+    most five memories are used, most recent first. A failure in
+    the memory store never breaks chat — it just recalls nothing.
+    """
+    text = (question or "").lower()
+    if not text:
+        return "", 0
+    keywords = []
+    for raw in text.split():
+        word = "".join(ch for ch in raw if ch.isalnum()).lower()
+        if len(word) < 4 or word in _MEMORY_CHAT_STOPWORDS or word in keywords:
+            continue
+        keywords.append(word)
+        if len(keywords) >= _MEMORY_CHAT_MAX_KEYWORDS:
+            break
+    if not keywords:
+        return "", 0
+    try:
+        from core.memory.api import search as search_memories
+
+        matched = []
+        seen = set()
+        for keyword in keywords:
+            for memory in search_memories(keyword):
+                if memory.id in seen:
+                    continue
+                seen.add(memory.id)
+                matched.append(memory)
+                if len(matched) >= _MEMORY_CHAT_MAX_MEMORIES:
+                    break
+            if len(matched) >= _MEMORY_CHAT_MAX_MEMORIES:
+                break
+    except Exception:
+        return "", 0
+    if not matched:
+        return "", 0
+    lines = ["Things you remember about Richie (saved memories — treat them as facts he has told you):"]
+    for memory in matched:
+        content = memory.content
+        if len(content) > _MEMORY_CHAT_MAX_CONTENT_CHARS:
+            content = content[:_MEMORY_CHAT_MAX_CONTENT_CHARS] + "…"
+        lines.append(f"- {memory.title}: {content}")
+    return "\n".join(lines), len(matched)
 
 
 # FP080.1: words that mean the question is more than just "what is the
@@ -1741,6 +1813,58 @@ def api_readwise_sync():
     )
 
 
+# FP112: chat memory. Memories are private, so the GET requires the
+# unlocked session (same PIN as Reading, like the calendar route)
+# even though it is a read, and the POST/DELETE are in
+# _GUARDED_MUTATION_ENDPOINTS. The store is the engine's SQLite
+# memory database (core/memory) — it lives in the app's data/ dir,
+# so a redeploy wipes it, like receipts and RAMS. Moving it to
+# Postgres is a later step.
+@app.route("/api/memories", methods=["GET"])
+def api_memories():
+    denied = check_mutation_access()
+    if denied is not None:
+        return denied
+    from core.memory.api import recall
+
+    return jsonify({"success": True, "memories": [m.to_dict() for m in recall()]})
+
+
+@app.route("/api/memories", methods=["POST"])
+def api_memories_add():
+    from core.memory.api import remember
+
+    data = request.json or {}
+    title = str(data.get("title") or "").strip()
+    content = str(data.get("content") or "").strip()
+    if not title or not content:
+        return jsonify({"success": False, "error": "A title and content are required."}), 400
+    if len(title) > 200:
+        return jsonify({"success": False, "error": "A title is limited to 200 characters."}), 400
+    if len(content) > 4000:
+        return jsonify({"success": False, "error": "A memory is limited to 4000 characters."}), 400
+    category = str(data.get("category") or "general").strip()[:50] or "general"
+    try:
+        importance = int(data.get("importance") or 3)
+    except (TypeError, ValueError):
+        importance = 3
+    importance = max(1, min(5, importance))
+    source = str(data.get("source") or "manual").strip()[:50] or "manual"
+    tags = str(data.get("tags") or "").strip()[:200]
+    memory_id = remember(category, title, content, importance, source, tags)
+    return jsonify({"success": True, "id": memory_id})
+
+
+@app.route("/api/memories/<int:memory_id>", methods=["DELETE"])
+def api_memories_remove(memory_id):
+    from core.memory.api import forget
+
+    removed = forget(memory_id)
+    if not removed:
+        return jsonify({"success": False, "error": "No memory with that id."}), 404
+    return jsonify({"success": True})
+
+
 # FP106: Met Office Weather Warnings for Puddington. Public data,
 # so the route is an open read like travel. The feed URL + key are
 # dashboard secrets; without them the route reports not_configured.
@@ -2193,6 +2317,12 @@ def api_chat():
     answered straight from the stored market data with no AI call at
     all, so the reply can never fall back to a "no live access"
     refusal. Web sources still attach when web search ran.
+
+    FP112: saved memories matching the question are recalled from
+    the engine's memory store and added to the system prompt, so
+    the chat remembers across sessions. Nothing is remembered
+    automatically — memories are saved only when the user taps
+    "Remember this" (or adds one from the Memories view).
     """
     data = request.json or {}
     raw_messages = data.get("messages")
@@ -2237,11 +2367,13 @@ def api_chat():
             return jsonify({"success": False, "error": "Web search failed just now. Try again in a moment."}), 503
         web_used = bool(web_results)
     finance_block, finance_keys = finance_context_for_chat(last_user)
+    # FP112: saved memories matching the question, for the system prompt.
+    memory_block, memory_count = memory_context_for_chat(last_user)
     # FP080.1: a pure price ask is answered straight from the stored
     # market data — no AI call, so no refusal is possible. Web sources
     # still attach when web search ran.
     direct_answer, direct_keys = finance_direct_answer(last_user)
-    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)} finance={','.join(finance_keys) or 'none'} direct={','.join(direct_keys) or 'no'}", flush=True)
+    print(f"[chat] web_requested={bool(data.get('web'))} web_used={web_used} sources={len(web_results)} finance={','.join(finance_keys) or 'none'} direct={','.join(direct_keys) or 'no'} memory={memory_count}", flush=True)
     if direct_answer is not None:
         sources = [{"title": r["title"], "url": r["url"]} for r in web_results] if web_used else []
         return jsonify({"success": True, "reply": direct_answer, "provider": "Market Watch", "web_used": web_used, "sources": sources})
@@ -2254,6 +2386,8 @@ def api_chat():
         system_content += "\n".join(lines)
     if finance_block:
         system_content += "\n\n" + finance_block
+    if memory_block:
+        system_content += "\n\n" + memory_block
     system_prompt = {
         "role": "system",
         "content": system_content,

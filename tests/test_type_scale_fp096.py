@@ -81,7 +81,8 @@ def test_article_description_rule_replaces_inline_styles():
         in html
     )
     assert 'class="article-description" style=' not in html
-    assert html.count('class="article-description"') == 2
+    # FP112: the Memories view adds a third use (memoryRowHtml).
+    assert html.count('class="article-description"') == 3
 
 
 def test_reading_page_uses_same_tokens():

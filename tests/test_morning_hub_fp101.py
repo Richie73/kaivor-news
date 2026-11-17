@@ -105,11 +105,12 @@ def test_other_views_hide_the_hub():
         "function showMarkets() {",
         "function showReceipts() {",
         "function showRams() {",
+        "async function showMemories() {",
     ]:
         start = html.index(opener)
         window = html[start:start + len(opener) + 120]
         assert "hideMorningHubView();" in window, opener
-    assert html.count("hideMorningHubView();") == 8
+    assert html.count("hideMorningHubView();") == 9
 
 
 def test_hub_deep_link():

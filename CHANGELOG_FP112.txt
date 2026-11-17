@@ -1,0 +1,52 @@
+FP112: The chat remembers across sessions
+========================================
+Date: 17 Nov 2026. The chat hub forgot everything between
+sessions: its history lived only in the phone's localStorage,
+and a cleared cache (or the FP083 full reinstall) wiped it.
+The engine already had a memory store (core/memory: SQLite
+table, manager, search) but nothing in the app used it.
+
+What FP112 wires up:
+- Recall. On every chat question, memory_context_for_chat()
+  pulls distinctive words from the question (4+ letters, not
+  a stopword), searches memory titles and content, and adds
+  up to five matches to the system prompt, most recent first.
+  A store failure never breaks chat — it just recalls nothing.
+- Remember. Every assistant reply carries a "Remember this"
+  button (by history index). Tapping it saves the reply as a
+  memory (title auto-made from its first line, category
+  "chat", source "chat"). Nothing is remembered automatically.
+- Memories view. A "Memories" button in the chat card opens a
+  container view (same pattern as Saved/Receipts/RAMS) with
+  an add form and the list, newest first, each with Delete.
+- Routes. GET /api/memories (PIN-gated read, like the
+  calendar), POST /api/memories and DELETE /api/memories/<id>
+  (both in _GUARDED_MUTATION_ENDPOINTS). Titles cap at 200
+  chars, content at 4000, importance clamped to 1-5.
+- Store. The memories table gains the importance, source and
+  tags columns the Memory model already declared, with a
+  migration for existing databases (PRAGMA check + ALTER
+  TABLE). The DB path is now absolute (repo-root data/
+  dir, same as the JSON stores) instead of CWD-relative.
+  core/memory/api.py builds its manager lazily, so importing
+  it no longer creates the database as a side effect.
+  Manager gains delete_memory; add_memory returns the id.
+
+Honest limit (told to Richie before building): the store
+lives in the app's data/ dir, so a redeploy wipes it, like
+receipts and RAMS. Memories last between deploys, not
+forever. Moving memory to Postgres (like Reading) is the
+follow-up step.
+
+Tests: 28 in tests/test_chat_memory_fp112.py (schema +
+migration, manager round-trip/search/delete, recall helper
+incl. caps and failure tolerance, all three routes incl.
+the PIN gate, chat recall end-to-end through /api/chat,
+template markup, and a node test for memoryTitleFor).
+Updated: the three hide-call count tests (8 -> 9, the new
+showMemories opener joins each list), the FP111 docstring
+(Memories joins the container-view list), and the FP096
+article-description count (2 -> 3, memoryRowHtml reuses
+the class). Local: 911 passed / 11 known failures /
+2 skipped. Phone expected: 922 passed / 0 failed /
+2 skipped.

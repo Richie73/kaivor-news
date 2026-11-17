@@ -1,0 +1,17 @@
+FP112 BUNDLE MANIFEST — The chat remembers across sessions
+===========================================================
+core/memory/database.py
+core/memory/models.py
+core/memory/manager.py
+core/memory/api.py
+main.py
+templates/index.html
+tests/test_chat_memory_fp112.py
+tests/test_weather_redesign_fp082.py
+tests/test_markets_view_fp086.py
+tests/test_morning_hub_fp101.py
+tests/test_unified_refresh_fp111.py
+tests/test_type_scale_fp096.py
+CHANGELOG_FP112.txt
+README_INSTALL_FP112.txt
+BUNDLE_MANIFEST_FP112.txt

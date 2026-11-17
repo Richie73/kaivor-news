@@ -7,7 +7,7 @@ markets" button, and the Markets view had a third "Refresh" button
 button refreshes the news in the news views, the markets in the
 Markets view (prices plus the five-day history, as before), and
 hides in Weather, the Hub and the container views (Saved, Chat,
-Settings, Receipts, RAMS). Settings stays in the header.
+Settings, Receipts, RAMS, Memories). Settings stays in the header.
 """
 import re
 import shutil

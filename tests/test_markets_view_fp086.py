@@ -71,11 +71,12 @@ def test_other_views_hide_the_markets_view():
         "function showMorningHub(element) {",
         "function showReceipts() {",
         "function showRams() {",
+        "async function showMemories() {",
     ]:
         start = html.index(opener)
         window = html[start:start + len(opener) + 60]
         assert "hideMarketsView();" in window, opener
-    assert html.count("hideMarketsView();") == 8  # one call site per other view
+    assert html.count("hideMarketsView();") == 9  # one call site per other view
 
 
 def test_markets_rows_show_price_change_range_and_sparkline():
