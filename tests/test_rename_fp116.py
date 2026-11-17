@@ -47,8 +47,8 @@ def test_manifest_name_and_description():
     assert manifest["name"] == "Kaivor"
     assert manifest["short_name"] == "Kaivor"
     assert manifest["description"].startswith("Your personal AI")
-    # The Spark K icons are unchanged — only the name moved.
-    assert manifest["icons"][0]["src"] == "/icons/kaivor-news-192-v3.png"
+    # FP120 moved the icons to v4 (leaf green) — the name moved in FP116.
+    assert manifest["icons"][0]["src"] == "/icons/kaivor-news-192-v4.png"
 
 
 def test_reading_brand_is_kaivor():

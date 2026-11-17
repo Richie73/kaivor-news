@@ -148,7 +148,7 @@ console.log(JSON.stringify(out));
     assert out["up"] == {"text": "▲ +$10.00 (+0.38%)", "cls": "markets-up"}
     assert out["down"] == {"text": "▼ 0.0029 (-0.22%)", "cls": "markets-down"}
     assert out["none"] == {"text": "—", "cls": ""}
-    assert 'stroke="#35FA33"' in out["sparkUp"]
+    assert 'stroke="#3aa76d"' in out["sparkUp"]
     assert 'stroke="#f87171"' in out["sparkDown"]
     assert "<polyline" in out["sparkUp"]
     assert out["sparkShort"] == ""

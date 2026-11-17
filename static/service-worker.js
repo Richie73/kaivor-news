@@ -1,8 +1,8 @@
 const CACHE = 'kaivor-news-fp093-offline-v1';
 const SHELL = [
   '/manifest.webmanifest',
-  '/icons/kaivor-news-192-v3.png',
-  '/icons/kaivor-news-512-v3.png'
+  '/icons/kaivor-news-192-v4.png',
+  '/icons/kaivor-news-512-v4.png'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

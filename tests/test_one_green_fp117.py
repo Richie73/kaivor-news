@@ -1,11 +1,13 @@
 """FP117: one green across the whole app.
 
-Every accent green is the Spark K brand green #35FA33 — the
-logo's green. Dark surfaces and muted text are tints of that
-same hue (120 degrees: red == blue, green dominant), so
-nothing clashes and nothing is unreadable — pure neon on every
-background would have been. The old emerald/teal greens
-(#10b981, #34d399, #22c55e, #a7f3d0 and the rest) are gone.
+Every accent green is the brand green — leaf green #3aa76d
+since FP120 (the Spark K neon #35FA33 was too bright on black;
+Richie picked the leaf green as the most polished of three
+softer options). Dark surfaces and muted text are near-black
+green tints, kept from FP117: at that darkness the hue shift
+from the old 120-degree tints is imperceptible, so they were
+not re-tinted. The old emerald/teal greens (#10b981, #34d399,
+#22c55e, #a7f3d0 and the rest) are gone, and so is #35FA33.
 """
 
 import re
@@ -15,14 +17,14 @@ ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "templates" / "index.html"
 READING = ROOT / "templates" / "reading.html"
 
-BRAND = "#35FA33"
+BRAND = "#3aa76d"
 
 # Every green allowed anywhere in either template: the brand
 # itself, the brand with alpha (the market flash glow), the
 # dark-on-brand text colour, and the hue-120 tints.
 ALLOWED_GREENS = {
-    "#35fa33",
-    "#35fa3366",
+    "#3aa76d",
+    "#3aa76d66",
     "#071207",
     "#0f1a0f",
     "#1f3d1f",
@@ -49,6 +51,7 @@ OLD_GREENS = (
     "#70827b", "#9ab5aa", "#10231c", "#1f4d3b", "#b7c8c0",
     "#20342c", "#7f918a", "#06130e", "#06251b", "#101512",
     "#214537", "#1f2f2a", "#2a473b", "#10b98166",
+    "#35fa33", "#35fa3366",
 )
 
 HEX_RE = re.compile(r"#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?\b")
@@ -62,16 +65,19 @@ def _is_greenish(rgb):
 def test_accent_green_tokens_are_the_brand_green():
     css = INDEX.read_text(encoding="utf-8")
     for token in (
-        "--green:#35FA33",
-        "--green-bright:#35FA33",
-        "--green-soft:#35FA33",
-        "--green-pale:#35FA33",
-        "--green-dark:#35FA33",
+        "--green:#3aa76d",
+        "--green-bright:#3aa76d",
+        "--green-soft:#3aa76d",
+        "--green-pale:#3aa76d",
+        "--green-dark:#3aa76d",
     ):
         assert token in css, token
 
 
-def test_dark_tints_come_from_the_brand_hue():
+def test_dark_tints_stay_near_black_greens():
+    # FP120: the brand moved to leaf green (hue ~152) but the
+    # near-black tints were kept — at that darkness the hue
+    # difference from the old 120-degree tints is imperceptible.
     css = INDEX.read_text(encoding="utf-8")
     for token in (
         "--green-panel:#0f1a0f",
@@ -86,7 +92,7 @@ def test_dark_tints_come_from_the_brand_hue():
 
 def test_reading_accent_is_the_brand_green():
     css = READING.read_text(encoding="utf-8")
-    assert "--accent:#35FA33" in css
+    assert "--accent:#3aa76d" in css
     assert "--on-brand:#071207" in css
     assert "button.primary{background:var(--accent);color:var(--on-brand)" in css
 

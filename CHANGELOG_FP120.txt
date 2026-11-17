@@ -1,0 +1,46 @@
+FP120 — Softer brand green (leaf green #3aa76d)
+================================================
+
+Richie found the Spark K neon #35FA33 too bright, and picked
+leaf green #3aa76d as the most polished of three softer
+options (A #4ade80 soft, B #3aa76d leaf, C #2e8b57 muted —
+shown to him as a swatch widget on the app's black
+background). The swap covers every place the old green lived:
+
+- templates/index.html: the six accent tokens
+  (--brand/--green/--green-bright/--green-soft/--green-pale/
+  --green-dark) are #3aa76d; the market flash glow is
+  #3aa76d66; the splash logo rect is #3aa76d; the markets
+  sparkline up-stroke is '#3aa76d'.
+- templates/reading.html: --accent and --brand are #3aa76d.
+- The near-black green tints (--green-panel, --green-border,
+  --btn-bg, --btn-border, --green-darker, --on-brand and the
+  muted text greens) were KEPT from FP117: at that darkness
+  the hue difference from the old 120-degree tints is
+  imperceptible, so re-tinting would have been churn with no
+  visible effect. --on-brand (#071207, dark text on bright
+  green buttons) still reads fine on #3aa76d (~5:1).
+- Logo: the SVG source is recolored and renamed to
+  kaivor-logo-v4.svg; the PNG icons are rebuilt as v4
+  (192 + 512) from the SVG geometry with Pillow (4x
+  supersample, LANCZOS downscale) — pixel-verified at build
+  time: background corner (58,167,109) = #3aa76d, K stem and
+  spark black. New filenames so Android picks the new icon
+  up from the new URLs (same-name icon changes get stuck in
+  the Android icon cache — the FP083 lesson). The v3 files
+  are deleted. Manifest, service worker cache list, favicon
+  and both header brand-marks move to v4. The orphan v2 PNGs
+  were already unreferenced and are left alone.
+
+Tests: 4 new in tests/test_softer_green_fp120.py (no #35FA33
+left in either template, the SVG, the manifest or the worker;
+brand tokens are #3aa76d; splash/sparkline/flash use it; v4
+icons exist at the right sizes and v3 is gone — PNG sizes
+from the headers, no Pillow in the phone suite). Updated:
+tests/test_one_green_fp117.py (BRAND + allowed set moved to
+#3aa76d, #35FA33 added to OLD_GREENS so it can never come
+back, the tints test renamed to reflect the kept tints),
+tests/test_design_system_fp090.py (token values + the banned
+literal), tests/test_logo_splash_fp083.py (v4 everywhere),
+tests/test_markets_view_fp086.py (spark stroke),
+tests/test_rename_fp116.py (manifest icon src).

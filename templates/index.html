@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0b0b0b">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/icons/kaivor-news-192-v3.png" type="image/png">
+    <link rel="icon" href="/icons/kaivor-news-192-v4.png" type="image/png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="">
     <title>Kaivor</title>
     <style>
@@ -18,11 +18,11 @@
             --border:#26262a; --border-strong:#2f2f36; --border-input:#383842; --line:#222;
             --text:#f3f4f6; --text-bright:#fff; --text-2:#e5e7eb; --text-3:#d1d5db;
             --muted:#9ca3af; --faint:#6b7280;
-            --brand:#35FA33; --green:#35FA33; --green-bright:#35FA33;
-            --green-soft:#35FA33; --green-pale:#35FA33;
+            --brand:#3aa76d; --green:#3aa76d; --green-bright:#3aa76d;
+            --green-soft:#3aa76d; --green-pale:#3aa76d;
             --green-panel:#0f1a0f; --green-border:#1f3d1f;
             --btn-bg:#1c2b1c; --btn-border:#264026;
-            --green-dark:#35FA33; --green-darker:#0f2a0f; --on-brand:#071207;
+            --green-dark:#3aa76d; --green-darker:#0f2a0f; --on-brand:#071207;
             --red:#f87171; --red-soft:#fca5a5; --amber:#fbbf24; --blue:#7dd3fc;
             --orange:#fb923c;
             --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
@@ -69,7 +69,7 @@
         .market-value.price-down { color:#fca5a5; background:#3a1e21; }
         .market-value.price-neutral { color:var(--text); }
         .market-value.price-flash { animation:marketFlash 1.2s ease-out; }
-        @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #35FA3366; } 100% { box-shadow:0 0 0 0 transparent; } }
+        @keyframes marketFlash { 0% { box-shadow:0 0 0 3px #3aa76d66; } 100% { box-shadow:0 0 0 0 transparent; } }
         @media (prefers-reduced-motion: reduce) { .market-track { animation:none; } .market-value { transition:none; } .market-value.price-flash { animation:none; } }
         .manager-card,.card { background:var(--surface); border-radius:var(--radius-md); padding:var(--space-lg); margin-bottom:var(--space-lg); border:1px solid var(--border); }
         /* FP092: skip rendering off-screen cards — the browser only
@@ -438,13 +438,13 @@
      with a hard 3s timeout so it can never trap the user. -->
 <div id="splash" aria-hidden="true">
     <div class="splash-inner">
-        <div class="splash-logo-wrap"><svg class="splash-logo" viewBox="0 0 512 512" width="120" height="120" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#35FA33"/><path d="M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" fill="#000000"/><path d="M404 152 L416 180 L444 192 L416 204 L404 232 L392 204 L364 192 L392 180 Z" fill="#000000"/></svg><span class="splash-shine" aria-hidden="true"></span></div>
+        <div class="splash-logo-wrap"><svg class="splash-logo" viewBox="0 0 512 512" width="120" height="120" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#3aa76d"/><path d="M164 144 H208 V227 L352 144 V190 L236 257 L352 322 V368 L208 285 V368 H164 Z" fill="#000000"/><path d="M404 152 L416 180 L444 192 L416 204 L404 232 L392 204 L364 192 L392 180 Z" fill="#000000"/></svg><span class="splash-shine" aria-hidden="true"></span></div>
         <div class="splash-word">KAIVOR</div>
         <div class="splash-tag">Your personal AI</div>
         <div class="splash-bar"><span></span></div>
     </div>
 </div>
-<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v3.png" alt="" width="26" height="26">KAIVOR</div><div class="sub-header">Your personal AI</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
+<header><div><img class="brand-mark" src="/icons/kaivor-news-192-v4.png" alt="" width="26" height="26">KAIVOR</div><div class="sub-header">Your personal AI</div><button id="install-app" class="install-app" style="display:none;">Install App</button> <button id="settings-btn" class="install-app" onclick="showSettings(this)">⚙️ Settings</button></header>
 <div class="container">
     <!-- FP093: shown when the phone is offline (see updateOfflineBanner
          below). The stories on screen are the last ones the service
@@ -3011,7 +3011,7 @@ function sparklineSvg(series) {
         return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
     const up = points[points.length - 1] >= points[0];
-    return '<svg class="markets-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + coords + '" fill="none" stroke="' + (up ? '#35FA33' : '#f87171') + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+    return '<svg class="markets-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + coords + '" fill="none" stroke="' + (up ? '#3aa76d' : '#f87171') + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 function marketsRowHtml(key, entry) {
     const change = formatMarketChange(key, entry.change, entry.change_pct);

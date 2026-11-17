@@ -1,0 +1,23 @@
+FP120 BUNDLE MANIFEST — Softer brand green (leaf green #3aa76d)
+================================================================
+templates/index.html
+templates/reading.html
+static/icons/kaivor-logo-v4.svg
+static/icons/kaivor-news-192-v4.png
+static/icons/kaivor-news-512-v4.png
+static/manifest.webmanifest
+static/service-worker.js
+tests/test_design_system_fp090.py
+tests/test_one_green_fp117.py
+tests/test_logo_splash_fp083.py
+tests/test_markets_view_fp086.py
+tests/test_rename_fp116.py
+tests/test_softer_green_fp120.py
+CHANGELOG_FP120.txt
+README_INSTALL_FP120.txt
+BUNDLE_MANIFEST_FP120.txt
+
+Deleted:
+static/icons/kaivor-logo-v3.svg
+static/icons/kaivor-news-192-v3.png
+static/icons/kaivor-news-512-v3.png
