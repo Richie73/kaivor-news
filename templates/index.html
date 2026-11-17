@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0b0b0b">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/kaivor-news-192-v3.png" type="image/png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="">
     <title>Kaivor</title>
     <style>
         /* FP090: design tokens — one palette, one set of radii,
@@ -272,6 +273,10 @@
         .weather-saved-input { flex:1; background:var(--surface-3); color:var(--text); border:1px solid var(--btn-border); border-radius:var(--radius-sm); padding:5px 10px; font-size:var(--text-base); }
         .weather-credit { font-size:var(--text-sm); color:var(--faint); margin:12px 0 0; }
         .weather-credit a { color:var(--green-soft); text-decoration:none; }
+        #rain-radar-map { height:260px; border-radius:var(--radius-md); margin-top:var(--space-sm); }
+        .rain-radar-controls { display:flex; align-items:center; gap:var(--space-sm); margin-top:var(--space-sm); }
+        .rain-radar-time { font-size:var(--text-sm); color:var(--muted); }
+        .rain-radar-note { font-size:var(--text-sm); color:var(--faint); margin:var(--space-sm) 0 0; }
         .btn-group { display:flex; gap:var(--space-sm); margin-top:var(--space-md); flex-wrap:wrap; }
         button,.btn-link { background:var(--btn-bg); color:var(--green); border:1px solid var(--btn-border); padding:8px 14px; border-radius:var(--radius-sm); font-size:var(--text-md); cursor:pointer; text-decoration:none; display:inline-block; font-weight:500; }
         button:hover,.btn-link:hover { background:var(--btn-border); }
@@ -508,6 +513,15 @@
         <div id="weather-hourly" class="weather-hourly"></div>
         <div class="weather-days-head"><span class="weather-strip-label">Forecast</span><button id="weather-days-toggle" type="button" onclick="toggleWeatherDays()">Show all days</button></div>
         <div id="weather-days" class="weather-days"></div>
+        <div class="weather-strip-label">Rain radar</div>
+        <div id="rain-radar">
+            <div id="rain-radar-map"></div>
+            <div class="rain-radar-controls">
+                <button id="rain-radar-play" type="button" onclick="toggleRainRadarPlayback()">▶ Play</button>
+                <span id="rain-radar-time" class="rain-radar-time"></span>
+            </div>
+            <p id="rain-radar-note" class="rain-radar-note"></p>
+        </div>
         <div class="weather-search">
             <input type="text" id="weather-search-input" placeholder="Search a place…" autocomplete="off" aria-label="Search for a place">
             <button type="button" onclick="searchWeatherPlace()">Search</button>
@@ -667,6 +681,7 @@
     <a id="nav-reading" class="nav-item" data-nav="reading" href="/reading"><span class="nav-icon">📚</span><span>Reading</span></a>
 </nav>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin=""></script>
 <script>
 const savedIds = new Set({{ saved_ids | list | tojson }});
 
@@ -2892,6 +2907,7 @@ async function searchWeatherPlace() {
 
 function refreshWeather() {
     if (weatherCurrentPlace) loadWeather(weatherCurrentPlace);
+    loadRainRadar(true);
 }
 
 function initializeWeatherSection() {
@@ -2932,9 +2948,11 @@ function showWeather(element) {
     hideNewsLoadMore();
     updateRefreshButton();
     loadWeatherWarnings();
+    loadRainRadar();
 }
 
 function hideWeatherView() {
+    stopRainRadarPlayback();
     const section = document.getElementById('weather-section');
     if (section) section.style.display = 'none';
     const strip = document.getElementById('weather-strip');
@@ -3233,6 +3251,116 @@ async function loadMorningHubWarnings() {
         cardEl.style.display = 'none';
     }
 }
+
+// FP119 RAIN RADAR: BEGIN
+// RainViewer radar over the Wirral, on a Leaflet map (free, no key).
+// The maps feed lists past frames (~2 hours, 10 minutes apart) plus
+// nowcast frames when RainViewer has them; Play steps through them
+// so Richie can see rain heading for site. The map is created lazily
+// on the first Weather view (Leaflet needs a visible container with
+// a size), and playback stops whenever the view is left.
+const RAINVIEWER_MAPS_URL = 'https://api.rainviewer.com/public/weather-maps.json';
+const RAIN_RADAR_CENTER = [53.25332, -3.00877];
+const RAIN_RADAR_ZOOM = 8;
+const RAIN_RADAR_FRAME_MS = 700;
+let rainRadarMap = null;
+let rainRadarLayer = null;
+let rainRadarFrames = [];
+let rainRadarFrameIndex = 0;
+let rainRadarTimer = null;
+let rainRadarLoaded = false;
+
+function rainRadarTileUrl(path, z, x, y) {
+    return 'https://tilecache.rainviewer.com' + path + '/256/' + z + '/' + x + '/' + y + '/2/1_1.png';
+}
+
+function rainRadarFrameLabel(epochSeconds) {
+    return new Date(epochSeconds * 1000).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
+}
+
+function rainRadarNextIndex(index, total) {
+    if (total <= 0) return 0;
+    return (index + 1) % total;
+}
+
+function rainRadarShowFrame(index) {
+    if (!rainRadarFrames.length || !rainRadarLayer) return;
+    rainRadarFrameIndex = index;
+    const frame = rainRadarFrames[index];
+    rainRadarLayer.setUrl('https://tilecache.rainviewer.com' + frame.path + '/256/{z}/{x}/{y}/2/1_1.png');
+    const timeEl = document.getElementById('rain-radar-time');
+    if (timeEl) timeEl.textContent = 'Radar ' + rainRadarFrameLabel(frame.time);
+}
+
+function rainRadarNote(text) {
+    const noteEl = document.getElementById('rain-radar-note');
+    if (noteEl) noteEl.textContent = text;
+}
+
+async function loadRainRadar(force) {
+    const mapEl = document.getElementById('rain-radar-map');
+    if (!mapEl) return;
+    if (rainRadarLoaded && !force) {
+        if (rainRadarMap) rainRadarMap.invalidateSize();
+        return;
+    }
+    if (typeof L === 'undefined') {
+        rainRadarNote('Radar map could not load — check your connection and try again.');
+        return;
+    }
+    try {
+        const response = await fetch(RAINVIEWER_MAPS_URL, {cache: 'no-store'});
+        const data = await response.json();
+        const past = (data.radar && data.radar.past) || [];
+        const nowcast = (data.radar && data.radar.nowcast) || [];
+        rainRadarFrames = past.concat(nowcast);
+        if (!rainRadarFrames.length) {
+            rainRadarNote('No radar images available right now.');
+            return;
+        }
+        const latest = rainRadarFrames[rainRadarFrames.length - 1];
+        if (!rainRadarMap) {
+            rainRadarMap = L.map('rain-radar-map', {scrollWheelZoom: false}).setView(RAIN_RADAR_CENTER, RAIN_RADAR_ZOOM);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(rainRadarMap);
+            rainRadarLayer = L.tileLayer('https://tilecache.rainviewer.com' + latest.path + '/256/{z}/{x}/{y}/2/1_1.png', {
+                opacity: 0.65,
+                attribution: 'Radar: <a href="https://www.rainviewer.com">RainViewer</a>'
+            }).addTo(rainRadarMap);
+        }
+        rainRadarLoaded = true;
+        rainRadarNote('');
+        rainRadarShowFrame(rainRadarFrames.length - 1);
+    } catch (error) {
+        rainRadarNote('Rain radar is unavailable right now.');
+    }
+}
+
+function toggleRainRadarPlayback() {
+    const button = document.getElementById('rain-radar-play');
+    if (rainRadarTimer) {
+        stopRainRadarPlayback();
+        return;
+    }
+    if (!rainRadarFrames.length) return;
+    rainRadarShowFrame(0);
+    if (button) button.textContent = '⏸ Pause';
+    rainRadarTimer = setInterval(function () {
+        rainRadarShowFrame(rainRadarNextIndex(rainRadarFrameIndex, rainRadarFrames.length));
+    }, RAIN_RADAR_FRAME_MS);
+}
+
+function stopRainRadarPlayback() {
+    if (rainRadarTimer) {
+        clearInterval(rainRadarTimer);
+        rainRadarTimer = null;
+    }
+    const button = document.getElementById('rain-radar-play');
+    if (button) button.textContent = '▶ Play';
+}
+// FP119 RAIN RADAR: END
 
 // FP110 LIVE FOOTBALL SCORES: BEGIN
 // Premier League + England, from ESPN's free scoreboard feed via

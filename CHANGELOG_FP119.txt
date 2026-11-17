@@ -1,0 +1,42 @@
+FP119 — Rain radar in the Weather view
+=====================================
+
+A Leaflet map centred on Puddington with RainViewer's radar
+overlay (free, no key): the latest frame on load, and a Play
+button that steps through the past ~2 hours so Richie can see
+rain heading for site.
+
+- templates/index.html only (plus tests). Leaflet 1.9.4 from
+  unpkg, CSS in <head> and JS just before the page's inline
+  script, both with subresource-integrity hashes computed from
+  the files unpkg serves (JS sha384-cxOPjt7s7Iz04uaHJceBmS+
+  qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH, CSS sha384-
+  sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3
+  nsEVT4H). No CSP exists in the app, so nothing else needed.
+- Radar block in #weather-section after the forecast days: a
+  260px map div, Play/Pause button + frame time, and a note
+  line for failures.
+- JS (FP119 block after loadMorningHubWarnings):
+  loadRainRadar(force) fetches
+  https://api.rainviewer.com/public/weather-maps.json (CORS *,
+  verified live 17 Nov: 12 past frames, tile fetch 200) and
+  combines radar.past + radar.nowcast (nowcast can be empty —
+  handled). The map is created lazily on the first Weather
+  view (Leaflet needs a visible container): OpenStreetMap base
+  + radar overlay at 0.65 opacity, zoom 8, scroll wheel off,
+  full attribution for both sources. Latest frame shown
+  first; the time label reads "Radar HH:MM" (24h forced).
+  toggleRainRadarPlayback replays from frame 0 at 700ms per
+  frame and loops; stopRainRadarPlayback clears the timer and
+  restores the Play label. If Leaflet failed to load or the
+  fetch fails, a plain note is shown instead of a broken map.
+- Hooks: showWeather calls loadRainRadar() (re-shows call
+  invalidateSize); hideWeatherView calls
+  stopRainRadarPlayback(); refreshWeather calls
+  loadRainRadar(true) so the frames refresh with the forecast.
+- Pure helpers (node-tested): rainRadarTileUrl(path, z, x, y),
+  rainRadarFrameLabel(epochSeconds), rainRadarNextIndex.
+
+Tests: 5 in tests/test_rain_radar_fp119.py (Leaflet tags +
+integrity + load order; radar markup; the three hooks; CSS
+tokens; node tests for the three helpers).
