@@ -89,6 +89,9 @@ class _FakeStore:
         self.seeded = True
         return len(SEED_ITEMS)
 
+    def repair_seed_urls(self):
+        return 0
+
     def add_item(self, name, store="", url="", price=None,
                  target_price=None, price_note="", notes="",
                  checkable=True):
@@ -213,6 +216,11 @@ def test_seed_items_cover_the_watchlist():
     assert by_name["Tapo TC85 x 3 (triple pack)"]["checkable"] is False
     assert by_name["Pixel 11 Pro 256GB, EE 100GB"]["checkable"] is False
     assert by_name["Fire TV Stick 4K Max (2025)"]["checkable"] is True
+    # FP125.1: the Fire Stick seed points at Argos, not Currys —
+    # Currys returns 403 to an automated fetch, Argos serves the
+    # same £46.99 page.
+    assert by_name["Fire TV Stick 4K Max (2025)"]["store"] == "Argos"
+    assert by_name["Fire TV Stick 4K Max (2025)"]["url"] == "https://www.argos.co.uk/product/4583420"
 
 
 def test_list_items_normalises_decimals_and_dates(fake_psycopg):
@@ -338,6 +346,37 @@ def test_delete_item(fake_psycopg):
 
     fake_psycopg.connect = connect
     assert store.delete_item(1) is True
+
+
+def test_repair_seed_urls_updates_currys_row(fake_psycopg):
+    store = PostgresShoppingStore(URL)
+    conn_holder = {}
+
+    def connect(database_url, **kwargs):
+        conn = _FakeConnection()
+        conn.fetchone_result = (5,)
+        conn_holder["conn"] = conn
+        return conn
+
+    fake_psycopg.connect = connect
+    assert store.repair_seed_urls() == 1
+    sql, params = conn_holder["conn"].executed[0]
+    assert "UPDATE public.shopping_items" in sql
+    assert params[0] == "https://www.argos.co.uk/product/4583420"
+    assert params[1] == "Argos"
+    assert "currys.co.uk" in params[2]
+
+
+def test_repair_seed_urls_noop_when_nothing_to_fix(fake_psycopg):
+    store = PostgresShoppingStore(URL)
+
+    def connect(database_url, **kwargs):
+        conn = _FakeConnection()
+        conn.fetchone_result = None
+        return conn
+
+    fake_psycopg.connect = connect
+    assert store.repair_seed_urls() == 0
 
 
 def test_missing_table_raises_setup_error(fake_psycopg):

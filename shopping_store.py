@@ -78,8 +78,8 @@ SEED_ITEMS = [
     },
     {
         "name": "Fire TV Stick 4K Max (2025)",
-        "store": "Currys",
-        "url": "https://www.currys.co.uk/products/amazon-fire-tv-stick-4k-max-2025-with-alexa-voice-remote-10275955.html",
+        "store": "Argos",
+        "url": "https://www.argos.co.uk/product/4583420",
         "price": "46.99",
         "target_price": "99.99",
         "price_note": "",
@@ -87,6 +87,17 @@ SEED_ITEMS = [
         "checkable": True,
     },
 ]
+
+# FP125.1: the Fire Stick seed first pointed at Currys, whose
+# page returns 403 to an automated fetch — the check could never
+# work. Argos serves the same £46.99 page to a plain fetch, so
+# the seed moved there. repair_seed_urls() fixes rows seeded
+# before the switch (matched on the old URL, not the name).
+# Map: old URL -> (new URL, new store name).
+_SEED_URL_REPAIRS = {
+    "https://www.currys.co.uk/products/amazon-fire-tv-stick-4k-max-2025-with-alexa-voice-remote-10275955.html":
+        ("https://www.argos.co.uk/product/4583420", "Argos"),
+}
 
 
 class ShoppingNotSetupError(RuntimeError):
@@ -207,6 +218,29 @@ class PostgresShoppingStore:
                         ),
                     )
                 return len(SEED_ITEMS)
+
+    def repair_seed_urls(self):
+        """Fix seed URLs that turned out not to work (FP125.1).
+
+        Returns the number of rows updated. Only touches rows
+        whose URL exactly matches a known-bad seed URL.
+        """
+        repaired = 0
+        with self._setup_errors():
+            with self._connection() as conn:
+                for old_url, (new_url, new_store) in _SEED_URL_REPAIRS.items():
+                    row = conn.execute(
+                        """
+                        UPDATE public.shopping_items
+                        SET url = %s, store = %s, updated_at = now()
+                        WHERE url = %s
+                        RETURNING id
+                        """,
+                        (new_url, new_store, old_url),
+                    ).fetchone()
+                    if row is not None:
+                        repaired += 1
+        return repaired
 
     def add_item(self, name, store="", url="", price=None,
                  target_price=None, price_note="", notes="",

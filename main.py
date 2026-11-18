@@ -2063,6 +2063,7 @@ def api_shopping():
         return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
     try:
         store.ensure_seed()
+        store.repair_seed_urls()
         return jsonify({"success": True, "items": store.list_items()})
     except ShoppingNotSetupError as exc:
         return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503

@@ -1,0 +1,31 @@
+FP125.1 — Shopping hub: Fire Stick check moves Currys → Argos
+=============================================================
+
+Why
+---
+Live verification of FP125 found the one auto-checkable item
+could never check: Currys returns HTTP 403 to a plain server
+fetch (bot protection). Argos serves the same £46.99 Fire TV
+Stick page to the same fetch, and the generic extractor reads
+£46.99 from it — verified before this fix was built.
+
+Changes
+-------
+- The Fire Stick seed item now points at Argos (store + URL).
+- repair_seed_urls() in shopping_store.py: a one-time repair
+  run on every GET /api/shopping. It updates any row whose URL
+  is the old Currys link to the Argos one (matched on the URL,
+  not the name), so the row seeded by FP125 fixes itself on
+  the first Hub open after this deploy — no action needed
+  from Richie, and no re-seeding.
+- Two new tests (repair updates the row; repair is a no-op
+  when nothing matches); the seed test now pins Argos.
+
+Files
+-----
+- shopping_store.py (seed URL + repair_seed_urls)
+- main.py (GET /api/shopping calls the repair)
+- tests/test_shopping_hub_fp125.py (2 new tests)
+
+Tests: local targeted 42 passed; local full 1071 passed /
+11 known failures / 2 skipped.
