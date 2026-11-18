@@ -144,6 +144,7 @@
         .task-row input[type="checkbox"] { margin-top:3px; }
         .task-done h3 { text-decoration:line-through; color:var(--muted); }
         .task-due-overdue { color:var(--red); }
+        .shopping-at-target { color:var(--brand); }
         /* FP099: voice input button — red while listening. */
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
@@ -578,6 +579,29 @@
         <div class="card">
             <h3>✅ Tasks today</h3>
             <div id="hub-tasks" class="hub-list">Loading tasks…</div>
+        </div>
+        <div class="card">
+            <h3>🛒 Shopping</h3>
+            <div id="hub-shopping" class="hub-list">Loading shopping…</div>
+            <div id="shopping-add" style="display:none">
+                <input id="shopping-add-name" type="text" placeholder="Item name" maxlength="200" style="width:100%; margin-top:var(--space-sm);">
+                <input id="shopping-add-store" type="text" placeholder="Shop (e.g. Currys)" maxlength="100" style="width:100%; margin-top:var(--space-xs);">
+                <input id="shopping-add-url" type="url" placeholder="Link to buy (https://…)" maxlength="2000" style="width:100%; margin-top:var(--space-xs);">
+                <div style="display:flex; gap:var(--space-xs); margin-top:var(--space-xs);">
+                    <input id="shopping-add-price" type="number" min="0" step="0.01" placeholder="Price £" style="flex:1; min-width:0;">
+                    <input id="shopping-add-target" type="number" min="0" step="0.01" placeholder="Target £" style="flex:1; min-width:0;">
+                </div>
+                <input id="shopping-add-note" type="text" placeholder="Note (optional)" maxlength="500" style="width:100%; margin-top:var(--space-xs);">
+                <div style="display:flex; gap:var(--space-xs); margin-top:var(--space-sm);">
+                    <button type="button" onclick="saveShoppingItem(this)">Save item</button>
+                    <button type="button" onclick="toggleShoppingAdd(false)">Cancel</button>
+                </div>
+            </div>
+            <div style="display:flex; gap:var(--space-xs); margin-top:var(--space-sm);">
+                <button type="button" onclick="checkShoppingPrices(this)">↻ Check prices</button>
+                <button type="button" onclick="toggleShoppingAdd(true)">＋ Add item</button>
+            </div>
+            <div id="shopping-status" class="status"></div>
         </div>
         <div class="card">
             <h3>🚗 Travel</h3>
@@ -3248,6 +3272,7 @@ function renderMorningHub() {
     loadMorningHubMarkets();
     loadMorningHubCalendar();
     loadMorningHubTasks();
+    loadMorningHubShopping();
     loadMorningHubTravel();
     loadMorningHubWarnings();
 }
@@ -3310,6 +3335,158 @@ async function loadMorningHubTasks() {
             : 'Nothing due today.';
     } catch (error) {
         tasksEl.textContent = 'Tasks unavailable — check your connection and try again.';
+    }
+}
+
+// FP125 SHOPPING HUB: the watchlist in the Hub — current price,
+// target price and a tap-to-buy link per item. shoppingRowHtml is
+// pure so the node tests can drive it directly. Prices are only
+// ever updated by a successful automatic check (or by hand);
+// a failed check leaves the stored price alone.
+function formatShoppingPrice(item) {
+    if (item.price === null || item.price === undefined || item.price === '') return '—';
+    const note = item.price_note ? ' ' + item.price_note : '';
+    return '£' + Number(item.price).toFixed(2) + note;
+}
+
+function shoppingRowHtml(item) {
+    const price = (item.price === null || item.price === undefined || item.price === '') ? null : Number(item.price);
+    const target = (item.target_price === null || item.target_price === undefined || item.target_price === '') ? null : Number(item.target_price);
+    const name = item.url
+        ? '<a href="' + escapeAttr(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.name) + '</a>'
+        : escapeHtml(item.name);
+    const store = item.store ? ' <span style="color:var(--muted);">' + escapeHtml(item.store) + '</span>' : '';
+    const box = '<input type="checkbox"' + (item.bought ? ' checked ' : ' ') + 'onclick="toggleShoppingBought(' + item.id + ', this.checked, this)">';
+    let detail = '';
+    if (item.bought) {
+        detail = '✓ Bought';
+    } else if (price !== null && target !== null && price <= target) {
+        detail = '<span class="shopping-at-target">✓ At target (target £' + target.toFixed(2) + ')</span>';
+    } else if (price !== null && target !== null) {
+        detail = 'Target £' + target.toFixed(2);
+    } else if (price === null) {
+        detail = 'No price yet';
+    }
+    if (!item.bought && !item.checkable) {
+        detail += (detail ? ' · ' : '') + 'Tap the link to check';
+    }
+    if (item.notes) {
+        detail += (detail ? ' · ' : '') + escapeHtml(item.notes);
+    }
+    const del = '<button type="button" onclick="deleteShoppingItem(' + item.id + ', this)">✕</button>';
+    return '<div class="hub-market"><span>' + box + ' ' + name + store + '</span><strong>' +
+        escapeHtml(formatShoppingPrice(item)) + '</strong></div>' +
+        (detail ? '<div class="hub-story">' + detail + ' ' + del + '</div>' : '<div class="hub-story">' + del + '</div>');
+}
+
+async function loadMorningHubShopping() {
+    const shoppingEl = document.getElementById('hub-shopping');
+    if (!shoppingEl) return;
+    try {
+        const response = await fetch('/api/shopping', {cache: 'no-store'});
+        const result = await response.json();
+        if (result.setup_needed) { shoppingEl.textContent = 'Shopping isn\u2019t set up yet — run migration 004 in Supabase to switch it on.'; return; }
+        if (!result.success) { shoppingEl.textContent = result.error || 'Shopping unavailable.'; return; }
+        const items = result.items || [];
+        shoppingEl.innerHTML = items.length
+            ? items.map(item => shoppingRowHtml(item)).join('')
+            : 'Nothing on the watchlist yet — tap ＋ Add item.';
+    } catch (error) {
+        shoppingEl.textContent = 'Shopping unavailable — check your connection and try again.';
+    }
+}
+
+async function checkShoppingPrices(button) {
+    const status = document.getElementById('shopping-status');
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Checking prices…';
+    try {
+        const response = await fetch('/api/shopping/check', {method: 'POST'});
+        const result = await response.json();
+        if (response.status === 401) { if (status) status.textContent = 'Unlock Reading to check prices.'; return; }
+        if (!result.success) throw new Error(result.error || 'Could not check prices.');
+        const failed = (result.results || []).filter(r => r.status === 'unavailable' || r.status === 'error').length;
+        if (status) status.textContent = 'Checked ' + result.checked + ' price' + (result.checked === 1 ? '' : 's') +
+            ', ' + result.updated + ' updated' + (failed ? ', ' + failed + ' couldn\u2019t be checked' : '') + '.';
+        loadMorningHubShopping();
+    } catch (error) {
+        if (status) status.textContent = 'Could not check prices — try again.';
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+function toggleShoppingAdd(show) {
+    const form = document.getElementById('shopping-add');
+    if (form) form.style.display = show ? 'block' : 'none';
+    const status = document.getElementById('shopping-status');
+    if (status && !show) status.textContent = '';
+}
+
+async function saveShoppingItem(button) {
+    const status = document.getElementById('shopping-status');
+    const name = document.getElementById('shopping-add-name').value.trim();
+    if (!name) { if (status) status.textContent = 'Give the item a name.'; return; }
+    const priceRaw = document.getElementById('shopping-add-price').value;
+    const targetRaw = document.getElementById('shopping-add-target').value;
+    const body = {
+        name: name,
+        store: document.getElementById('shopping-add-store').value.trim(),
+        url: document.getElementById('shopping-add-url').value.trim(),
+        price: priceRaw === '' ? null : Number(priceRaw),
+        target_price: targetRaw === '' ? null : Number(targetRaw),
+        notes: document.getElementById('shopping-add-note').value.trim(),
+    };
+    if (button) button.disabled = true;
+    try {
+        const response = await fetch('/api/shopping', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+        });
+        const result = await response.json();
+        if (response.status === 401) { if (status) status.textContent = 'Unlock Reading to change the shopping list.'; return; }
+        if (!result.success) throw new Error(result.error || 'Could not save.');
+        ['shopping-add-name', 'shopping-add-store', 'shopping-add-url', 'shopping-add-price', 'shopping-add-target', 'shopping-add-note'].forEach(id => { document.getElementById(id).value = ''; });
+        toggleShoppingAdd(false);
+        loadMorningHubShopping();
+    } catch (error) {
+        if (status) status.textContent = 'Could not save that item.';
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+async function toggleShoppingBought(id, bought, checkbox) {
+    const status = document.getElementById('shopping-status');
+    try {
+        const response = await fetch('/api/shopping/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({bought}),
+        });
+        const result = await response.json();
+        if (response.status === 401) { if (checkbox) checkbox.checked = !bought; if (status) status.textContent = 'Unlock Reading to change the shopping list.'; return; }
+        if (!result.success) throw new Error(result.error || 'Could not update.');
+        loadMorningHubShopping();
+    } catch (error) {
+        if (checkbox) checkbox.checked = !bought;
+        if (status) status.textContent = 'Could not update that item.';
+    }
+}
+
+async function deleteShoppingItem(id, button) {
+    const status = document.getElementById('shopping-status');
+    if (button) button.disabled = true;
+    try {
+        const response = await fetch('/api/shopping/' + id, {method: 'DELETE'});
+        const result = await response.json();
+        if (response.status === 401) { if (status) status.textContent = 'Unlock Reading to change the shopping list.'; return; }
+        if (!result.success) throw new Error(result.error || 'Could not delete.');
+        loadMorningHubShopping();
+    } catch (error) {
+        if (button) button.disabled = false;
+        if (status) status.textContent = 'Could not delete that item.';
     }
 }
 

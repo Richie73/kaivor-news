@@ -55,6 +55,8 @@ from receipt_reader import ReceiptReadError, read_receipt
 from hub_services import get_calendar, get_travel
 from weather_warnings import get_warnings
 from football_scores import get_scores
+from price_check import check_price
+from shopping_store import ShoppingNotSetupError, shopping_store_or_none
 from tasks_store import task_store_or_none
 from auto_remember import distinctive_words
 from core.ai.request import AIRequest
@@ -107,6 +109,10 @@ _GUARDED_MUTATION_ENDPOINTS = frozenset({
     "api_remove_saved",
     "api_save",
     "api_set_key",
+    "api_shopping_add",
+    "api_shopping_check",
+    "api_shopping_remove",
+    "api_shopping_update",
     "api_story_intelligence",
     "api_story_timeline",
     "api_tasks_add",
@@ -1918,6 +1924,33 @@ def _valid_due_date(value):
     return text
 
 
+def _valid_price(value):
+    """Return a price as a float, None when blank, or False when malformed."""
+    if value is None:
+        return None
+    if isinstance(value, str) and not value.strip():
+        return None
+    try:
+        price = float(value)
+    except (TypeError, ValueError):
+        return False
+    if price < 0 or price > 999999.99:
+        return False
+    return round(price, 2)
+
+
+def _valid_shop_url(value):
+    """Return a shop URL, '' when blank, or False when not http(s)."""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    if not text.startswith(("http://", "https://")) or len(text) > 2000:
+        return False
+    return text
+
+
 def _valid_due_time(value):
     """Return a zero-padded HH:MM string, None when blank, or False when malformed."""
     if value is None:
@@ -2017,6 +2050,164 @@ def api_tasks_remove(task_id):
     if not removed:
         return jsonify({"success": False, "error": "No task with that id."}), 404
     return jsonify({"success": True})
+
+
+# FP125: shopping watchlist in the Hub. Postgres-backed like tasks
+# (public.shopping_items, migration 004); the first read of an
+# empty table seeds Richie's live watchlist. Listing is an open
+# read; add/update/delete/check are in _GUARDED_MUTATION_ENDPOINTS.
+@app.route("/api/shopping", methods=["GET"])
+def api_shopping():
+    store = shopping_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
+    try:
+        store.ensure_seed()
+        return jsonify({"success": True, "items": store.list_items()})
+    except ShoppingNotSetupError as exc:
+        return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503
+
+
+@app.route("/api/shopping", methods=["POST"])
+def api_shopping_add():
+    store = shopping_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
+    data = request.json or {}
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "A name is required."}), 400
+    if len(name) > 200:
+        return jsonify({"success": False, "error": "A name is limited to 200 characters."}), 400
+    url = _valid_shop_url(data.get("url"))
+    if url is False:
+        return jsonify({"success": False, "error": "A link must start with http:// or https://."}), 400
+    price = _valid_price(data.get("price"))
+    if price is False:
+        return jsonify({"success": False, "error": "A price must be a number."}), 400
+    target_price = _valid_price(data.get("target_price"))
+    if target_price is False:
+        return jsonify({"success": False, "error": "A target price must be a number."}), 400
+    try:
+        item_id = store.add_item(
+            name,
+            store=str(data.get("store") or "").strip()[:100],
+            url=url,
+            price=price,
+            target_price=target_price,
+            price_note=str(data.get("price_note") or "").strip()[:200],
+            notes=str(data.get("notes") or "").strip()[:500],
+            checkable=bool(data.get("checkable", True)),
+        )
+    except ShoppingNotSetupError as exc:
+        return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503
+    return jsonify({"success": True, "id": item_id})
+
+
+@app.route("/api/shopping/<int:item_id>", methods=["PUT"])
+def api_shopping_update(item_id):
+    store = shopping_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
+    data = request.json or {}
+    fields = {}
+    if "name" in data:
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "A name is required."}), 400
+        if len(name) > 200:
+            return jsonify({"success": False, "error": "A name is limited to 200 characters."}), 400
+        fields["name"] = name
+    if "store" in data:
+        fields["store"] = str(data.get("store") or "").strip()[:100]
+    if "url" in data:
+        url = _valid_shop_url(data.get("url"))
+        if url is False:
+            return jsonify({"success": False, "error": "A link must start with http:// or https://."}), 400
+        fields["url"] = url
+    if "price" in data:
+        price = _valid_price(data.get("price"))
+        if price is False:
+            return jsonify({"success": False, "error": "A price must be a number."}), 400
+        fields["price"] = price
+    if "target_price" in data:
+        target_price = _valid_price(data.get("target_price"))
+        if target_price is False:
+            return jsonify({"success": False, "error": "A target price must be a number."}), 400
+        fields["target_price"] = target_price
+    if "price_note" in data:
+        fields["price_note"] = str(data.get("price_note") or "").strip()[:200]
+    if "notes" in data:
+        fields["notes"] = str(data.get("notes") or "").strip()[:500]
+    if "checkable" in data:
+        fields["checkable"] = bool(data.get("checkable"))
+    if "bought" in data:
+        fields["bought"] = bool(data.get("bought"))
+    try:
+        updated = store.update_item(item_id, **fields)
+    except ShoppingNotSetupError as exc:
+        return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503
+    if updated is None:
+        return jsonify({"success": False, "error": "No shopping item with that id."}), 404
+    return jsonify({"success": True, "item": updated})
+
+
+@app.route("/api/shopping/<int:item_id>", methods=["DELETE"])
+def api_shopping_remove(item_id):
+    store = shopping_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
+    try:
+        removed = store.delete_item(item_id)
+    except ShoppingNotSetupError as exc:
+        return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503
+    if not removed:
+        return jsonify({"success": False, "error": "No shopping item with that id."}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/shopping/check", methods=["POST"])
+def api_shopping_check():
+    """Re-check prices for checkable, unbought items (max 10/run).
+
+    Only items flagged checkable are fetched, and a price is only
+    updated when the page yields a usable GBP price — a failed
+    check leaves the stored price alone and reports why.
+    """
+    store = shopping_store_or_none()
+    if store is None:
+        return jsonify({"success": False, "error": "Shopping is not configured on this server."}), 503
+    try:
+        items = store.list_items()
+    except ShoppingNotSetupError as exc:
+        return jsonify({"success": False, "error": str(exc), "setup_needed": True}), 503
+    results = []
+    checked = 0
+    updated = 0
+    for item in items:
+        if item.get("bought") or not item.get("checkable") or not item.get("url"):
+            results.append({"id": item["id"], "name": item["name"], "status": "manual"})
+            continue
+        if checked >= 10:
+            results.append({"id": item["id"], "name": item["name"], "status": "skipped"})
+            continue
+        checked += 1
+        outcome = check_price(item["url"])
+        if outcome["status"] != "ok":
+            results.append({
+                "id": item["id"], "name": item["name"],
+                "status": outcome["status"],
+                "reason": outcome.get("reason", ""),
+            })
+            continue
+        new_price = outcome["price"]
+        fields = {"last_checked": datetime.now(timezone.utc)}
+        if new_price != item.get("price"):
+            fields["price"] = new_price
+            updated += 1
+        store.update_item(item["id"], **fields)
+        results.append({"id": item["id"], "name": item["name"], "status": "ok", "price": new_price})
+    return jsonify({"success": True, "results": results, "checked": checked, "updated": updated})
 
 
 # FP106: Met Office Weather Warnings for Puddington. Public data,

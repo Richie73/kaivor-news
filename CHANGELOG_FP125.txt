@@ -1,0 +1,50 @@
+FP125 — Shopping hub (watchlist card in the Hub)
+================================================
+
+Why
+---
+Richie asked 18 Nov 05:14 for "some sort of shopping hub".
+A Shopping card in the Hub holds his live watchlist: current
+price, target price and a tap-to-buy link per item, with a
+Check prices button, add form, bought tick and delete.
+
+Design decisions (all deliberate)
+---------------------------------
+- Postgres-backed (public.shopping_items, migration 004),
+  like tasks — a JSON file would be wiped on every Render
+  redeploy. The first read of an empty table seeds the
+  watchlist: Tapo TC85 x3, Sofirn SC33, Rammstein Zeit vinyl,
+  Pixel 11 Pro EE deal, Fire TV Stick 4K Max.
+- Only items flagged checkable are ever auto-checked, and a
+  failed check never invents a price — the stored price stays
+  and the failure is reported. The Tapo triple and the Pixel
+  deal are manual because their stored prices are not the
+  page's headline price (single £62.39 vs triple £165.72;
+  monthly + upfront). Amazon and AliExpress block automated
+  checks entirely, so those items link out for a manual look.
+- Price extraction is generic: JSON-LD Product offers, then
+  og:price:amount / product:price:amount meta tags. GBP only.
+- Listing is an open read; add/update/delete/check need the
+  Reading PIN (in _GUARDED_MUTATION_ENDPOINTS).
+- No new view: the card lives in the Hub, so no view-opener
+  hide-call counts change.
+
+His-side setup
+--------------
+Run migrations/reading/004_shopping_items_fp125.sql once in
+the Supabase SQL Editor (same database as memories/tasks).
+One statement; delete the stray ")" the phone editor appends
+after pasting, before tapping Run. Until then the card says
+shopping isn't set up yet.
+
+Files
+-----
+- shopping_store.py (new: Postgres store + seed)
+- price_check.py (new: generic GBP price extraction)
+- migrations/reading/004_shopping_items_fp125.sql (new)
+- main.py (5 routes + guarded endpoints + validators)
+- templates/index.html (Hub card + JS)
+- tests/test_shopping_hub_fp125.py (new, 40 tests)
+
+Tests: local targeted 40 passed; local full 1069 passed /
+11 known failures / 2 skipped.
