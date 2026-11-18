@@ -1,0 +1,10 @@
+BUNDLE_MANIFEST_FP121.txt — files in this milestone (docs listed separately):
+
+  morning_brief.py
+  main.py
+  templates/index.html
+  tests/test_tasks_today_fp121.py
+
+  CHANGELOG_FP121.txt
+  README_INSTALL_FP121.txt
+  BUNDLE_MANIFEST_FP121.txt

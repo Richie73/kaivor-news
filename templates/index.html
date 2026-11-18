@@ -138,6 +138,7 @@
         .chat-form button { padding:10px 16px; }
         .chat-remember-btn { background:none; border:none; color:var(--faint); font-size:var(--text-base); padding:4px 0 0; cursor:pointer; }
         .chat-remember-btn:disabled { color:var(--muted); cursor:default; }
+        .chat-speak-btn { background:none; border:none; color:var(--faint); font-size:var(--text-base); padding:4px 0 0 12px; cursor:pointer; }
         /* FP114: task rows — checkbox beside the title, done tasks struck through. */
         .task-row { display:flex; align-items:flex-start; gap:var(--space-sm); }
         .task-row input[type="checkbox"] { margin-top:3px; }
@@ -509,6 +510,7 @@
         <div id="weather-now" class="weather-now"><div class="skeleton skeleton-hero"></div></div>
         <div id="weather-details" class="weather-details"></div>
         <div id="weather-summary" class="weather-summary"></div>
+        <div id="weather-work-rain" class="weather-summary"></div>
         <div class="weather-strip-label">Next 24 hours</div>
         <div id="weather-hourly" class="weather-hourly"></div>
         <div class="weather-days-head"><span class="weather-strip-label">Forecast</span><button id="weather-days-toggle" type="button" onclick="toggleWeatherDays()">Show all days</button></div>
@@ -572,6 +574,10 @@
         <div class="card">
             <h3>📅 Today</h3>
             <div id="hub-calendar" class="hub-list">Loading calendar…</div>
+        </div>
+        <div class="card">
+            <h3>✅ Tasks today</h3>
+            <div id="hub-tasks" class="hub-list">Loading tasks…</div>
         </div>
         <div class="card">
             <h3>🚗 Travel</h3>
@@ -1032,6 +1038,7 @@ function cacheNewsContainer() {
     hideFootballScores();
     hideNewsLoadMore();
     updateRefreshButton();
+    stopChatSpeech();
     const container = document.getElementById('articles-container');
     if (!container) return;
     cachedNewsHtml = container.innerHTML;
@@ -1117,6 +1124,7 @@ observeStockPlaceholders();
 function restoreNewsContainer() {
     stopVoiceInput();
     if (!newsViewReplaced) return true;
+    stopChatSpeech();
     const container = document.getElementById('articles-container');
     if (!container || !cachedNewsHtml) return false;
     container.innerHTML = cachedNewsHtml;
@@ -1329,6 +1337,8 @@ function chatMessageHtml(message, index) {
     }
     // FP112: save an assistant reply as a memory, by its history index.
     if (Number.isInteger(index)) html += `<button class="chat-remember-btn" onclick="rememberChatMessage(${index}, this)">🧠 Remember this</button>`;
+    // FP122: hear an assistant reply read aloud, by its history index.
+    if (Number.isInteger(index)) html += `<button class="chat-speak-btn" onclick="speakChatMessage(${index}, this)">🔊 Listen</button>`;
     return html + '</div>';
 }
 
@@ -1339,6 +1349,7 @@ function renderChatLog() {
     log.innerHTML = history.length
         ? history.map(chatMessageHtml).join('')
         : '<div class="chat-msg system">Ask Kaivor anything — news, work, ideas, whatever is on your mind.</div>';
+    if (!chatSpeechSupported()) log.querySelectorAll('.chat-speak-btn').forEach(btn => { btn.style.display = 'none'; });
     log.scrollTop = log.scrollHeight;
 }
 
@@ -1730,6 +1741,60 @@ async function deleteTask(id, button) {
     }
 }
 // FP114 IN-APP TASKS: END
+
+// FP122 CHAT SPEECH: BEGIN — read an assistant reply aloud with
+// the browser's built-in speech synthesis (free, no key, en-GB).
+// One reply at a time: tapping Listen again, or another reply's
+// button, stops the first. Leaving the chat stops it too (the
+// stopChatSpeech calls in cacheNewsContainer/restoreNewsContainer).
+let chatSpeechButton = null;
+
+function chatSpeechSupported() {
+    return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
+function speakableText(markdown) {
+    return String(markdown || '')
+        .replace(/`[^`]*`/g, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/[*_#>`~]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function speakChatMessage(index, button) {
+    if (!chatSpeechSupported()) {
+        showChatWebNote('This browser can’t read messages aloud.');
+        return;
+    }
+    if (chatSpeechButton === button) {
+        stopChatSpeech();
+        return;
+    }
+    stopChatSpeech();
+    const history = loadChatHistory();
+    const message = history[index];
+    if (!message || !message.content) return;
+    const text = speakableText(message.content);
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-GB';
+    utterance.onend = function () { stopChatSpeech(); };
+    utterance.onerror = function () { stopChatSpeech(); };
+    chatSpeechButton = button;
+    if (button) button.textContent = '⏹ Stop';
+    window.speechSynthesis.speak(utterance);
+}
+
+function stopChatSpeech() {
+    if (chatSpeechSupported()) window.speechSynthesis.cancel();
+    if (chatSpeechButton) {
+        chatSpeechButton.textContent = '🔊 Listen';
+        chatSpeechButton = null;
+    }
+}
+// FP122 CHAT SPEECH: END
 
 async function sendChatMessage(event) {
     event.preventDefault();
@@ -2457,6 +2522,56 @@ function weatherSummary(times, rainChances, startIndex, hoursCount) {
     return 'Dry for the next ' + (end - startIndex) + ' hours.';
 }
 
+// FP123: one line about rain during work hours (07:00–17:00) —
+// today, or tomorrow once today's work hours are over. Rain
+// counts as likely at a 50% hourly chance or more, the same
+// threshold weatherSummary uses. Each hourly value covers its
+// own hour, so wet hours 10, 11, 12 read as 10:00–13:00.
+const WORK_HOURS_START = 7;
+const WORK_HOURS_END = 17;
+const WORK_RAIN_THRESHOLD = 50;
+
+function workHoursRainLine(times, rainChances, nowIso) {
+    if (!Array.isArray(times) || !Array.isArray(rainChances)) return '';
+    const nowDate = String(nowIso || '').slice(0, 10);
+    const nowHour = Number(String(nowIso || '').slice(11, 13));
+    if (!nowDate || isNaN(nowHour)) return '';
+    const targetIsTomorrow = nowHour >= WORK_HOURS_END;
+    const target = new Date(nowDate + 'T12:00:00');
+    if (targetIsTomorrow) target.setDate(target.getDate() + 1);
+    const targetDate = target.getFullYear() + '-' + String(target.getMonth() + 1).padStart(2, '0') + '-' + String(target.getDate()).padStart(2, '0');
+    const dayLabel = targetIsTomorrow ? 'Tomorrow' : 'Today';
+    const wet = [];
+    for (let i = 0; i < times.length; i++) {
+        const stamp = String(times[i]);
+        if (stamp.slice(0, 10) !== targetDate) continue;
+        const hour = Number(stamp.slice(11, 13));
+        if (hour < WORK_HOURS_START || hour >= WORK_HOURS_END) continue;
+        if (!targetIsTomorrow && hour < nowHour) continue;
+        wet.push({hour: hour, wet: Number(rainChances[i]) >= WORK_RAIN_THRESHOLD});
+    }
+    if (!wet.length) return '';
+    const blocks = [];
+    let start = null;
+    for (let i = 0; i < wet.length; i++) {
+        if (wet[i].wet && start === null) start = wet[i].hour;
+        if ((!wet[i].wet || i === wet.length - 1) && start !== null) {
+            const end = wet[i].wet ? wet[i].hour + 1 : wet[i].hour;
+            blocks.push([start, Math.min(end, WORK_HOURS_END)]);
+            start = null;
+        }
+    }
+    const hh = h => String(h).padStart(2, '0') + ':00';
+    if (!blocks.length) return dayLabel + ': no rain expected during work hours.';
+    if (blocks.length === 1 && blocks[0][0] === WORK_HOURS_START && blocks[0][1] === WORK_HOURS_END) {
+        return dayLabel + ': rain likely all work hours (07:00–17:00).';
+    }
+    let line = dayLabel + ': rain likely ' + blocks.map(b => hh(b[0]) + '–' + hh(b[1])).join(' and ') + '.';
+    const lastEnd = blocks[blocks.length - 1][1];
+    if (lastEnd < WORK_HOURS_END) line += ' Dry after ' + hh(lastEnd) + '.';
+    return line;
+}
+
 let weatherCurrentPlace = null;
 
 function weatherRecentPlaces() {
@@ -2694,6 +2809,7 @@ async function loadWeather(place) {
     const nowEl = document.getElementById('weather-now');
     const detailsEl = document.getElementById('weather-details');
     const summaryEl = document.getElementById('weather-summary');
+    const workRainEl = document.getElementById('weather-work-rain');
     const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
@@ -2704,6 +2820,7 @@ async function loadWeather(place) {
     if (nowEl) nowEl.innerHTML = '<div class="skeleton skeleton-hero"></div>';
     if (detailsEl) detailsEl.innerHTML = '';
     if (summaryEl) summaryEl.textContent = '';
+    if (workRainEl) workRainEl.textContent = '';
     if (hourlyEl) hourlyEl.innerHTML = '';
     if (daysEl) daysEl.innerHTML = '';
     if (updatedEl) updatedEl.textContent = '';
@@ -2797,6 +2914,7 @@ function renderWeather(place, data) {
     const nowEl = document.getElementById('weather-now');
     const detailsEl = document.getElementById('weather-details');
     const summaryEl = document.getElementById('weather-summary');
+    const workRainEl = document.getElementById('weather-work-rain');
     const hourlyEl = document.getElementById('weather-hourly');
     const daysEl = document.getElementById('weather-days');
     const updatedEl = document.getElementById('weather-updated');
@@ -2844,6 +2962,8 @@ function renderWeather(place, data) {
         const summary = weatherSummary(data.hourly.time, data.hourly.precipitation_probability, start, 24);
         if (weatherLastNow) weatherLastNow.summary = summary;
         if (summaryEl) summaryEl.textContent = summary;
+        const workRain = workHoursRainLine(data.hourly.time, data.hourly.precipitation_probability, current.time);
+        if (workRainEl) workRainEl.textContent = workRain;
         if (stripSummaryEl) stripSummaryEl.textContent = summary;
         if (hourlyEl) {
             const hours = data.hourly.time.slice(start, start + 24).map((isoTime, offset) => {
@@ -3127,6 +3247,7 @@ function renderMorningHub() {
     }
     loadMorningHubMarkets();
     loadMorningHubCalendar();
+    loadMorningHubTasks();
     loadMorningHubTravel();
     loadMorningHubWarnings();
 }
@@ -3146,6 +3267,49 @@ async function loadMorningHubCalendar() {
             : 'Nothing on today.';
     } catch (error) {
         calendarEl.textContent = 'Calendar unavailable — check your connection and try again.';
+    }
+}
+
+// FP121 TASKS TODAY: open tasks due today or overdue, in the Hub
+// and in the morning brief (server side, morning_brief.py).
+// tasksDueToday is pure so the node tests can drive it directly.
+function tasksDueToday(tasks, todayIso) {
+    return (tasks || [])
+        .filter(task => !task.done && task.due_date && task.due_date <= todayIso)
+        .sort((a, b) => {
+            if (a.due_date !== b.due_date) return a.due_date < b.due_date ? -1 : 1;
+            if ((a.due_time || '') === (b.due_time || '')) return 0;
+            if (!a.due_time) return 1;
+            if (!b.due_time) return -1;
+            return a.due_time < b.due_time ? -1 : 1;
+        })
+        .slice(0, 5);
+}
+
+function hubTaskRowHtml(task, todayIso) {
+    const overdue = task.due_date < todayIso;
+    const when = overdue ? 'Overdue' : (task.due_time ? task.due_time : 'Today');
+    return '<div class="hub-market"><span><input type="checkbox" onclick="toggleTask(' + task.id + ', this.checked, this)"> ' +
+        '<span class="' + (overdue ? 'task-due-overdue' : '') + '">' + escapeHtml(task.title) + '</span></span>' +
+        '<strong>' + escapeHtml(when) + '</strong></div>';
+}
+
+async function loadMorningHubTasks() {
+    const tasksEl = document.getElementById('hub-tasks');
+    if (!tasksEl) return;
+    try {
+        const response = await fetch('/api/tasks', {cache: 'no-store'});
+        const result = await response.json();
+        if (response.status === 401 || response.status === 503) { tasksEl.textContent = 'Unlock Reading to see today\'s tasks.'; return; }
+        if (!result.success) { tasksEl.textContent = result.error || 'Tasks unavailable.'; return; }
+        const now = new Date();
+        const todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        const due = tasksDueToday(result.tasks || [], todayIso);
+        tasksEl.innerHTML = due.length
+            ? due.map(task => hubTaskRowHtml(task, todayIso)).join('') + '<div class="hub-market"><a href="#" onclick="showTasks(); return false;">Open all tasks →</a></div>'
+            : 'Nothing due today.';
+    } catch (error) {
+        tasksEl.textContent = 'Tasks unavailable — check your connection and try again.';
     }
 }
 

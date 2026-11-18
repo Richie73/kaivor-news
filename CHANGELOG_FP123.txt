@@ -1,0 +1,35 @@
+FP123 — Work-hours rain line
+==============================
+
+What it does
+------------
+The Weather view gains one plain sentence about rain
+during work hours (07:00–17:00) — today, or tomorrow
+once today's work hours are over. Examples:
+
+  Today: rain likely 10:00–13:00. Dry after 13:00.
+  Today: no rain expected during work hours.
+  Tomorrow: rain likely all work hours (07:00–17:00).
+
+Design notes
+------------
+- Uses the hourly rain chances already fetched, with the
+  same 50% "likely" threshold weatherSummary uses.
+- Each hourly value covers its own hour, so wet hours
+  10, 11, 12 read as 10:00–13:00. A block running to
+  17:00 gets no "Dry after" suffix. Past hours today are
+  skipped; the current hour still counts.
+- Tomorrow is computed from the same 24h hourly window,
+  which always covers tomorrow's full work hours once
+  today is past 17:00. No hourly data for the window
+  means no line, not a wrong line.
+- No server change, no env var, no new route.
+
+Files
+-----
+- templates/index.html (#weather-work-rain div,
+  workHoursRainLine, renderWeather/loadWeather hooks)
+- tests/test_work_hours_rain_fp123.py (3 tests)
+
+Tests: local targeted 14 passed across FP121–FP123 (3 here);
+local full 1028 passed / 11 known failures / 2 skipped.

@@ -1,0 +1,36 @@
+FP122 — Chat replies read aloud
+================================
+
+What it does
+------------
+Every assistant reply in the chat hub gets a 🔊 Listen
+button that reads the reply aloud with the browser's
+built-in speech synthesis (free, no key, en-GB voice).
+One reply at a time: tapping Listen again, or another
+reply's button, stops the first. Leaving the chat stops
+it too, the same way voice input stops (FP099).
+
+Design notes
+------------
+- Markdown is stripped before speaking (speakableText):
+  code spans and bare URLs are dropped, links read as
+  their text, bold/italic/header markers removed, so
+  the spoken version sounds like plain speech.
+- The button hides itself where speech synthesis is
+  unavailable (renderChatLog checks chatSpeechSupported).
+- stopChatSpeech() is called in cacheNewsContainer and
+  restoreNewsContainer AFTER their early returns, so the
+  FP099 exact-sequence assertion on stopVoiceInput is
+  untouched.
+- No server change, no env var, no new route.
+
+Files
+-----
+- templates/index.html (.chat-speak-btn CSS, Listen button
+  in chatMessageHtml, chatSpeechSupported, speakableText,
+  speakChatMessage, stopChatSpeech, renderChatLog hide
+  step, cache/restore hooks)
+- tests/test_chat_speech_fp122.py (4 tests)
+
+Tests: local targeted 14 passed across FP121–FP123 (4 here);
+local full 1028 passed / 11 known failures / 2 skipped.

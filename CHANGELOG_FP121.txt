@@ -1,0 +1,41 @@
+FP121 — Today's tasks in the Hub and the morning brief
+======================================================
+
+What it does
+------------
+The Hub gains a "Tasks today" card showing open tasks due
+today or overdue (up to 5, overdue first, then by due time),
+each tickable in place with a link through to the full Tasks
+view. The 06:00 morning brief lists the same tasks in a
+"Tasks today:" section, so the day's work is visible before
+the FP118 alerts start firing.
+
+Design notes
+------------
+- Hub card sits between the Today (calendar) card and the
+  Travel card, matching the calendar card's locked-state
+  message ("Unlock Reading to see today's tasks.").
+- The Hub reuses the existing toggleTask() from FP114 for
+  the checkbox and task-due-overdue (FP118) for overdue
+  titles. Dates use the phone's local date, not UTC, so
+  the card is right in BST as well as GMT.
+- The brief side is pure: brief_task_lines(tasks, today)
+  in morning_brief.py, wired into build_morning_brief and
+  format_brief_text. _build_live_brief() in main.py reads
+  the task store directly (the brief route is cron-token
+  gated, like the calendar fetch it sits beside); a store
+  failure degrades to an empty task list, never a failed
+  brief. Undated tasks are left out — they are not
+  day-specific.
+- No new env var, no migration, no new route.
+
+Files
+-----
+- morning_brief.py (brief_task_lines, build/format wiring)
+- main.py (_build_live_brief fetches tasks)
+- templates/index.html (Hub card, tasksDueToday,
+  hubTaskRowHtml, loadMorningHubTasks, renderMorningHub hook)
+- tests/test_tasks_today_fp121.py (7 tests)
+
+Tests: local targeted 14 passed across FP121–FP123 (7 here);
+local full 1028 passed / 11 known failures / 2 skipped.

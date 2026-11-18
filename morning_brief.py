@@ -36,6 +36,7 @@ MAX_BRIEF_CHARS = 3500
 
 BRIEF_STORY_COUNT = 5
 BRIEF_TITLE_CHARS = 100
+BRIEF_TASK_COUNT = 5
 
 # WMO weather-code labels, matching the client's WEATHER_CODE_INFO.
 WMO_TEXT = {
@@ -179,6 +180,36 @@ def brief_calendar_lines(calendar_result):
     return lines
 
 
+def brief_task_lines(tasks, today):
+    """Open tasks due today or overdue, as plain lines; [] when none.
+
+    `tasks` comes from the task store already sorted by due date then
+    due time, so overdue items naturally come first. Undated tasks
+    are not day-specific and are left out of the brief.
+    """
+    lines = []
+    for task in tasks or []:
+        if task.get("done"):
+            continue
+        due_date = task.get("due_date")
+        if not due_date or due_date > today:
+            continue
+        title = (task.get("title") or "").strip()
+        if not title:
+            continue
+        due_time = task.get("due_time") or ""
+        if due_date < today:
+            line = f"{title} \u2014 overdue (due {due_date})"
+        elif due_time:
+            line = f"{title} \u2014 due {due_time}"
+        else:
+            line = f"{title} \u2014 due today"
+        lines.append(line)
+        if len(lines) >= BRIEF_TASK_COUNT:
+            break
+    return lines
+
+
 def brief_warning_lines(warnings_result):
     """Met Office warnings covering Puddington, as plain lines."""
     if not isinstance(warnings_result, dict) or warnings_result.get("status") != "ok":
@@ -242,7 +273,7 @@ def brief_travel_lines(travel_result):
     return lines
 
 
-def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather, warnings=None):
+def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather, warnings=None, tasks=None):
     """Assemble the brief dict from already-fetched data (pure)."""
     greeting = brief_greeting(now.hour) + ", Richie"
     date_text = f"{now.strftime('%A')} {now.day} {now.strftime('%B %Y')}"
@@ -256,6 +287,7 @@ def build_morning_brief(now, articles, finance_data, calendar_result, travel_res
         "stories": brief_top_stories(articles),
         "markets": brief_markets(finance_data),
         "calendar": brief_calendar_lines(calendar_result),
+        "tasks": brief_task_lines(tasks, now.date().isoformat()),
         "travel": brief_travel_lines(travel_result),
     }
 
@@ -296,6 +328,10 @@ def format_brief_text(brief):
         parts.extend(f"\u2022 {line}" for line in calendar)
     else:
         parts.append("\nNothing on today.")
+    tasks = brief.get("tasks") or []
+    if tasks:
+        parts.append("\nTasks today:")
+        parts.extend(f"\u2022 {line}" for line in tasks)
     travel = brief.get("travel") or []
     if travel:
         parts.append("\nTravel:")

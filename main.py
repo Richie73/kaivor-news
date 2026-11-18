@@ -1722,8 +1722,15 @@ def _build_live_brief():
         os.environ.get("KAIVOR_WARNINGS_FEED_URL"),
         os.environ.get("KAIVOR_WARNINGS_API_KEY"),
     )
+    tasks = []
+    task_store = task_store_or_none()
+    if task_store is not None:
+        try:
+            tasks = task_store.list_tasks()
+        except Exception:
+            tasks = []
     return build_morning_brief(
-        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather, warnings_result
+        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather, warnings_result, tasks
     )
 
 
