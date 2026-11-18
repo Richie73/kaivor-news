@@ -1,0 +1,8 @@
+BUNDLE_MANIFEST_FP124.txt — files in this milestone (docs listed separately):
+
+  templates/index.html
+  tests/test_rain_radar_fp119.py
+
+  CHANGELOG_FP124.txt
+  README_INSTALL_FP124.txt
+  BUNDLE_MANIFEST_FP124.txt

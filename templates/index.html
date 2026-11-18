@@ -3417,15 +3417,26 @@ async function loadMorningHubWarnings() {
 }
 
 // FP119 RAIN RADAR: BEGIN
-// RainViewer radar over the Wirral, on a Leaflet map (free, no key).
-// The maps feed lists past frames (~2 hours, 10 minutes apart) plus
-// nowcast frames when RainViewer has them; Play steps through them
-// so Richie can see rain heading for site. The map is created lazily
-// on the first Weather view (Leaflet needs a visible container with
-// a size), and playback stops whenever the view is left.
-const RAINVIEWER_MAPS_URL = 'https://api.rainviewer.com/public/weather-maps.json';
+// LibreWXR radar over the Wirral, on a Leaflet map (free, no key).
+// FP124 switched the provider from RainViewer: its free tier was
+// cut to zoom 7 on 1 Jan 2026, while LibreWXR speaks the same v2
+// API format and serves tiles to zoom 12, plus nowcast frames.
+// The maps feed lists past frames (~2 hours, 10 minutes apart)
+// plus nowcast frames; Play steps through them so Richie can see
+// rain heading for site. The map is created lazily on the first
+// Weather view (Leaflet needs a visible container with a size),
+// and playback stops whenever the view is left.
+const RADAR_MAPS_URL = 'https://api.librewxr.net/public/weather-maps.json';
 const RAIN_RADAR_CENTER = [53.25332, -3.00877];
+// FP124: LibreWXR serves tiles to zoom 12, but the underlying
+// data is coarse (~2–5 km), so past zoom 10 there is no more
+// real detail — the map is capped there instead. (FP119.1 had
+// capped RainViewer at 7 for the same reason in reverse: its
+// free tiles stopped there and zoom 8+ served a "Zoom Level
+// Not Supported" placeholder.)
 const RAIN_RADAR_ZOOM = 8;
+const RAIN_RADAR_MIN_ZOOM = 5;
+const RAIN_RADAR_MAX_ZOOM = 10;
 const RAIN_RADAR_FRAME_MS = 700;
 let rainRadarMap = null;
 let rainRadarLayer = null;
@@ -3435,7 +3446,7 @@ let rainRadarTimer = null;
 let rainRadarLoaded = false;
 
 function rainRadarTileUrl(path, z, x, y) {
-    return 'https://tilecache.rainviewer.com' + path + '/256/' + z + '/' + x + '/' + y + '/2/1_1.png';
+    return 'https://api.librewxr.net' + path + '/256/' + z + '/' + x + '/' + y + '/2/1_1.png';
 }
 
 function rainRadarFrameLabel(epochSeconds) {
@@ -3451,7 +3462,7 @@ function rainRadarShowFrame(index) {
     if (!rainRadarFrames.length || !rainRadarLayer) return;
     rainRadarFrameIndex = index;
     const frame = rainRadarFrames[index];
-    rainRadarLayer.setUrl('https://tilecache.rainviewer.com' + frame.path + '/256/{z}/{x}/{y}/2/1_1.png');
+    rainRadarLayer.setUrl('https://api.librewxr.net' + frame.path + '/256/{z}/{x}/{y}/2/1_1.png');
     const timeEl = document.getElementById('rain-radar-time');
     if (timeEl) timeEl.textContent = 'Radar ' + rainRadarFrameLabel(frame.time);
 }
@@ -3473,7 +3484,7 @@ async function loadRainRadar(force) {
         return;
     }
     try {
-        const response = await fetch(RAINVIEWER_MAPS_URL, {cache: 'no-store'});
+        const response = await fetch(RADAR_MAPS_URL, {cache: 'no-store'});
         const data = await response.json();
         const past = (data.radar && data.radar.past) || [];
         const nowcast = (data.radar && data.radar.nowcast) || [];
@@ -3484,14 +3495,15 @@ async function loadRainRadar(force) {
         }
         const latest = rainRadarFrames[rainRadarFrames.length - 1];
         if (!rainRadarMap) {
-            rainRadarMap = L.map('rain-radar-map', {scrollWheelZoom: false}).setView(RAIN_RADAR_CENTER, RAIN_RADAR_ZOOM);
+            rainRadarMap = L.map('rain-radar-map', {scrollWheelZoom: false, minZoom: RAIN_RADAR_MIN_ZOOM, maxZoom: RAIN_RADAR_MAX_ZOOM}).setView(RAIN_RADAR_CENTER, RAIN_RADAR_ZOOM);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(rainRadarMap);
-            rainRadarLayer = L.tileLayer('https://tilecache.rainviewer.com' + latest.path + '/256/{z}/{x}/{y}/2/1_1.png', {
+            rainRadarLayer = L.tileLayer('https://api.librewxr.net' + latest.path + '/256/{z}/{x}/{y}/2/1_1.png', {
                 opacity: 0.65,
-                attribution: 'Radar: <a href="https://www.rainviewer.com">RainViewer</a>'
+                maxNativeZoom: RAIN_RADAR_MAX_ZOOM,
+                attribution: 'Radar: <a href="https://librewxr.net">LibreWXR</a>'
             }).addTo(rainRadarMap);
         }
         rainRadarLoaded = true;

@@ -1,6 +1,7 @@
 """FP119: rain radar in the Weather view.
 
-A Leaflet map centred on Puddington with RainViewer's radar
+A Leaflet map centred on Puddington with LibreWXR's radar
+(FP124 switched the provider from RainViewer — see below)
 overlay (free, no key): the latest frame on load, and a Play
 button that steps through the past ~2 hours so Richie can see
 rain heading for site. The map loads lazily on the first
@@ -44,7 +45,7 @@ def test_radar_markup():
     assert 'id="rain-radar-time"' in html
     assert 'id="rain-radar-note"' in html
     assert "Rain radar" in html
-    assert "RAINVIEWER_MAPS_URL = 'https://api.rainviewer.com/public/weather-maps.json'" in html
+    assert "RADAR_MAPS_URL = 'https://api.librewxr.net/public/weather-maps.json'" in html
     assert "async function loadRainRadar(force)" in html
     assert "function toggleRainRadarPlayback()" in html
     assert "function stopRainRadarPlayback()" in html
@@ -89,7 +90,7 @@ def test_radar_helpers_node():
         + label_match.group(0)
         + "\n"
         + next_match.group(0)
-        + "\nassert.strictEqual(rainRadarTileUrl('/v2/radar/abc', 7, 63, 41), 'https://tilecache.rainviewer.com/v2/radar/abc/256/7/63/41/2/1_1.png');\n"
+        + "\nassert.strictEqual(rainRadarTileUrl('/v2/radar/abc', 7, 63, 41), 'https://api.librewxr.net/v2/radar/abc/256/7/63/41/2/1_1.png');\n"
         + "const label = rainRadarFrameLabel(1794949800);\n"
         + "assert.match(label, /^\\d{2}:\\d{2}$/);\n"
         + "const tenLater = rainRadarFrameLabel(1794949800 + 600);\n"
@@ -108,3 +109,18 @@ def test_radar_helpers_node():
     finally:
         Path(path).unlink(missing_ok=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_radar_zoom_stays_inside_librewxr_range():
+    """FP124: LibreWXR serves tiles to zoom 12, but the map is
+    capped at 10 — the underlying data is coarse, so deeper zoom
+    adds no real detail. (FP119.1 had capped RainViewer at 7
+    because its free tiles stopped there and zoom 8+ served a
+    "Zoom Level Not Supported" placeholder, which is what
+    Richie saw on his phone.)"""
+    html = _template_text()
+    assert "const RAIN_RADAR_ZOOM = 8;" in html
+    assert "const RAIN_RADAR_MIN_ZOOM = 5;" in html
+    assert "const RAIN_RADAR_MAX_ZOOM = 10;" in html
+    assert "minZoom: RAIN_RADAR_MIN_ZOOM, maxZoom: RAIN_RADAR_MAX_ZOOM" in html
+    assert "maxNativeZoom: RAIN_RADAR_MAX_ZOOM" in html

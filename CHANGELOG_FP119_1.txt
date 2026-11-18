@@ -1,0 +1,43 @@
+FP119.1 — Rain radar zoom fix
+==============================
+
+The bug
+-------
+Richie's screenshot (18 Nov 05:49) showed the radar overlay
+covered in "Zoom Level Not Supported" tiles. Diagnosis, by
+fetching RainViewer tiles directly: the free radar tiles only
+exist up to zoom 7. Zooms 5, 6 and 7 return real radar tiles
+(18–28 KB, different content per zoom); zooms 8–12 all return
+the SAME 1370-byte placeholder PNG at every location. The map
+was initialised at zoom 8 — one level too far in — so every
+tile was the placeholder.
+
+The fix
+-------
+- Default zoom 8 → 7 (RAIN_RADAR_ZOOM).
+- The Leaflet map is capped at minZoom 5 / maxZoom 7, so
+  pinch or scroll can never reach the unsupported zooms;
+  the + button greys out at 7.
+- The radar overlay gets maxNativeZoom: 7 as belt and
+  braces — Leaflet upscales the z7 tiles rather than
+  requesting tiles that do not exist.
+
+At zoom 7 the map shows roughly the whole of England and
+Wales, so rain heading for the Wirral from the Irish Sea
+is still visible.
+
+Verification lesson
+-------------------
+The FP119 build check fetched a tile and confirmed only
+status 200 + image/png — the placeholder is also a 200 PNG.
+Tile checks must compare content (size/hash), not just
+status. This one is now covered by the zoom test below.
+
+Files
+-----
+- templates/index.html (zoom constants, map caps, overlay
+  maxNativeZoom)
+- tests/test_rain_radar_fp119.py (6 tests, +1 for the zoom cap)
+
+Tests: local targeted 6 passed; local full 1029 passed /
+11 known failures / 2 skipped.

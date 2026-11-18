@@ -1,0 +1,52 @@
+FP124 — Rain radar provider switch: RainViewer → LibreWXR
+=========================================================
+
+Why
+---
+RainViewer cut its free tier to zoom 7 on 1 Jan 2026 — that
+was the "Zoom Level Not Supported" bug FP119.1 patched around.
+Richie asked for more detail and mentioned his Weawow and
+Windfinder Pro subscriptions; neither offers a developer API
+(Weawow's own radar IS RainViewer), Windy's embed is €990/yr,
+OpenWeatherMap's radar also caps at zoom 7, and the Met Office
+DataHub has no live radar at all. LibreWXR is a free,
+open-source RainViewer-compatible API with a live public
+instance: same v2 API format, no key, tiles to zoom 12, plus
+nowcast frames RainViewer no longer gives free users.
+
+Verified before switching (18 Nov)
+----------------------------------
+- Feed: 12 past + 6 nowcast frames, CORS `*` on feed and tiles.
+- Tiles over Puddington: z7 49 KB, z8 42 KB real radar; z10
+  London 29 KB real radar. (Puddington z10/z12 were 334-byte
+  empty tiles — no rain overhead at the time, not a
+  placeholder: the London tile at the same zoom differs.)
+- Tile content varies by location at every zoom tested —
+  the FP119.1 lesson applied (compare content, not status).
+
+Changes
+-------
+- Maps feed: api.rainviewer.com → api.librewxr.net
+  (constant renamed RAINVIEWER_MAPS_URL → RADAR_MAPS_URL).
+- Tile host: tilecache.rainviewer.com → api.librewxr.net
+  (rainRadarTileUrl, the frame setUrl, the Leaflet layer).
+- Attribution: RainViewer → LibreWXR (librewxr.net).
+- Zoom: default 7 → 8, cap 7 → 10. LibreWXR serves to 12,
+  but the underlying data is coarse (~2–5 km), so past 10
+  there is no more real detail.
+
+Honest caveat
+-------------
+LibreWXR is a small open-source project, not a big company —
+less guaranteed than a paid service. If it ever goes flaky,
+the fallback is RainViewer (zoom 7) or Rainbow's Tiles API
+(free tier, ~1km, needs a key + server proxy).
+
+Files
+-----
+- templates/index.html (feed URL, tile host, attribution,
+  zoom constants)
+- tests/test_rain_radar_fp119.py (6 tests, updated)
+
+Tests: local targeted 6 passed; local full 1029 passed /
+11 known failures / 2 skipped.
