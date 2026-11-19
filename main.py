@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime, timezone, timedelta
 from html import unescape
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import feedparser
 import requests
@@ -863,8 +863,42 @@ def article_freedium_access(article):
     return freedium_access_info(article.get("link", ""))
 
 
+def app_link(web_url, package):
+    """Build an Android intent URL for a web page (FP126).
+
+    Tapping it opens `package` when installed; Chrome falls back
+    to the web URL otherwise (S.browser_fallback_url), so a
+    missing app degrades to the old web link instead of an error.
+    """
+    parsed = urlparse(web_url)
+    path = parsed.path or "/"
+    fallback = quote(web_url, safe="")
+    return (
+        f"intent://{parsed.netloc}{path}"
+        f"#Intent;scheme=https;package={package};"
+        f"S.browser_fallback_url={fallback};end"
+    )
+
+
+# FP126: official Android app per puzzle source (package names
+# verified against Google Play, 19 Nov 2026). Quordle is
+# deliberately absent: Merriam-Webster has no official Quordle
+# app (web-only) and the Play Store results are copycats, so
+# Quordle keeps its plain web link.
+PUZZLE_APP_PACKAGES = {
+    "The New York Times": "com.nytimes.crossword",
+    "The Guardian": "com.guardian",
+    "The Independent": "com.freerange360.mpp.indy",
+    "Nerdle": "com.nerdle.app",
+    "Sudoku.com": "com.easybrain.sudoku.android",
+    "Lichess": "org.lichess.mobileV2",
+    "Worldle": "fr.teuteuf.worldle.twa",
+    "Waffle": "net.wafflegame.waffle",
+}
+
+
 def puzzle_items():
-    return [
+    items = [
         {
             "title": "The New York Times - Wordle Daily Challenge",
             "description": "Play today's official NYT Wordle puzzle and test your 5-letter word decoding skills.",
@@ -962,6 +996,15 @@ def puzzle_items():
             "link": "https://wafflegame.net",
         },
     ]
+    # FP126: puzzles with an official app link to it via an
+    # Android intent URL (falls back to the web page when the
+    # app is not installed). Sources without an app keep the
+    # plain web link.
+    for item in items:
+        package = PUZZLE_APP_PACKAGES.get(item["source"])
+        if package:
+            item["link"] = app_link(item["link"], package)
+    return items
 
 
 def fetch_fresh_news():

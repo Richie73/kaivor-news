@@ -1,0 +1,52 @@
+FP126 — Puzzle cards open the puzzle's own Android app
+=========================================================
+
+Why
+---
+Richie reported (19 Nov) that only the NYT Wordle card opens
+its app — the other puzzles open as web links. Wordle works
+because the NYT Games app claims nytimes.com links (App
+Links); the other publishers' links have no such routing.
+
+Changes
+-------
+- New main.app_link(web_url, package): builds an Android
+  intent URL (intent://host/path#Intent;scheme=https;
+  package=<pkg>;S.browser_fallback_url=<encoded web URL>;end).
+  Tapping it opens the app when installed; Chrome falls back
+  to the web page when it is not, so a missing app degrades
+  to the old behaviour instead of an error.
+- New PUZZLE_APP_PACKAGES map (source -> official Android
+  package, each verified against Google Play on 19 Nov 2026):
+  NYT Games com.nytimes.crossword (Wordle, Mini, Connections,
+  Strands), Guardian com.guardian, Independent
+  com.freerange360.mpp.indy, Nerdle com.nerdle.app, Sudoku.com
+  com.easybrain.sudoku.android, Lichess org.lichess.mobileV2
+  (the current app; org.lichess.mobileapp is the legacy one),
+  Worldle fr.teuteuf.worldle.twa, Waffle net.wafflegame.waffle.
+- puzzle_items() rewrites each mapped puzzle's link to its
+  intent URL. Both card renderers (server Jinja + client JS)
+  use article.link, so both pick it up with no renderer
+  changes beyond the label.
+- Quordle deliberately keeps its plain web link:
+  Merriam-Webster has no official Quordle app (web-only) and
+  the Play Store results are copycats.
+- Card button label is now intent-aware in both renderers:
+  "Open in app" for intent links, "Open in Chrome" otherwise
+  (so Quordle still says Chrome).
+- Honest caveat: an intent opens the app, but whether it
+  lands on the exact puzzle or the app's home screen depends
+  on the app's own deep-link handling — the NYT, Guardian,
+  Nerdle and Worldle apps handle their URLs; others may open
+  at home. Nothing here can force an app to a screen it does
+  not expose.
+
+Files
+-----
+- main.py (app_link + PUZZLE_APP_PACKAGES + puzzle_items)
+- templates/index.html ("Open in app" label, both renderers)
+- tests/test_puzzles_fp076.py (https-or-intent assertion)
+- tests/test_puzzle_app_links_fp126.py (7 new tests)
+
+Tests: local targeted 11 passed (4 FP076 + 7 FP126);
+local full 1078 passed / 11 known failures / 2 skipped.

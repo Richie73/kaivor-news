@@ -655,7 +655,7 @@
             </details>
             <p class="article-description">{{ article.description }}</p>
             <div class="btn-group">
-                <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">{% if article.link.startswith("intent://") %}Open in app{% else %}Open in Chrome{% endif %}</a>
                 {% if article_subscription_access(article).supported %}<a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link" title="{{ article_subscription_access(article).label }}">Subscription Reader · {{ article_subscription_access(article).publisher }}</a>{% endif %}
                 {% if article_freedium_access(article).available %}<a href="{{ article_freedium_access(article).url }}" target="_blank" rel="noopener" class="btn-link" title="Open the full article through the Freedium Mirror reader">Unlock via Freedium</a>{% endif %}
                 <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
@@ -1315,7 +1315,7 @@ async function showSaved(element) {
                 </details>
                 <p class="article-description">${escapeHtml(article.description)}</p>
                 <div class="btn-group">
-                    <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">Open in Chrome</a>
+                    <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">${article.link.startsWith("intent://") ? "Open in app" : "Open in Chrome"}</a>
                     ${subscriptionReaderLink(article)}
                     <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
                     <button onclick="triggerWhyMatters(this)">Why it matters</button>
