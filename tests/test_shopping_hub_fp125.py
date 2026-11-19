@@ -662,6 +662,7 @@ def test_shopping_hub_card_markup():
     assert "async function toggleShoppingBought(id, bought, checkbox)" in html
     assert "async function deleteShoppingItem(id, button)" in html
     assert ".shopping-at-target" in html
+    assert ".shopping-link, .shopping-link:visited { color:var(--blue); }" in html
 
 
 def test_shopping_loader_wired():
@@ -697,6 +698,7 @@ def test_shopping_row_html_node():
         + "assert.ok(atTarget.includes('✓ At target'));\n"
         + "assert.ok(atTarget.includes('£46.99'));\n"
         + "assert.ok(atTarget.includes('href=\"https://example.com/s\"'));\n"
+        + "assert.ok(atTarget.includes('class=\"shopping-link\"'));\n"
         + "assert.ok(!atTarget.includes(' checked '));\n"
         + "const above = shoppingRowHtml({id: 2, name: 'Cameras', store: 'Tapo', url: 'https://example.com/t', price: 165.72, target_price: 155.72, price_note: '', notes: 'Code ends 30 Nov', checkable: false, bought: false});\n"
         + "assert.ok(above.includes('Target £155.72'));\n"

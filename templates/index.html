@@ -145,6 +145,7 @@
         .task-done h3 { text-decoration:line-through; color:var(--muted); }
         .task-due-overdue { color:var(--red); }
         .shopping-at-target { color:var(--brand); }
+        .shopping-link, .shopping-link:visited { color:var(--blue); }
         /* FP099: voice input button — red while listening. */
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
@@ -3353,7 +3354,7 @@ function shoppingRowHtml(item) {
     const price = (item.price === null || item.price === undefined || item.price === '') ? null : Number(item.price);
     const target = (item.target_price === null || item.target_price === undefined || item.target_price === '') ? null : Number(item.target_price);
     const name = item.url
-        ? '<a href="' + escapeAttr(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.name) + '</a>'
+        ? '<a class="shopping-link" href="' + escapeAttr(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.name) + '</a>'
         : escapeHtml(item.name);
     const store = item.store ? ' <span style="color:var(--muted);">' + escapeHtml(item.store) + '</span>' : '';
     const box = '<input type="checkbox"' + (item.bought ? ' checked ' : ' ') + 'onclick="toggleShoppingBought(' + item.id + ', this.checked, this)">';

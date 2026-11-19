@@ -1,0 +1,30 @@
+FP125.2 — Shopping links use a readable colour
+================================================
+
+Why
+---
+Richie reported (19 Nov) the blue text on the shopping links
+is really difficult to read. The item-name links were bare
+<a> tags with no class, so they got the browser's default
+link blue — near-unreadable on Kaivor's near-black background
+(and purple once visited).
+
+Changes
+-------
+- The item-name anchor in shoppingRowHtml now carries
+  class="shopping-link".
+- New CSS rule next to .shopping-at-target:
+  .shopping-link, .shopping-link:visited { color:var(--blue); }
+  --blue is the design system's light sky blue (#7dd3fc),
+  high contrast on dark; the :visited half stops visited
+  links going purple. No token values changed.
+- Tests: the node row test asserts class="shopping-link" in
+  the rendered row; the template test asserts the CSS rule.
+
+Files
+-----
+- templates/index.html (CSS rule + anchor class)
+- tests/test_shopping_hub_fp125.py (2 assertions, no new tests)
+
+Tests: local targeted 42 passed; local full 1071 passed /
+11 known failures / 2 skipped.
