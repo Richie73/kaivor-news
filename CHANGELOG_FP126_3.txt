@@ -1,0 +1,51 @@
+FP126.3 — Independent puzzle links to the app's own host
+========================================================
+
+Why
+---
+FP126.2's launch intent failed live too (Richie's screenshot,
+19 Nov 13:12 — same browser outcome). Diagnosis, from two
+independent sources: Chrome adds the BROWSABLE category to
+every intent it fires from a web page, and an app's launcher
+activity has MAIN + LAUNCHER but no BROWSABLE filter — so a
+MAIN/LAUNCHER "just open the app" intent can NEVER resolve
+through Chrome, for any app. The launch approach is dead and
+is removed here.
+
+The real answer came from `pm dump` on Richie's phone. The
+Independent app (Pugpig Bolt) declares exactly these
+BROWSABLE VIEW filters:
+- custom scheme com.freerange360.mpp.indy (no authority)
+- https://app.independent.co.uk (AutoVerify=true, any path)
+- fbconnect (Facebook login, irrelevant)
+It handles NO www.independent.co.uk links. The app host's
+assetlinks file verifies com.freerange360.mpp.indy for all
+paths, so an intent to app.independent.co.uk resolves.
+
+Changes
+-------
+- app_link() gains an optional intent_url: the URL the
+  intent itself targets, while the fallback stays the web
+  URL.
+- New PUZZLE_INTENT_URLS: The Independent targets
+  https://app.independent.co.uk/extras/puzzles. The app
+  routes the path internally; if it does not recognise it,
+  it opens at home — still the app, which is the goal.
+- launch_link() and PUZZLE_LAUNCH_PACKAGES removed.
+  Waffle returns to a VIEW intent (its only chance: a
+  launch intent can never work through Chrome).
+- Tests: launch tests removed; new exact-string test that
+  the Independent intent targets the app host with the www
+  fallback; EXPECTED_APP_LINKS back to all 11.
+
+Files
+-----
+- main.py (app_link intent_url + PUZZLE_INTENT_URLS, launch code removed)
+- tests/test_puzzle_app_links_fp126.py (9 tests)
+
+Tests: local targeted 13 passed (4 FP076 + 9 FP126);
+local full 1080 passed / 11 known failures / 2 skipped.
+
+Phone-side proof still needed: tap the Independent card and
+confirm the app (not the browser) opens. Only his phone
+proves it.

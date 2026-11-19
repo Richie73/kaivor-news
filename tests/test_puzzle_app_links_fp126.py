@@ -1,4 +1,4 @@
-"""FP126/FP126.1/FP126.2: puzzle cards open the puzzle's own Android app.
+"""FP126/FP126.1/FP126.3: puzzle cards open the puzzle's own Android app.
 
 The app link rides in a separate "app_link" field as an Android
 intent URL: the app opens when installed, Chrome falls back to
@@ -7,12 +7,17 @@ FP126 first put the intent URL in "link" itself, but the feed
 quality gate rejects any link whose scheme is not http(s), so
 all 11 app-linked puzzles were dropped from the live feed and
 only Quordle survived. Quordle has no official Android app, so
-it has no app_link at all. FP126.2: the Independent and Waffle
-apps do not handle their own web links, so they get a launch
-intent (app home screen) instead of a VIEW intent.
+it has no app_link at all. FP126.3: the Independent intent
+targets the app's own host (app.independent.co.uk) because the
+app handles no www.independent.co.uk links; the fallback stays
+the www puzzles page. (FP126.2's MAIN/LAUNCHER "launch the
+app" intents are gone: Chrome adds BROWSABLE to every intent
+it fires from a web page, launcher activities have no
+BROWSABLE filter, so they can never resolve — proven live
+19 Nov.)
 """
 
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 import main
 from news_feed_quality import assess_feed
@@ -28,6 +33,10 @@ EXPECTED_APP_LINKS = {
     "The Guardian - Daily Crossword Hub": (
         "com.guardian",
         "https://www.theguardian.com/crosswords",
+    ),
+    "The Independent - Daily Crosswords & Sudoku": (
+        "com.freerange360.mpp.indy",
+        "https://www.independent.co.uk/extras/puzzles",
     ),
     "The New York Times - Mini Crossword": (
         "com.nytimes.crossword",
@@ -57,17 +66,6 @@ EXPECTED_APP_LINKS = {
         "fr.teuteuf.worldle.twa",
         "https://worldle.teuteuf.fr",
     ),
-}
-
-
-EXPECTED_LAUNCH_LINKS = {
-    # title: (package, web URL) — launch intents (FP126.2).
-    # These apps do not handle their own web links, so a VIEW
-    # intent always falls back to the browser.
-    "The Independent - Daily Crosswords & Sudoku": (
-        "com.freerange360.mpp.indy",
-        "https://www.independent.co.uk/extras/puzzles",
-    ),
     "Waffle - Daily Word Game": (
         "net.wafflegame.waffle",
         "https://wafflegame.net",
@@ -75,8 +73,16 @@ EXPECTED_LAUNCH_LINKS = {
 }
 
 
+# FP126.3: the URL the intent itself targets, when it differs
+# from the puzzle's web link (title: intent URL).
+EXPECTED_INTENT_URLS = {
+    "The Independent - Daily Crosswords & Sudoku":
+        "https://app.independent.co.uk/extras/puzzles",
+}
+
+
 def _fallback_of(intent_url):
-    assert intent_url.startswith(("intent://", "intent:#Intent;")), intent_url
+    assert intent_url.startswith("intent://"), intent_url
     fragment = intent_url.split("#Intent;", 1)[1]
     assert fragment.endswith(";end"), intent_url
     parts = dict(
@@ -108,18 +114,6 @@ def test_app_link_fallback_decodes_to_the_web_url():
     assert _fallback_of(main.app_link(url, "com.nytimes.crossword")) == url
 
 
-def test_launch_link_builds_intent():
-    assert main.launch_link(
-        "https://www.independent.co.uk/extras/puzzles",
-        "com.freerange360.mpp.indy",
-    ) == (
-        "intent:#Intent;action=android.intent.action.MAIN;"
-        "category=android.intent.category.LAUNCHER;"
-        "package=com.freerange360.mpp.indy;"
-        "S.browser_fallback_url=https%3A%2F%2Fwww.independent.co.uk%2Fextras%2Fpuzzles;end"
-    )
-
-
 def test_puzzle_app_links():
     by_title = {item["title"]: item for item in main.puzzle_items()}
     assert set(EXPECTED_APP_LINKS).issubset(set(by_title))
@@ -133,19 +127,23 @@ def test_puzzle_app_links():
         assert _fallback_of(app_link) == web_url, title
 
 
-def test_puzzle_launch_links():
+def test_independent_intent_targets_app_host():
+    # FP126.3: the Independent app handles no www links — the
+    # intent must target app.independent.co.uk while the
+    # fallback stays the www puzzles page.
     by_title = {item["title"]: item for item in main.puzzle_items()}
-    assert set(EXPECTED_LAUNCH_LINKS).issubset(set(by_title))
-    for title, (package, web_url) in EXPECTED_LAUNCH_LINKS.items():
-        item = by_title[title]
-        assert item["link"] == web_url, title
-        app_link = item["app_link"]
-        assert app_link.startswith("intent:#Intent;"), title
-        assert "action=android.intent.action.MAIN;" in app_link, title
-        assert "category=android.intent.category.LAUNCHER;" in app_link, title
-        assert "scheme=https" not in app_link, title
-        assert f"package={package};" in app_link, title
-        assert _fallback_of(app_link) == web_url, title
+    item = by_title["The Independent - Daily Crosswords & Sudoku"]
+    assert item["link"] == "https://www.independent.co.uk/extras/puzzles"
+    assert item["app_link"] == (
+        "intent://app.independent.co.uk/extras/puzzles"
+        "#Intent;scheme=https;package=com.freerange360.mpp.indy;"
+        "S.browser_fallback_url=https%3A%2F%2Fwww.independent.co.uk%2Fextras%2Fpuzzles;end"
+    )
+    for title, intent_url in EXPECTED_INTENT_URLS.items():
+        parsed = urlparse(intent_url)
+        assert by_title[title]["app_link"].startswith(
+            f"intent://{parsed.netloc}{parsed.path}"
+        ), title
 
 
 def test_quordle_has_no_app_link():
@@ -165,11 +163,6 @@ def test_puzzle_app_links_survive_dedupe():
         assert item["link"] == web_url, title
         assert item["app_link"].startswith("intent://"), title
         assert f"package={package};" in item["app_link"], title
-    for title, (package, web_url) in EXPECTED_LAUNCH_LINKS.items():
-        item = by_title[title]
-        assert item["link"] == web_url, title
-        assert item["app_link"].startswith("intent:#Intent;"), title
-        assert f"package={package};" in item["app_link"], title
     assert by_title["Quordle - Daily Word Puzzle"]["link"] == "https://www.quordle.com"
     assert not by_title["Quordle - Daily Word Puzzle"].get("app_link")
 
@@ -185,9 +178,6 @@ def test_puzzle_app_links_survive_feed_quality_gate():
     for title, (package, web_url) in EXPECTED_APP_LINKS.items():
         assert by_title[title]["link"] == web_url, title
         assert by_title[title]["app_link"].startswith("intent://"), title
-    for title, (package, web_url) in EXPECTED_LAUNCH_LINKS.items():
-        assert by_title[title]["link"] == web_url, title
-        assert by_title[title]["app_link"].startswith("intent:#Intent;"), title
     assert not by_title["Quordle - Daily Word Puzzle"].get("app_link")
 
 
