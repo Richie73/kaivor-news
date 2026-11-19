@@ -1,0 +1,8 @@
+BUNDLE_MANIFEST_FP125_3.txt — files in this milestone (docs listed separately):
+
+  templates/index.html
+  tests/test_shopping_hub_fp125.py
+
+  CHANGELOG_FP125_3.txt
+  README_INSTALL_FP125_3.txt
+  BUNDLE_MANIFEST_FP125_3.txt

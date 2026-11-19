@@ -1,0 +1,29 @@
+FP125.3 — Shopping items get a proper Delete button
+=====================================================
+
+Why
+---
+Richie could not find the delete control (19 Nov): it was a
+bare ✕ at the end of the small detail line under each item,
+and tapping the checkbox (the bought tick) offered no delete
+option at all.
+
+Changes
+-------
+- The ✕ becomes a real button labelled "Delete"
+  (class="shopping-delete"): red text, bordered, on the
+  detail line under each item where the ✕ was.
+- deleteShoppingItem now asks window.confirm('Delete this
+  item from the watchlist?') first — the button is more
+  prominent now, so a stray tap should not delete an item.
+- Tests: the node row test asserts class="shopping-delete"
+  and >Delete</button> in the rendered row; the template
+  test asserts the CSS rule and the confirm guard.
+
+Files
+-----
+- templates/index.html (CSS rule + button + confirm)
+- tests/test_shopping_hub_fp125.py (4 assertions, no new tests)
+
+Tests: local targeted 42 passed; local full 1071 passed /
+11 known failures / 2 skipped.

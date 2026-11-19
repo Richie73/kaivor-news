@@ -146,6 +146,7 @@
         .task-due-overdue { color:var(--red); }
         .shopping-at-target { color:var(--brand); }
         .shopping-link, .shopping-link:visited { color:var(--blue); }
+        .shopping-delete { background:none; border:1px solid var(--border-strong); color:var(--red); border-radius:var(--radius-sm); padding:2px 8px; font-size:var(--text-sm); }
         /* FP099: voice input button — red while listening. */
         .chat-voice-btn { padding:10px 12px; }
         .chat-voice-btn.listening { background:#7f1d1d; border-color:#ef4444; }
@@ -3374,7 +3375,7 @@ function shoppingRowHtml(item) {
     if (item.notes) {
         detail += (detail ? ' · ' : '') + escapeHtml(item.notes);
     }
-    const del = '<button type="button" onclick="deleteShoppingItem(' + item.id + ', this)">✕</button>';
+    const del = '<button type="button" class="shopping-delete" onclick="deleteShoppingItem(' + item.id + ', this)">Delete</button>';
     return '<div class="hub-market"><span>' + box + ' ' + name + store + '</span><strong>' +
         escapeHtml(formatShoppingPrice(item)) + '</strong></div>' +
         (detail ? '<div class="hub-story">' + detail + ' ' + del + '</div>' : '<div class="hub-story">' + del + '</div>');
@@ -3477,6 +3478,7 @@ async function toggleShoppingBought(id, bought, checkbox) {
 }
 
 async function deleteShoppingItem(id, button) {
+    if (!window.confirm('Delete this item from the watchlist?')) return;
     const status = document.getElementById('shopping-status');
     if (button) button.disabled = true;
     try {
