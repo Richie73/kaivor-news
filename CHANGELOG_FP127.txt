@@ -1,0 +1,48 @@
+FP127 — Football in the morning brief
+====================================
+
+Why
+---
+Richie picked this as the next Kaivor upgrade (19 Nov): the
+06:00 brief lists today's fixtures and last night's scores,
+from the FP110 live scores feed (Premier League + England).
+
+Changes
+-------
+- morning_brief.brief_football_lines(scores, today): pure
+  builder. Live matches first with their clock ("Live 67' —
+  Liverpool 1–0 Man City"), then today's fixtures by kickoff
+  ("Today 17:30 — Arsenal v Chelsea"), then yesterday's
+  finished games ("Last night — Liverpool 2–1 Man City").
+  Kickoffs convert to London time (GMT/BST). Caps: 5
+  fixtures, 4 results. Anything missing, unparseable or
+  outside today/yesterday is skipped; a failed feed returns
+  no lines, never a broken brief.
+- build_morning_brief gains an optional football param;
+  format_brief_text adds a "Football:" section after Tasks,
+  before Travel. The JSON brief carries the same lines.
+- main._build_live_brief fetches get_scores() in try/except
+  (same degrade pattern as tasks) and passes it through.
+
+Honest caveat: ESPN's scoreboard covers the current
+gameweek, so last night's results only appear while the feed
+still carries them. On a weekday morning after a weekend
+round, the results may already have dropped off — the
+section then just shows the coming fixtures, or nothing at
+all when there is no football.
+
+Files
+-----
+- morning_brief.py (brief_football_lines + build param + text section)
+- main.py (_build_live_brief fetches and passes scores)
+- tests/test_football_brief_fp127.py (13 tests)
+
+Tests: local targeted 13 passed; local full 1093 passed /
+11 known failures / 2 skipped.
+
+Phone-side proof: the next weekday 06:00 brief with
+football in it — Fri 20 Nov (Friday fixtures if any, plus
+Thursday night's results) or Mon 23 Nov (Monday fixtures,
+plus Sunday's results if ESPN still carries them). The brief
+runs weekdays only, so Saturday's 7 PL games will not appear
+in a brief themselves.

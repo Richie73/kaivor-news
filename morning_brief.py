@@ -19,7 +19,7 @@ travel reuse the FP103 fetchers and their caches.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
@@ -37,6 +37,8 @@ MAX_BRIEF_CHARS = 3500
 BRIEF_STORY_COUNT = 5
 BRIEF_TITLE_CHARS = 100
 BRIEF_TASK_COUNT = 5
+BRIEF_FOOTBALL_FIXTURES = 5
+BRIEF_FOOTBALL_RESULTS = 4
 
 # WMO weather-code labels, matching the client's WEATHER_CODE_INFO.
 WMO_TEXT = {
@@ -210,6 +212,77 @@ def brief_task_lines(tasks, today):
     return lines
 
 
+def _london_match_time(iso_text):
+    """An ESPN match date (ISO, Z-suffixed) as (date ISO, HH:MM London)."""
+    if not iso_text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(iso_text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    local = parsed.astimezone(LONDON)
+    return local.date().isoformat(), local.strftime("%H:%M")
+
+
+def _short_name(match, side):
+    """Short team name, falling back to the full name."""
+    return (match.get(f"{side}_short") or match.get(side) or "").strip()
+
+
+def brief_football_lines(scores, today):
+    """Today's fixtures + last night's results, as plain lines; [] when none.
+
+    `scores` is the FP110 get_scores() dict (Premier League + England).
+    Live matches come first with their clock, then today's fixtures by
+    kickoff, then yesterday's finished games. ESPN's scoreboard covers
+    the current gameweek, so yesterday's results are only listed while
+    the feed still carries them — their absence just omits the lines.
+    """
+    if not isinstance(scores, dict) or scores.get("status") != "ok":
+        return []
+    try:
+        yesterday = (
+            datetime.fromisoformat(today).date() - timedelta(days=1)
+        ).isoformat()
+    except ValueError:
+        return []
+    matches = list(scores.get("premier_league") or []) + list(scores.get("england") or [])
+    live, fixtures, results = [], [], []
+    for match in matches:
+        parsed = _london_match_time(match.get("date"))
+        if parsed is None:
+            continue
+        match_date, kickoff = parsed
+        home = _short_name(match, "home")
+        away = _short_name(match, "away")
+        if not home or not away:
+            continue
+        state = match.get("state")
+        home_score = match.get("home_score")
+        away_score = match.get("away_score")
+        if state == "in":
+            clock = (match.get("clock") or match.get("detail") or "").strip()
+            if home_score is None or away_score is None:
+                continue
+            label = f"Live {clock} " if clock else "Live "
+            live.append(f"{label}\u2014 {home} {home_score}\u2013{away_score} {away}")
+        elif state == "pre" and match_date == today:
+            fixtures.append((kickoff, f"Today {kickoff} \u2014 {home} v {away}"))
+        elif (
+            state == "post"
+            and match_date == yesterday
+            and home_score is not None
+            and away_score is not None
+        ):
+            results.append(f"Last night \u2014 {home} {home_score}\u2013{away_score} {away}")
+    lines = live
+    lines.extend(line for _, line in sorted(fixtures)[:BRIEF_FOOTBALL_FIXTURES])
+    lines.extend(results[:BRIEF_FOOTBALL_RESULTS])
+    return lines
+
+
 def brief_warning_lines(warnings_result):
     """Met Office warnings covering Puddington, as plain lines."""
     if not isinstance(warnings_result, dict) or warnings_result.get("status") != "ok":
@@ -273,7 +346,7 @@ def brief_travel_lines(travel_result):
     return lines
 
 
-def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather, warnings=None, tasks=None):
+def build_morning_brief(now, articles, finance_data, calendar_result, travel_result, weather, warnings=None, tasks=None, football=None):
     """Assemble the brief dict from already-fetched data (pure)."""
     greeting = brief_greeting(now.hour) + ", Richie"
     date_text = f"{now.strftime('%A')} {now.day} {now.strftime('%B %Y')}"
@@ -288,6 +361,7 @@ def build_morning_brief(now, articles, finance_data, calendar_result, travel_res
         "markets": brief_markets(finance_data),
         "calendar": brief_calendar_lines(calendar_result),
         "tasks": brief_task_lines(tasks, now.date().isoformat()),
+        "football": brief_football_lines(football, now.date().isoformat()),
         "travel": brief_travel_lines(travel_result),
     }
 
@@ -332,6 +406,10 @@ def format_brief_text(brief):
     if tasks:
         parts.append("\nTasks today:")
         parts.extend(f"\u2022 {line}" for line in tasks)
+    football = brief.get("football") or []
+    if football:
+        parts.append("\nFootball:")
+        parts.extend(f"\u2022 {line}" for line in football)
     travel = brief.get("travel") or []
     if travel:
         parts.append("\nTravel:")

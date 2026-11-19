@@ -1812,8 +1812,14 @@ def _build_live_brief():
             tasks = task_store.list_tasks()
         except Exception:
             tasks = []
+    # FP127: football for the brief. Any failure degrades to no
+    # football section, never a failed brief.
+    try:
+        football = get_scores()
+    except Exception:
+        football = None
     return build_morning_brief(
-        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather, warnings_result, tasks
+        datetime.now(LONDON), articles, finance_data, calendar_result, travel_result, weather, warnings_result, tasks, football
     )
 
 
