@@ -30,9 +30,7 @@ def test_every_puzzle_entry_is_complete():
         assert item["source"].strip()
         assert item["published"] == "Daily"
         link = item["link"]
-        # FP126: puzzles with an official app link via an Android
-        # intent URL; the rest keep a plain web link.
-        assert link.startswith("https://") or link.startswith("intent://"), link
+        assert link.startswith("https://"), link
 
 
 def test_puzzle_links_are_unique():

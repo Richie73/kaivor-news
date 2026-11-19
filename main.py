@@ -996,14 +996,17 @@ def puzzle_items():
             "link": "https://wafflegame.net",
         },
     ]
-    # FP126: puzzles with an official app link to it via an
-    # Android intent URL (falls back to the web page when the
-    # app is not installed). Sources without an app keep the
-    # plain web link.
+    # FP126.1: the app link rides in a separate "app_link" field.
+    # FP126 put the intent URL in "link" itself, but the feed
+    # quality gate (news_feed_quality) rejects any link whose
+    # scheme is not http(s) — all 11 app-linked puzzles were
+    # dropped from the live feed and only Quordle survived.
+    # Keeping "link" as the plain web URL passes the gate, and
+    # the card renderers prefer app_link when present.
     for item in items:
         package = PUZZLE_APP_PACKAGES.get(item["source"])
         if package:
-            item["link"] = app_link(item["link"], package)
+            item["app_link"] = app_link(item["link"], package)
     return items
 
 

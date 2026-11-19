@@ -145,6 +145,10 @@ def normalise_article(article: dict[str, Any]) -> dict[str, Any]:
         "feed_url": str(article.get("feed_url") or "").strip(),
         "sport_focus": str(article.get("sport_focus") or "").strip(),
         "link": str(article.get("link") or "#").strip(),
+        # FP126.1: Android intent URL for a puzzle's own app;
+        # empty for everything else. Kept separate from "link"
+        # because the feed quality gate rejects non-http(s) links.
+        "app_link": str(article.get("app_link") or "").strip(),
         "image_url": _clean_image_url(article.get("image_url")),
         "image_illustrative": bool(article.get("image_illustrative", False)),
         "image_credit": str(article.get("image_credit") or "").strip(),

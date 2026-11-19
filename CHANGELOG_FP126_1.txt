@@ -1,0 +1,41 @@
+FP126.1 — Puzzle app links survive the feed quality gate
+==========================================================
+
+Why
+---
+FP126 put the Android intent URL in the puzzle's "link" field.
+Live verification (19 Nov, after the FP126 deploy) found the
+Puzzles section empty except Quordle: the feed quality gate
+(news_feed_quality.article_rejection_reason) rejects any link
+whose scheme is not http(s), so refresh_news dropped all 11
+app-linked puzzles as "invalid_link" before they reached the
+cache. The FP126 tests only covered deduplication, which does
+not run that gate — the gap this milestone closes.
+
+Changes
+-------
+- puzzle_items() keeps "link" as the plain web URL and puts
+  the intent URL in a new "app_link" field (only for puzzles
+  with an official app; Quordle has none).
+- news_store.normalise_article() carries "app_link" through
+  (its fixed key list would otherwise strip it in dedupe).
+- Both card renderers (server Jinja + client JS) prefer
+  app_link for the title link and the button link, and say
+  "Open in app" when app_link is present, "Open in Chrome"
+  otherwise. The Subscription Reader / Freedium links still
+  use the plain web link.
+- Tests: the FP126 file now asserts link-is-web + app_link-is-
+  intent, and adds test_puzzle_app_links_survive_feed_quality_gate
+  (assess_feed accepts all 12). The FP076 https-only assertion
+  is restored.
+
+Files
+-----
+- main.py (app_link field in puzzle_items)
+- news_store.py (normalise_article carries app_link)
+- templates/index.html (both renderers prefer app_link)
+- tests/test_puzzles_fp076.py (https-only assertion restored)
+- tests/test_puzzle_app_links_fp126.py (8 tests)
+
+Tests: local targeted 12 passed (4 FP076 + 8 FP126);
+local full 1079 passed / 11 known failures / 2 skipped.

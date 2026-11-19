@@ -634,7 +634,7 @@
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div></div>
             {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}
-            <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+            <h3><a href="{{ article.app_link or article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
             <div class="published">{{ article.published | display_date }}</div>
             <div class="intel-row">
                 <span class="intel-badge">{{ article.evidence_status }}</span>
@@ -655,7 +655,7 @@
             </details>
             <p class="article-description">{{ article.description }}</p>
             <div class="btn-group">
-                <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link">{% if article.link.startswith("intent://") %}Open in app{% else %}Open in Chrome{% endif %}</a>
+                <a href="{{ article.app_link or article.link }}" target="_blank" rel="noopener" class="btn-link">{% if article.app_link %}Open in app{% else %}Open in Chrome{% endif %}</a>
                 {% if article_subscription_access(article).supported %}<a href="{{ article.link }}" target="_blank" rel="noopener" class="btn-link" title="{{ article_subscription_access(article).label }}">Subscription Reader · {{ article_subscription_access(article).publisher }}</a>{% endif %}
                 {% if article_freedium_access(article).available %}<a href="{{ article_freedium_access(article).url }}" target="_blank" rel="noopener" class="btn-link" title="Open the full article through the Freedium Mirror reader">Unlock via Freedium</a>{% endif %}
                 <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
@@ -1294,7 +1294,7 @@ async function showSaved(element) {
                 <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
                 <div class="source-name">${escapeHtml(article.source)}</div></div>
                 ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">${article.image_illustrative ? `<div class="stock-credit">Illustrative photo${article.image_credit ? ' · ' + escapeHtml(article.image_credit) : ''}</div>` : ''}` : `<div class="card-image card-image-placeholder skeleton" data-stock-headline="${escapeAttr(article.title)}"></div>`}
-                <h3><a href="${escapeAttr(article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
+                <h3><a href="${escapeAttr(article.app_link || article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
                 <div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>
                 <div class="intel-row">
                     <span class="intel-badge">${escapeHtml(article.evidence_status || article.confidence || 'Single-source')}</span>
@@ -1315,7 +1315,7 @@ async function showSaved(element) {
                 </details>
                 <p class="article-description">${escapeHtml(article.description)}</p>
                 <div class="btn-group">
-                    <a href="${escapeAttr(article.link)}" target="_blank" rel="noopener" class="btn-link">${article.link.startsWith("intent://") ? "Open in app" : "Open in Chrome"}</a>
+                    <a href="${escapeAttr(article.app_link || article.link)}" target="_blank" rel="noopener" class="btn-link">${article.app_link ? "Open in app" : "Open in Chrome"}</a>
                     ${subscriptionReaderLink(article)}
                     <button onclick="openManualTextBrief(this)">Summarise pasted text</button>
                     <button onclick="triggerWhyMatters(this)">Why it matters</button>

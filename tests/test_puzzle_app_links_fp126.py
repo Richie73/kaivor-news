@@ -1,18 +1,24 @@
-"""FP126: puzzle cards open the puzzle's own Android app.
+"""FP126/FP126.1: puzzle cards open the puzzle's own Android app.
 
-Puzzle links are Android intent URLs: the app opens when
-installed, Chrome falls back to the web page when it is not.
-Quordle has no official Android app, so it keeps a plain link.
+The app link rides in a separate "app_link" field as an Android
+intent URL: the app opens when installed, Chrome falls back to
+the web page when it is not. "link" stays the plain web URL —
+FP126 first put the intent URL in "link" itself, but the feed
+quality gate rejects any link whose scheme is not http(s), so
+all 11 app-linked puzzles were dropped from the live feed and
+only Quordle survived. Quordle has no official Android app, so
+it has no app_link at all.
 """
 
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote
 
 import main
+from news_feed_quality import assess_feed
 from news_store import deduplicate_articles
 
 
 EXPECTED_APP_LINKS = {
-    # title: (package, original web URL)
+    # title: (package, web URL)
     "The New York Times - Wordle Daily Challenge": (
         "com.nytimes.crossword",
         "https://www.nytimes.com/games/wordle/index.html",
@@ -97,39 +103,59 @@ def test_puzzle_app_links():
     by_title = {item["title"]: item for item in main.puzzle_items()}
     assert set(EXPECTED_APP_LINKS).issubset(set(by_title))
     for title, (package, web_url) in EXPECTED_APP_LINKS.items():
-        link = by_title[title]["link"]
-        assert link.startswith("intent://"), link
-        assert f"package={package};" in link, link
-        assert _fallback_of(link) == web_url, link
+        item = by_title[title]
+        assert item["link"] == web_url, title
+        app_link = item["app_link"]
+        assert app_link.startswith("intent://"), title
+        assert f"package={package};" in app_link, title
+        assert _fallback_of(app_link) == web_url, title
 
 
-def test_quordle_keeps_a_plain_web_link():
+def test_quordle_has_no_app_link():
     by_title = {item["title"]: item for item in main.puzzle_items()}
-    assert by_title["Quordle - Daily Word Puzzle"]["link"] == "https://www.quordle.com"
+    item = by_title["Quordle - Daily Word Puzzle"]
+    assert item["link"] == "https://www.quordle.com"
+    assert not item.get("app_link")
 
 
-def test_puzzle_links_survive_dedupe():
+def test_puzzle_app_links_survive_dedupe():
     items = main.puzzle_items()
     deduped = deduplicate_articles([dict(item) for item in items])
     assert len(deduped) == 12
     by_title = {item["title"]: item for item in deduped}
-    for title, (package, _) in EXPECTED_APP_LINKS.items():
-        assert by_title[title]["link"].startswith("intent://"), title
-        assert f"package={package};" in by_title[title]["link"], title
+    for title, (package, web_url) in EXPECTED_APP_LINKS.items():
+        item = by_title[title]
+        assert item["link"] == web_url, title
+        assert item["app_link"].startswith("intent://"), title
+        assert f"package={package};" in item["app_link"], title
     assert by_title["Quordle - Daily Word Puzzle"]["link"] == "https://www.quordle.com"
+    assert not by_title["Quordle - Daily Word Puzzle"].get("app_link")
 
 
-def test_card_label_prefers_app_for_intent_links():
+def test_puzzle_app_links_survive_feed_quality_gate():
+    # FP126.1 regression test: the gate rejects non-http(s) links,
+    # which is what dropped every app-linked puzzle live. With the
+    # intent URL in app_link and a plain web link, all 12 pass.
+    report = assess_feed([dict(item) for item in main.puzzle_items()])
+    assert report["accepted_count"] == 12
+    assert report["rejected_count"] == 0
+    by_title = {item["title"]: item for item in report["articles"]}
+    for title, (package, web_url) in EXPECTED_APP_LINKS.items():
+        assert by_title[title]["link"] == web_url, title
+        assert by_title[title]["app_link"].startswith("intent://"), title
+    assert not by_title["Quordle - Daily Word Puzzle"].get("app_link")
+
+
+def test_card_links_prefer_app_link():
     from pathlib import Path
 
     html = (
         Path(__file__).resolve().parent.parent / "templates" / "index.html"
     ).read_text()
+    assert '<a href="{{ article.app_link or article.link }}"' in html
     assert (
-        '{% if article.link.startswith("intent://") %}Open in app{% else %}Open in Chrome{% endif %}'
+        '{% if article.app_link %}Open in app{% else %}Open in Chrome{% endif %}'
         in html
     )
-    assert (
-        '${article.link.startsWith("intent://") ? "Open in app" : "Open in Chrome"}'
-        in html
-    )
+    assert '<a href="${escapeAttr(article.app_link || article.link)}"' in html
+    assert '${article.app_link ? "Open in app" : "Open in Chrome"}' in html
