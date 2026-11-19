@@ -1,0 +1,49 @@
+FP126.2 — Independent and Waffle puzzles launch their apps
+===========================================================
+
+Why
+---
+Richie reported (19 Nov, screenshot) that the Independent card
+opened the puzzles page in the browser even though the app is
+installed. Diagnosis: the Independent app claims no
+independent.co.uk links at all — its assetlinks file lists
+only uk.co.independent.bulletin for /bulletin/* — so a VIEW
+intent for /extras/puzzles can never resolve and Chrome always
+uses the browser fallback. The package name was verified
+correct (com.freerange360.mpp.indy, live Play Store listing,
+updated Sep 2026); the app itself is the blocker, not the link.
+
+The same assetlinks check covered every other puzzle app:
+Guardian, NYT Games, Nerdle, Sudoku.com, Lichess and Worldle
+all verify their domains for all paths, so their VIEW intents
+stand. Waffle is the other exception: assetlinks verifies
+net.wafflegame.twa, not the Play Store app
+(net.wafflegame.waffle), so its VIEW intent is unreliable —
+and the app opens straight into the game anyway, so launching
+it loses nothing.
+
+Changes
+-------
+- New main.launch_link(web_url, package): an intent that opens
+  an app's home screen (action MAIN + category LAUNCHER, no
+  URL data), with the same browser fallback when the app is
+  missing.
+- New PUZZLE_LAUNCH_PACKAGES map: The Independent and Waffle.
+  puzzle_items() gives them a launch intent; the other six
+  sources keep VIEW intents.
+- Tests: the FP126 file splits its expectations into VIEW and
+  launch maps, adds an exact-string launch test and a launch
+  test per puzzle, and the dedupe/feed-gate survival tests
+  cover both kinds.
+
+Files
+-----
+- main.py (launch_link + PUZZLE_LAUNCH_PACKAGES + puzzle_items)
+- tests/test_puzzle_app_links_fp126.py (10 tests)
+
+Tests: local targeted 14 passed (4 FP076 + 10 FP126);
+local full 1081 passed / 11 known failures / 2 skipped.
+
+Phone-side proof still needed: tap the Independent card and
+confirm the app (not the browser) opens. The launch intent
+cannot be verified from the server — only his phone proves it.

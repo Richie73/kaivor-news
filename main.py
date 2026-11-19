@@ -869,6 +869,8 @@ def app_link(web_url, package):
     Tapping it opens `package` when installed; Chrome falls back
     to the web URL otherwise (S.browser_fallback_url), so a
     missing app degrades to the old web link instead of an error.
+    Only works when the app handles the page's URL — see
+    launch_link for apps that do not.
     """
     parsed = urlparse(web_url)
     path = parsed.path or "/"
@@ -880,19 +882,52 @@ def app_link(web_url, package):
     )
 
 
+def launch_link(web_url, package):
+    """Build an Android intent URL that just opens an app (FP126.2).
+
+    For apps that do not handle their own web links at all (the
+    Independent app claims no independent.co.uk links — its
+    assetlinks file lists only uk.co.independent.bulletin for
+    /bulletin/* — so a VIEW intent can never resolve and always
+    falls back to the browser). Opens the app's home screen;
+    Chrome falls back to the web URL when the app is missing.
+    """
+    fallback = quote(web_url, safe="")
+    return (
+        "intent:#Intent;action=android.intent.action.MAIN;"
+        "category=android.intent.category.LAUNCHER;"
+        f"package={package};S.browser_fallback_url={fallback};end"
+    )
+
+
 # FP126: official Android app per puzzle source (package names
-# verified against Google Play, 19 Nov 2026). Quordle is
-# deliberately absent: Merriam-Webster has no official Quordle
-# app (web-only) and the Play Store results are copycats, so
-# Quordle keeps its plain web link.
+# verified against Google Play, 19 Nov 2026). These apps claim
+# their domains in assetlinks (all paths), so a VIEW intent
+# lands on the puzzle itself.
 PUZZLE_APP_PACKAGES = {
     "The New York Times": "com.nytimes.crossword",
     "The Guardian": "com.guardian",
-    "The Independent": "com.freerange360.mpp.indy",
     "Nerdle": "com.nerdle.app",
     "Sudoku.com": "com.easybrain.sudoku.android",
     "Lichess": "org.lichess.mobileV2",
     "Worldle": "fr.teuteuf.worldle.twa",
+}
+
+
+# FP126.2: apps that do NOT handle their own web links, so a VIEW
+# intent can never resolve and always falls back to the browser.
+# These get a launch intent (app home screen) instead.
+# - The Independent: assetlinks lists only
+#   uk.co.independent.bulletin for /bulletin/* — the main app
+#   (com.freerange360.mpp.indy) claims no independent.co.uk
+#   links at all. Proven live 19 Nov: the card opened the
+#   puzzles page in the browser with the app installed.
+# - Waffle: assetlinks verifies net.wafflegame.twa, not the
+#   Play Store app (net.wafflegame.waffle), so the VIEW intent
+#   is unreliable; the app opens straight into the game anyway,
+#   so launching it loses nothing.
+PUZZLE_LAUNCH_PACKAGES = {
+    "The Independent": "com.freerange360.mpp.indy",
     "Waffle": "net.wafflegame.waffle",
 }
 
@@ -1003,10 +1038,18 @@ def puzzle_items():
     # dropped from the live feed and only Quordle survived.
     # Keeping "link" as the plain web URL passes the gate, and
     # the card renderers prefer app_link when present.
+    # FP126.2: sources in PUZZLE_LAUNCH_PACKAGES get a launch
+    # intent (their apps do not handle web links); the rest get
+    # a VIEW intent to the puzzle page. Quordle has no official
+    # app, so it keeps its plain web link.
     for item in items:
-        package = PUZZLE_APP_PACKAGES.get(item["source"])
-        if package:
-            item["app_link"] = app_link(item["link"], package)
+        source = item["source"]
+        if source in PUZZLE_LAUNCH_PACKAGES:
+            item["app_link"] = launch_link(
+                item["link"], PUZZLE_LAUNCH_PACKAGES[source]
+            )
+        elif source in PUZZLE_APP_PACKAGES:
+            item["app_link"] = app_link(item["link"], PUZZLE_APP_PACKAGES[source])
     return items
 
 
