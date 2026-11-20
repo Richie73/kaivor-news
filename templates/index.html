@@ -633,7 +633,7 @@
             <div class="card-source"><span class="source-tag">{{ article.category }}</span>
             <span class="intel-badge provider-badge">{{ article_provider_label(article) }}</span>
             <div class="source-name">{{ article.source }}</div></div>
-            {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}
+            {% if article.image_url %}<img class="card-image" src="{{ article.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">{% elif article.category != 'Puzzles' %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}
             <h3><a href="{{ article.app_link or article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
             <div class="published">{{ article.published | display_date }}</div>
             <div class="intel-row">
@@ -1293,7 +1293,7 @@ async function showSaved(element) {
                 <div class="card-source"><span class="source-tag">${escapeHtml(article.category)}</span>
                 <span class="intel-badge provider-badge">${escapeHtml(article.provider || "Other")}</span>
                 <div class="source-name">${escapeHtml(article.source)}</div></div>
-                ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">${article.image_illustrative ? `<div class="stock-credit">Illustrative photo${article.image_credit ? ' · ' + escapeHtml(article.image_credit) : ''}</div>` : ''}` : `<div class="card-image card-image-placeholder skeleton" data-stock-headline="${escapeAttr(article.title)}"></div>`}
+                ${article.image_url ? `<img class="card-image" src="${escapeAttr(article.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">${article.image_illustrative ? `<div class="stock-credit">Illustrative photo${article.image_credit ? ' · ' + escapeHtml(article.image_credit) : ''}</div>` : ''}` : article.category === 'Puzzles' ? '' : `<div class="card-image card-image-placeholder skeleton" data-stock-headline="${escapeAttr(article.title)}"></div>`}
                 <h3><a href="${escapeAttr(article.app_link || article.link)}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a></h3>
                 <div class="published" data-published="${escapeHtml(article.published)}">${escapeHtml(formatDisplayDate(article.published))}</div>
                 <div class="intel-row">

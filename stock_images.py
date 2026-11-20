@@ -165,6 +165,13 @@ _LICENSE_LABELS = {
     "pdm": "Public Domain",
 }
 
+# Categories that never get a stock photo (FP128): puzzle cards are
+# links to puzzle apps, not stories — a guessed photo can only
+# misfire (20 Nov 2026: a water-park "challenge" photo on the
+# Wordle card, matched on the word "Challenge" alone, because
+# "Puzzles" is ungated and one keyword hit passes).
+_NO_STOCK_CATEGORIES = frozenset({"puzzles"})
+
 # Normalised query -> (result dict or None, timestamp). Positive
 # results live for the life of the process; failures are retried
 # after _STOCK_FAILURE_TTL_SECONDS.
@@ -394,6 +401,8 @@ def get_stock_image(headline, category=None):
     "black") drove the FP089.2 mismatches by fetching and matching
     unrelated photos.
     """
+    if (category or "").strip().lower() in _NO_STOCK_CATEGORIES:
+        return None
     words = keywords_from_headline(headline)
     distinctive = _distinctive_words(words)
     if not distinctive:

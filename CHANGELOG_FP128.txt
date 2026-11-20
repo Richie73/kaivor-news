@@ -1,0 +1,41 @@
+FP128 — No stock photos on puzzle cards
+=====================================
+
+Why
+---
+20 Nov 2026: the Wordle card showed a water-park photo of kids on
+inflatable toys (Eva Rinaldi · CC BY-SA 2.0). The FP089 fallback
+guessed wrong: for the title "The New York Times - Wordle Daily
+Challenge" the single-word fallback query is "Challenge" (the
+longest distinctive word), Openverse returns challenge-tagged
+photos, and "Puzzles" is ungated so one keyword hit passes.
+
+Puzzle cards are links to puzzle apps, not stories — a guessed
+photo can only misfire, so they get no stock photos at all.
+
+Changes
+-------
+- stock_images.py: _NO_STOCK_CATEGORIES = {"puzzles"};
+  get_stock_image returns None for the category before any
+  lookup (case-insensitive). News categories are unaffected.
+- templates/index.html, both card renderers: the Jinja card
+  uses {% elif article.category != 'Puzzles' %} instead of a
+  plain {% else %} for the placeholder; the JS card renders ''
+  for Puzzles instead of the placeholder div.
+- tests/test_stock_images_fp089.py: test_placeholder_in_jinja_card
+  updated to the new elif string (same milestone, exact-rule
+  assertion).
+
+Files
+-----
+- stock_images.py
+- templates/index.html
+- tests/test_stock_images_fp089.py (one assertion updated)
+- tests/test_puzzle_no_stock_photo_fp128.py (7 tests)
+
+Tests: local targeted 7 passed; local full 1100 passed /
+11 known failures / 2 skipped.
+
+Phone-side proof: open the Puzzles view — the Wordle card
+(and every other puzzle card) shows no photo at all, just
+the title, description and Open in app button.

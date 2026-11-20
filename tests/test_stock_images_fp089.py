@@ -568,7 +568,9 @@ def test_normalise_drops_null_description():
 
 def test_placeholder_in_jinja_card():
     html = template_text()
-    assert '{% else %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}' in html
+    # FP128: puzzle cards get no placeholder (no stock photos for
+    # puzzles) — the elif guard replaces the plain else.
+    assert '{% elif article.category != \'Puzzles\' %}<div class="card-image card-image-placeholder skeleton" data-stock-headline="{{ article.title }}"></div>{% endif %}' in html
     assert ".card-image-placeholder { cursor:default; }" in html
     assert ".stock-credit { font-size:var(--text-xs); color:var(--faint); margin:-4px 0 8px; }" in html
 
